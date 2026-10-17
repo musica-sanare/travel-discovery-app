@@ -1,96 +1,86 @@
-/* Minimal placeholder styles; the design system is introduced in Phase 3. */
-:root {
-  color-scheme: light dark;
-  --color-bg: #ffffff;
-  --color-fg: #1a1a1a;
-  --color-muted: #555555;
-  --color-accent: #0b5cad;
-  font-family:
-    system-ui,
-    -apple-system,
-    "Segoe UI",
-    "Hiragino Sans",
-    "Noto Sans JP",
+/*
+ * Public SPA styles: Tailwind CSS 4 utilities plus a small set of design
+ * tokens (docs/DECISIONS.md ADR-014). Colors switch with the system color
+ * scheme; motion is limited to short CSS transitions disabled under
+ * prefers-reduced-motion.
+ */
+@import "tailwindcss" source(".");
+
+@theme {
+  --font-sans:
+    system-ui, -apple-system, "Segoe UI", "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Noto Sans JP", "Noto Sans",
     sans-serif;
-  line-height: 1.6;
+
+  --color-canvas: #f6f7f9;
+  --color-surface: #ffffff;
+  --color-ink: #16191d;
+  --color-muted: #545b66;
+  --color-line: #d9dde3;
+  --color-accent: #0b5cad;
+  --color-accent-ink: #ffffff;
+  --color-accent-soft: #e6f0fa;
+  --color-warn-soft: #fff4e0;
+  --color-warn-ink: #6b4400;
+
+  --animate-enter: enter 180ms ease-out;
+
+  @keyframes enter {
+    from {
+      opacity: 0;
+      transform: translateY(6px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --color-bg: #121417;
-    --color-fg: #eceff3;
+    --color-canvas: #0f1114;
+    --color-surface: #181b20;
+    --color-ink: #eceff3;
     --color-muted: #a7adb5;
+    --color-line: #2c3138;
     --color-accent: #7cb8ff;
+    --color-accent-ink: #0b1a2b;
+    --color-accent-soft: #15283d;
+    --color-warn-soft: #33270f;
+    --color-warn-ink: #f5d38f;
   }
 }
 
-*,
-*::before,
-*::after {
-  box-sizing: border-box;
+@layer base {
+  :root {
+    color-scheme: light dark;
+  }
+
+  body {
+    @apply bg-canvas font-sans text-ink antialiased;
+    line-height: 1.6;
+  }
+
+  a {
+    @apply text-accent underline-offset-2 hover:underline;
+  }
+
+  :focus-visible {
+    outline: 3px solid var(--color-accent);
+    outline-offset: 2px;
+  }
+
+  input[type="checkbox"],
+  input[type="radio"] {
+    accent-color: var(--color-accent);
+  }
 }
 
-body {
-  margin: 0;
-  background: var(--color-bg);
-  color: var(--color-fg);
-}
-
-a {
-  color: var(--color-accent);
-}
-
-:focus-visible {
-  outline: 3px solid var(--color-accent);
-  outline-offset: 2px;
-}
-
-.site-header {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.75rem;
-  align-items: center;
-  justify-content: space-between;
-  padding: 1rem;
-  border-bottom: 1px solid color-mix(in srgb, var(--color-fg) 15%, transparent);
-}
-
-.site-name {
-  font-weight: 700;
-  text-decoration: none;
-}
-
-.language-switcher {
-  display: flex;
-  gap: 0.5rem;
-  align-items: center;
-}
-
-.site-main {
-  max-width: 48rem;
-  margin: 0 auto;
-  padding: 2rem 1rem;
-}
-
-.notice {
-  color: var(--color-muted);
-}
-
-/* Functional Phase 3a layout; the visual design follows in Phase 3b. */
-.choice {
-  display: flex;
-  gap: 0.5rem;
-  align-items: center;
-  padding: 0.25rem 0;
-}
-
-.actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-  margin-top: 1rem;
-}
-
-fieldset {
-  margin: 1rem 0;
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
 }

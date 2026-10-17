@@ -197,10 +197,13 @@ Notes:
 - Rationale: npm ships with Node, needs no extra install, and is what Cloudflare's guides show first. TypeScript 7 is postponed until `typescript-eslint` supports it.
 - No `deploy` script is defined, to avoid accidental deployment. Deployment commands will be added in Phase 5/6 with approval.
 
-## ADR-014: UI styling stack timing
-- Status: Proposed
-- Decision: Tailwind CSS, shadcn/ui, and Motion are deferred to Phase 3. Phase 0 uses a small hand-written stylesheet with visible focus styles and light/dark colors.
-- Needs verification in Phase 3: shadcn/ui compatibility with Tailwind 4.3, React 19.3, and Vite 8.
+## ADR-014: UI styling stack
+- Status: **Accepted** (Phase 3b, 2026-10-17; owner approved Tailwind after a compatibility check and asked to hold Motion and decide shadcn/ui by need)
+- Decision: Tailwind CSS 4 (`tailwindcss` and `@tailwindcss/vite` 4.3.3, dev dependencies) for the public SPA only. The admin SPA keeps its hand-written stylesheet. Design tokens (colors, font stack, one enter animation) are CSS variables in `src/styles.css` `@theme`; dark colors switch with `prefers-color-scheme`. Shared class strings live in `src/components/classes.ts`.
+  - *Verified* (2026-10-17): the official Vite guide installs `tailwindcss` and `@tailwindcss/vite`, adds `tailwindcss()` to the Vite plugins, and uses `@import "tailwindcss"` (https://tailwindcss.com/docs/installation/using-vite). `@tailwindcss/vite` 4.3.3 (released 2026-07-16) declares `vite: ^5.2.0 || ^6 || ^7 || ^8`. Installing it added no packages with install scripts under `strict-allow-scripts` (ADR-016); native binaries come from platform optional dependencies.
+  - Tailwind generates one static CSS file at build time, so the strict CSP (`style-src 'self'`, ADR-017) is unchanged. React sets the two dynamic widths (progress and fit bars) through the CSSOM, which CSP does not block (checked in the browser with `vite preview`).
+- shadcn/ui: **not adopted**. The public UI needs buttons, form fields, choice lists, a progress bar, and disclosure sections; native elements (`button`, `input`, `fieldset`, `details`) cover these accessibly without Radix dependencies. Revisit if a complex widget (dialog, combobox) becomes necessary.
+- Motion: **not adopted**. Question transitions use a 180 ms CSS animation (`motion-safe:animate-enter`) that never blocks input; all animations and transitions are reduced to near zero under `prefers-reduced-motion`. Revisit only for a concrete need CSS cannot meet.
 
 ## ADR-015: Start on Workers Free and fail gracefully at limits
 - Status: **Accepted by the owner (2026-10-17)**
@@ -343,6 +346,12 @@ Notes:
 - Locale preference: not part of the URL. On load: a stored preference (`localStorage` key `travel-discovery.locale`) if it is a supported locale; otherwise the first supported primary language in `navigator.languages` (for example `es-MX` → `es`); otherwise `ja`. Changing the language stores the choice. Only this UI preference is stored; storage errors (private mode, disabled storage) are ignored. Invalid stored values are ignored. Content fallback follows ADR-012; UI strings are complete in every locale (compile-time check). Changing the language during a quiz reloads the content snapshot in the new locale and keeps the answers, which are keyed by stable slugs.
 - Quiz state: in memory only (React state). A reload restarts the quiz. Nothing is written to `localStorage`, `sessionStorage`, cookies, or the server. Changing an earlier answer discards the later answers, because later questions depend on earlier answers (`docs/DIAGNOSTIC_ALGORITHM.md` §7). Restart draws a new seed with `crypto.getRandomValues`.
 - AI toggle (Phase 3): visible, default OFF, stored only in the in-memory quiz state. No AI endpoint exists yet; when ON, the results page shows the "AI assistance unavailable" notice and the deterministic explanation.
+
+## ADR-023: Lightweight validation in the public bundle (`zod/mini`)
+- Status: **Accepted** (Phase 3b)
+- Decision: Schemas bundled into the public SPA (`shared/diagnosis-content.ts`, `shared/quiz-settings.ts`) use `zod/mini` (same `zod` 4.6 package, functional API). Server-only schemas keep the regular `zod` API; regular schemas may embed `zod/mini` schemas (both are built on Zod's core), which the admin settings tests cover.
+- Measured public JS bundle (gzip): 116.4 kB before Phase 3a, 150.3 kB with regular `zod` in the client, 132.7 kB with `zod/mini`.
+- Alternative: a hand-written validator (smaller, but duplicates the contract and loses shared types).
 
 ---
 

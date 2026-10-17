@@ -77,7 +77,7 @@ describe("public Worker boundary", () => {
   });
 
   it("uses only expected packages", () => {
-    expect(graph.packages).toEqual(["drizzle-orm", "drizzle-orm/d1", "drizzle-orm/sqlite-core", "hono", "zod"]);
+    expect(graph.packages).toEqual(["drizzle-orm", "drizzle-orm/d1", "drizzle-orm/sqlite-core", "hono", "zod", "zod/mini"]);
   });
 });
 

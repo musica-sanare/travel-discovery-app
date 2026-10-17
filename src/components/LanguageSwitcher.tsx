@@ -17,9 +17,16 @@ export function LanguageSwitcher() {
   };
 
   return (
-    <div className="language-switcher">
-      <label htmlFor={selectId}>{t("language.label")}</label>
-      <select id={selectId} value={current} onChange={handleChange}>
+    <div className="flex items-center gap-2 text-sm">
+      <label htmlFor={selectId} className="text-muted">
+        {t("language.label")}
+      </label>
+      <select
+        id={selectId}
+        value={current}
+        onChange={handleChange}
+        className="min-h-10 rounded-lg border border-line bg-surface px-2 py-1 text-ink"
+      >
         {SUPPORTED_LOCALES.map((locale) => (
           <option key={locale} value={locale} lang={locale}>
             {t(`language.names.${locale}`)}

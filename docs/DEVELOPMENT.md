@@ -110,6 +110,10 @@ curl "http://localhost:5173/api/destinations?locale=en"
 2. Add the same key to `en.ts` and `es.ts`. The type checker fails until all three match.
 3. Use `t("your.key")` from `useTranslation()`; never hard-code UI strings in components.
 
+## Accessibility checks
+
+`src/app/accessibility.test.tsx` runs axe-core (dev dependency) on every public page state in ja/en/es, including validation errors, the error state, and expanded result details. jsdom cannot compute colors, so `color-contrast` is disabled there; check contrast in a real browser (light and dark color schemes) when changing colors. Keyboard behavior and screen-reader output still need manual checks.
+
 ## Environment variables
 - Local: `.dev.vars` (see "Admin locally"). `.env.example` lists all variables.
 - Deployed admin Worker (set only after the owner approves the Access setup): `ACCESS_TEAM_DOMAIN`, `ACCESS_POLICY_AUD`. Without them every admin API request is rejected with 403.
