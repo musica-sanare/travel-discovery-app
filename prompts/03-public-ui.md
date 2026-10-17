@@ -18,7 +18,7 @@ Read the spec and domain algorithm docs. Implement the public-facing experience 
 
 ## UX requirements
 - Modern, polished, responsive design with restrained Motion animations.
-- Japanese UI for MVP.
+- Japanese, English, and Spanish UI for MVP, with Japanese as the default locale.
 - Accessible labels, keyboard operation, visible focus, semantic HTML, reduced-motion support.
 - Handle loading, empty, invalid, network-error, and retry states.
 - Make question transitions lively but never delay interaction.

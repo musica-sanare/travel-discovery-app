@@ -62,14 +62,37 @@ Before choosing framework/plugin versions or Cloudflare/AI capabilities, verify 
   - changed files
   - decisions made
   - commands/tests run and results
-  - known limitations / `要確認`
+  - known limitations / `要確認` (open items that need the owner's confirmation)
   - next recommended phase
 - Do not proceed to the next phase until the current phase's acceptance criteria pass.
 - If an architectural decision would materially change cost, security, deployment, or data model, stop and ask before proceeding.
 
-## Git hygiene
+## Git and Commit Conventions
+
+### Approval and repository hygiene
 - Repository is initially private.
+- Never commit, stage for commit, push, or deploy without explicit approval from the project owner. Approval applies only to the specific commit or action that was reviewed.
 - Never commit secrets, `.env` files, personal data, real API tokens, or generated credentials.
 - Include `.env.example` with placeholders only.
-- Use focused commits with clear messages if asked to commit. Do not rewrite or delete history unless explicitly instructed.
+- Keep commits focused. Do not rewrite or delete history unless explicitly instructed.
+- Before proposing a commit, review the full working-tree diff and the complete list of files to be committed (including new, untracked files), and confirm that no secrets, generated files, or unrelated changes are included. Staging happens only as part of an approved commit.
 - Before any public release, inspect the complete repository history and scan for secrets.
+
+### Commit message format
+- Write commit messages in English.
+- Subject line: a Conventional Commits prefix (`feat:`, `fix:`, `docs:`, `test:`, `refactor:`, `chore:`, etc.) followed by a concise summary in the imperative mood, preferably 50 characters or fewer in total (e.g. `feat: add localized error boundary`).
+- Body: always contains these three sections, in this order:
+  1. `Change:` what changed.
+  2. `Reason:` why the change was necessary or what problem it addresses.
+  3. `Handoff:` follow-up work, unresolved issues, known limitations, or other information the next contributor needs. Write `None.` when there is nothing to hand off.
+- Keep each section concise: enough to understand what changed, why, and what comes next, without reopening the original conversation.
+
+### Referencing documentation instead of duplicating it
+- When details are already recorded in documentation, ADRs, or source code, do not repeat them in the commit message. Point to where they are recorded instead: the file path plus the heading, section, or ADR number (e.g. `docs/DECISIONS.md` ADR-016, `docs/ARCHITECTURE.md` "4. Admin authentication").
+- Only reference files and headings that exist in the commit being made and actually contain the information.
+- Information that is not documented elsewhere, or a caution that is essential for the next piece of work, may be written in the commit message as needed.
+- References support the message; they do not replace it. The message alone must still convey the summary of the change and its reason.
+
+### Proposing a commit
+- Show the complete commit message (subject and full body following the rules above), not only the subject line, together with the list of files to be committed.
+- Wait for the owner's explicit approval before staging, committing, or pushing.

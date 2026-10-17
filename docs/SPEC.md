@@ -200,5 +200,6 @@ Admin requirements:
 8. Admin can edit and publish questions and destinations without code changes.
 9. Unauthenticated users cannot perform admin API operations.
 10. Migrations and seed data work from a clean local database.
-11. Language switching works across public/admin UI and seeded content; missing translations follow the documented fallback policy.\n12. Lint, type-check, unit tests, E2E tests, and production build pass.
+11. Language switching works across public/admin UI and seeded content; missing translations follow the documented fallback policy.
+12. Lint, type-check, unit tests, E2E tests, and production build pass.
 13. Deployment can be repeated from documented instructions without committing secrets.

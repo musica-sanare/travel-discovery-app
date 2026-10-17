@@ -1,0 +1,14 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "travel-discovery",
+  "main": "./worker/index.ts",
+  "compatibility_date": "2026-10-12",
+  "upload_source_maps": true,
+  // Version URLs are public when enabled; keep them off unless explicitly
+  // needed and protected (see docs/DECISIONS.md, ADR-004).
+  "preview_urls": false,
+  "assets": {
+    "not_found_handling": "single-page-application",
+    "run_worker_first": ["/api/*"]
+  }
+}

@@ -5,7 +5,8 @@ Read `CLAUDE.md`, `docs/SPEC.md`, `docs/ARCHITECTURE.md`, `docs/DATA_MODEL.md`, 
 We are building an overseas destination recommendation app with Japanese, English, and Spanish UI (`ja`, `en`, `es`), defaulting to Japanese.
 
 Language policy: communicate with the owner in Japanese at all times; write all repository documentation, source comments, and docstrings in English. Follow the docs as the baseline. The key product decisions are:
-- City/region-level recommendations linked to countries.\n- The application supports Japanese, English, and Spanish from MVP, with a visible language switcher and curated localized content.
+- City/region-level recommendations linked to countries.
+- The application supports Japanese, English, and Spanish from MVP, with a visible language switcher and curated localized content.
 - Database-backed questions and destination content, editable through a protected admin UI.
 - Adaptive quiz, target 10 questions (default min 6 / max 12).
 - Deterministic ranking; AI does not select or rank destinations.

@@ -1,11 +1,25 @@
 # Implementation Plan
 
+Each phase is started with the matching prompt file:
+
+| Phase | Prompt file(s) |
+|---|---|
+| 0 — Architecture verification and bootstrap | `prompts/00-bootstrap.md` |
+| 1 — Database and admin access | `prompts/01-foundation.md` |
+| 2 — Deterministic diagnostic engine | `prompts/02-diagnostic-engine.md` |
+| 3 — Public UI, localization, and outbound search | `prompts/03-public-ui.md` |
+| 4 — Optional AI assistance | `prompts/04-ai-assist.md` |
+| 5 — Quality and release | `prompts/05-polish-and-e2e.md`, then `prompts/06-release.md` |
+
+`prompts/FIRST_MESSAGE.md` is the kickoff message for a new Claude Code session.
+
 ## Phase 0 — Architecture verification and bootstrap
 - Inspect repository and existing files.
 - Verify current official Cloudflare docs for React/Vite/Workers, D1, AI, and Access.
 - Verify current compatibility for framework/tool versions and package manager.
 - Write `docs/DECISIONS.md` with choices, rationale, alternatives, and unresolved questions.
-- Choose and configure the i18n library; scaffold locale resources for `ja`, `en`, and `es`.\n- Scaffold minimal app and local dev scripts.
+- Choose and configure the i18n library; scaffold locale resources for `ja`, `en`, and `es`.
+- Scaffold minimal app and local dev scripts.
 - Ensure local app starts and production build works.
 
 Acceptance:
@@ -15,9 +29,10 @@ Acceptance:
 - No production resource created without approval.
 
 ## Phase 1 — Database and admin access
-- Define schema and migrations.
+- Define schema and migrations, including `ja`/`en`/`es` translation tables (see `docs/DATA_MODEL.md`).
 - Create local D1 config and seed workflow.
-- Implement admin access protection for UI and APIs.
+- Map platform quota/limit errors (e.g. D1 daily limits on Workers Free) to a generic, localized "temporarily unavailable" response.
+- Create the separate admin Worker and implement admin access protection for its UI and APIs (Worker-level Access + in-Worker JWT validation; ADR-004). Keep the public Worker read-only (ADR-018).
 - Implement question/destination/category/attribute CRUD.
 - Validate payloads server-side.
 - Test unauthorized access to every admin API endpoint.
@@ -40,12 +55,15 @@ Acceptance:
 - AI is not imported or required by the domain module.
 
 ## Phase 3 — Public UI, localization, and outbound search
-- Build landing page, trip constraints, quiz, progress, back/edit/restart, results, and destination details.\n- Implement the language switcher and localize all public/admin UI strings and seed content in Japanese, English, and Spanish.
+- Build landing page, trip constraints, quiz, progress, back/edit/restart, results, and destination details.
+- Implement the language switcher and localize all public/admin UI strings and seed content in Japanese, English, and Spanish.
 - Add responsive design, keyboard accessibility, reduced-motion behavior, and loading/error states.
 - Add safe outbound flight/hotel search links using verified URL patterns.
 - Add clear labels that external sites open separately and prices are not live.
 
-Acceptance:\n- End-to-end main flow works on mobile and desktop viewport sizes.\n- Language switching works throughout public and admin UI, with correct document language metadata and documented missing-translation behavior.
+Acceptance:
+- End-to-end main flow works on mobile and desktop viewport sizes.
+- Language switching works throughout public and admin UI, with correct document language metadata and documented missing-translation behavior.
 - Keyboard navigation is usable.
 - Search links preserve only supported/validated parameters.
 
