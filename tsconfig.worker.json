@@ -3,7 +3,8 @@
   "compilerOptions": {
     "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.worker.tsbuildinfo",
     "lib": ["ES2023"],
-    "types": ["@cloudflare/workers-types"]
+    "types": ["@cloudflare/workers-types", "vite/client"]
   },
-  "include": ["worker"]
+  "include": ["worker", "admin-worker", "server", "shared"],
+  "exclude": ["**/*.test.ts"]
 }

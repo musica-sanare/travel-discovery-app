@@ -19,3 +19,14 @@ export const FALLBACK_LOCALES = {
 export function isLocale(value: unknown): value is Locale {
   return typeof value === "string" && (SUPPORTED_LOCALES as readonly string[]).includes(value);
 }
+
+/** The requested locale followed by its fallbacks, in lookup order. */
+export function localeLookupOrder(locale: Locale): readonly Locale[] {
+  return [locale, ...FALLBACK_LOCALES[locale]];
+}
+
+/**
+ * Locales that guarantee every lookup chain resolves: each chain contains
+ * `ja` or `en`, so content with either translation is readable in all locales.
+ */
+export const PUBLISHABLE_BASE_LOCALES: readonly Locale[] = ["ja", "en"];

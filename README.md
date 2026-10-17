@@ -2,12 +2,13 @@
 
 Travel Discovery is a responsive web app that recommends overseas city/region-level destinations based on a user's travel preferences and constraints. The UI supports Japanese, English, and Spanish.
 
-Status: early development (Phase 0 complete). See `docs/IMPLEMENTATION_PLAN.md` for the phase plan. The full README (deployment, admin setup) is completed in Phase 5.
+Status: early development (Phase 1: data layer and admin foundation). See `docs/IMPLEMENTATION_PLAN.md` for the phase plan. The full README (deployment, admin setup) is completed in Phase 5.
 
 ## Quick start
 
 ```bash
 npm ci
+npm run db:reset:local
 npm run dev
 ```
 
@@ -35,10 +36,19 @@ travel-discovery-app/
 │   ├── 04-ai-assist.md
 │   ├── 05-polish-and-e2e.md
 │   └── 06-release.md
-├── src/                       Browser application (React)
-├── worker/                    Cloudflare Worker (API under /api/*)
+├── src/                       Public SPA (React)
+├── admin/                     Admin SPA (React)
+├── worker/                    Public Worker (read-only API under /api/*)
+├── admin-worker/              Admin Worker (admin API under /api/admin/*)
+├── server/                    Server code shared by the Workers (db, http, public, admin)
+├── shared/                    Code shared by browser and Workers (locales, API error codes)
+├── migrations/                D1 SQL migrations
+├── db/seed/                   Local seed data
+├── test/                      Workers-runtime and static boundary tests
+├── scripts/                   Build-time verification
 ├── index.html
-├── wrangler.jsonc
+├── wrangler.jsonc             Public Worker config
+├── wrangler.admin.jsonc       Admin Worker config
 └── package.json
 ```
 

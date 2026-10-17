@@ -4,12 +4,13 @@
 - Node.js `>=22.22.0` (`.nvmrc` pins 24)
 - npm (bundled with Node; the committed `package-lock.json` is authoritative)
 
-No Cloudflare account, login, or secrets are needed for local development at this stage.
+No Cloudflare account, login, or secrets are needed for local development. Nothing in this guide creates remote resources.
 
 ## Setup
 
 ```bash
 npm ci
+npm run db:reset:local
 ```
 
 `.npmrc` sets:
@@ -24,45 +25,90 @@ Do not install with `--omit=optional`: the `workerd` and `esbuild` binaries come
 
 | Command | Purpose |
 |---|---|
-| `npm run dev` | Vite dev server with HMR. The API Worker runs in the local Workers runtime (workerd) via `@cloudflare/vite-plugin`. |
-| `npm run build` | Type-check (`tsc -b`) and build client assets (`dist/client`) and the Worker (`dist/worker`). |
-| `npm run preview` | Serve the production build locally in the Workers runtime. Run `npm run build` first. |
-| `npm run lint` | ESLint (type-aware rules). |
+| `npm run dev` | Public app: Vite dev server on http://localhost:5173 with the public Worker in the local Workers runtime. |
+| `npm run dev:admin` | Admin app: Vite dev server on http://localhost:5174 with the admin Worker. See "Admin locally". |
+| `npm run build` | Type-check, build the public app (`dist/`) and admin app (`dist-admin/`), then run `scripts/verify-bundles.mjs`. |
+| `npm run preview` / `npm run preview:admin` | Serve a production build locally in the Workers runtime (ports 4173 / 4174). Run `npm run build` first. |
+| `npm run lint` | ESLint (type-aware rules and module-boundary rules). |
 | `npm run typecheck` | TypeScript project references build, no emit. |
-| `npm test` | Vitest unit and component tests (single run). |
-| `npm run test:watch` | Vitest in watch mode. |
+| `npm test` | Vitest: `unit` project (Node/jsdom) and `workers` project (Workers runtime with a migrated local D1). |
 | `npm run check` | Lint, type-check, tests, and build in sequence. |
+| `npm run db:generate` | Generate a SQL migration from `server/db/schema.ts` into `migrations/` (drizzle-kit). Review the SQL before applying. |
+| `npm run db:migrate:local` | Apply pending migrations to the local D1 database. |
+| `npm run db:seed:local` | Load `db/seed/dev.sql` into the local database (expects an empty, migrated database). |
+| `npm run db:reset:local` | Delete local D1 state, then migrate and seed. |
 
-There is intentionally no deploy script yet. Do not run `wrangler deploy` without the owner's approval.
+There is intentionally no deploy script and no remote database command. Do not run `wrangler deploy` or any `--remote` command without the owner's approval.
 
 ## Project layout
 
 ```text
-index.html             SPA entry (default <html lang="ja">)
-public/_headers        Security headers for static assets (not applied to /api/*)
-src/                   Browser application (React)
-  app/                 Router configuration and root layout
-  components/          Shared UI components
-  i18n/                Locale list, typed message catalogs, i18next setup
-  pages/               Route pages
-worker/                Cloudflare Worker (API under /api/*)
-wrangler.jsonc         Worker, static assets, and (later) binding configuration
-docs/                  Specification, architecture, and decisions
+index.html, src/        Public SPA (React)
+admin/                  Admin SPA (index.html, src/, public/_headers)
+worker/                 Public Worker: read-only API under /api/*
+admin-worker/           Admin Worker: admin API under /api/admin/*
+server/db/              Drizzle schema and client (shared)
+server/http/            Error contract and request parsing (shared)
+server/public/          Published-content reads (public Worker only)
+server/admin/           Admin validation, reads, writes, Access auth (admin only)
+shared/                 Locale list and API error codes (browser and Workers)
+migrations/             Generated SQL migrations (+ drizzle-kit snapshots in meta/)
+db/seed/dev.sql         Local seed data
+test/workers/           Workers-runtime tests (D1, auth, CRUD, public API)
+test/node/              Static boundary checks
+scripts/                Build-time verification
+wrangler.jsonc          Public Worker config (binding PUBLIC_DB)
+wrangler.admin.jsonc    Admin Worker config (binding ADMIN_DB; owns migrations)
 ```
 
-## Routing between assets and the Worker
-`wrangler.jsonc` sets `assets.run_worker_first: ["/api/*"]`. Only `/api/*` requests invoke the Worker; all other paths are served from static assets, and unknown paths fall back to `index.html` for client-side routing (`not_found_handling: "single-page-application"`).
+ESLint (`no-restricted-imports`) and `test/node/boundary.test.ts` keep admin code out of the public Worker and SPA (ADR-018).
 
-Quick check while `npm run dev` is running:
+## Database
+
+Both Workers bind the same D1 database (`travel-discovery`). For local development both configs use the placeholder `database_id` `local-travel-discovery` so they share one local database under `.wrangler/state` (git-ignored). Migrations are applied only through `wrangler.admin.jsonc`.
+
+Schema changes:
+1. Edit `server/db/schema.ts`.
+2. `npm run db:generate -- --name <short_name>` and review the generated SQL.
+3. `npm run db:migrate:local`, then update `db/seed/dev.sql` if needed.
+4. Commit the schema, the SQL file, and `migrations/meta/`.
+
+## Admin locally
+
+Cloudflare Access does not run locally, so the admin API returns 403 by default. To use the admin UI locally:
 
 ```bash
-curl http://localhost:5173/api/health
+cp .dev.vars.example .dev.vars
+npm run dev:admin
+```
+
+`.dev.vars` (git-ignored) sets `ADMIN_DEV_IDENTITY_EMAIL`. It only works in the Vite dev server: production builds do not contain the code that reads it (checked by `npm run build`). Run `npm run dev` at the same time to see published changes in the public API.
+
+### `.dev.vars` and build output
+
+Verified in this repository (2026-10-17, `@cloudflare/vite-plugin` 1.64.0):
+- When a `.dev.vars` file exists, `npm run build` copies it to `dist/worker/.dev.vars` and `dist-admin/admin_worker/.dev.vars`.
+- A production build served with `npm run preview:admin` still returns 403 for admin API requests even with that copy present, because the dev identity code is not in the build.
+
+Documented by Cloudflare, not verified here (no deployment has been made): the copy is "only used when running `vite preview` and is not deployed with your Worker" ([Vite plugin: Secrets](https://developers.cloudflare.com/workers/vite-plugin/reference/secrets/)).
+
+Recommendations:
+- Never share, upload, or publish `dist/` or `dist-admin/` (for example as CI artifacts, in archives, or on a static host) while a `.dev.vars` file exists; delete the copied `.dev.vars` files or rebuild without `.dev.vars` first.
+- Keep only local, non-sensitive test values in `.dev.vars`; real secrets for deployed Workers are set with `wrangler secret put` or the dashboard.
+- Re-check the copy behavior after upgrading `@cloudflare/vite-plugin`.
+
+## Routing between assets and the Worker
+Each Worker's config sets `assets.run_worker_first: ["/api/*"]`. Only `/api/*` requests invoke the Worker; other paths are served from static assets, and unknown paths fall back to `index.html` (`not_found_handling: "single-page-application"`).
+
+```bash
+curl "http://localhost:5173/api/destinations?locale=en"
 ```
 
 ## Adding UI text
-1. Add the key and Japanese text to `src/i18n/messages/ja.ts`.
+1. Add the key and Japanese text to `src/i18n/messages/ja.ts` (public) or `admin/src/i18n/messages/ja.ts` (admin).
 2. Add the same key to `en.ts` and `es.ts`. The type checker fails until all three match.
 3. Use `t("your.key")` from `useTranslation()`; never hard-code UI strings in components.
 
 ## Environment variables
-None are required yet. Local Worker variables will go in `.dev.vars` (git-ignored). See `.env.example` for planned placeholders.
+- Local: `.dev.vars` (see "Admin locally"). `.env.example` lists all variables.
+- Deployed admin Worker (set only after the owner approves the Access setup): `ACCESS_TEAM_DOMAIN`, `ACCESS_POLICY_AUD`. Without them every admin API request is rejected with 403.

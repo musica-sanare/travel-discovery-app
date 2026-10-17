@@ -1,6 +1,6 @@
 import i18next, { type i18n } from "i18next";
 import { initReactI18next } from "react-i18next";
-import { DEFAULT_LOCALE, FALLBACK_LOCALES, SUPPORTED_LOCALES, type Locale } from "./locales";
+import { DEFAULT_LOCALE, FALLBACK_LOCALES, SUPPORTED_LOCALES, type Locale } from "../../shared/locales";
 import { DEFAULT_NAMESPACE, resources } from "./resources";
 
 /** Creates an isolated, synchronously initialised i18next instance. */

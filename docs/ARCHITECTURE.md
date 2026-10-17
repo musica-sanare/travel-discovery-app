@@ -9,7 +9,7 @@ Two Cloudflare Workers share one D1 database (decisions: `docs/DECISIONS.md` ADR
 | Public Worker | Public SPA (static assets) + public read API under `/api/*` | None (public site) | Read-only **by code structure and tests only** (no DB-level permission) |
 | Admin Worker | Admin SPA (static assets) + admin API | Worker-level Cloudflare Access ("All traffic") on every URL, plus JWT validation in every admin API handler | Reads and writes; owns migrations |
 
-Both are TypeScript + React + Vite apps built with Cloudflare's Vite plugin. The public Worker contains no admin editing functions. Phase 0 implements only the public Worker skeleton; the admin Worker is added in Phase 1.
+Both are TypeScript + React + Vite apps built with Cloudflare's Vite plugin, from separate configs (`vite.config.ts` + `wrangler.jsonc`, `vite.admin.config.ts` + `wrangler.admin.jsonc`) into separate outputs (`dist/`, `dist-admin/`). The public Worker contains no admin editing functions. The source layout and the module boundaries are listed in `docs/DEVELOPMENT.md` ("Project layout").
 
 Components:
 - React + TypeScript + Vite.

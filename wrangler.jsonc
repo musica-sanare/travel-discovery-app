@@ -10,5 +10,16 @@
   "assets": {
     "not_found_handling": "single-page-application",
     "run_worker_first": ["/api/*"]
-  }
+  },
+  "d1_databases": [
+    {
+      // Shared with the admin Worker (ADR-018). The public Worker only reads;
+      // this is enforced by code structure and tests, not by a database
+      // permission. Migrations are owned by wrangler.admin.jsonc, which also
+      // explains the local-only placeholder database_id.
+      "binding": "PUBLIC_DB",
+      "database_name": "travel-discovery",
+      "database_id": "local-travel-discovery"
+    }
+  ]
 }

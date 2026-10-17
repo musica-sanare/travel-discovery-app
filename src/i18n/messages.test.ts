@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { SUPPORTED_LOCALES } from "./locales";
+import { SUPPORTED_LOCALES } from "../../shared/locales";
 import { resources } from "./resources";
 
 type MessageTree = { [key: string]: string | MessageTree };

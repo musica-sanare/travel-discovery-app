@@ -1,6 +1,6 @@
 import { useId, type ChangeEvent } from "react";
 import { useTranslation } from "react-i18next";
-import { DEFAULT_LOCALE, SUPPORTED_LOCALES, isLocale } from "../i18n/locales";
+import { DEFAULT_LOCALE, SUPPORTED_LOCALES, isLocale } from "../../shared/locales";
 
 export function LanguageSwitcher() {
   const { t, i18n } = useTranslation();

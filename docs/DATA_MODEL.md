@@ -143,3 +143,20 @@ Localization rule: base tables hold only locale-neutral data (IDs, slugs, enums,
 Create enough sample content to demonstrate the experience, but avoid unsupported factual precision. Use approximately 30–50 destinations and 30–50 questions only if the quality and provenance can be maintained. It is acceptable to start with a smaller curated dataset and grow it later.
 
 Each seeded destination must include a source/basis for indicative costs or explicitly label the cost as illustrative and unverified. Never present seed values as current live prices.
+
+## Phase 1 schema notes
+
+The concrete schema is `server/db/schema.ts` (Drizzle ORM 0.45) and the generated migration in `migrations/`. Adjustments to the logical model above, with reasons:
+
+- **IDs and timestamps**: integer autoincrement primary keys (internal; the public API uses slugs only). `created_at` / `updated_at` are UTC ISO 8601 text written by the application; `cost_updated_at` is an ISO date (`YYYY-MM-DD`).
+- **Status values**: destinations and questions use `draft / published / archived`; attributes, question categories, and question options use `active / archived`. Countries have no status (they are reference data and are never deleted). CHECK constraints enforce the allowed values.
+- **Translations**: `country_translations`, `attribute_translations`, and `question_category_translations` were added so every user-visible string is localized (see the localization rule above). `locale` is constrained to `ja`, `en`, `es`.
+- **Highlights**: stored as a validated JSON array of strings (`destination_translations.highlights_json`, max 8 items of 200 characters) instead of a child table. Tradeoff: simpler writes and reads for a short ordered list; validated with Zod on write and read.
+- **Indicative cost**: `cost_min` / `cost_max` are integers in whole units of `cost_currency` (ISO 4217 code); indicative ranges do not need sub-unit precision. A CHECK constraint makes the cost group all-or-nothing (min, max, currency, scope, source name, updated date; source URL optional) with `0 <= cost_min <= cost_max`. When a cost is set, every provided translation must include `cost_basis` (API validation). `cost_scope` is a stable enum whose label is localized in the UI.
+- **Images**: `image_url` and `image_attribution` on the destination; `image_alt` per translation (required for each provided translation when an image is set). URLs must be `https`.
+- **Scales**: `destination_attributes.score` is an integer 0–5. `option_score_effects.weight` is a non-zero integer from −5 to 5 (initial range; Phase 2 may refine it when the scoring formula is documented). `questions.priority_weight` is an integer 1–10 (default 5).
+- **Question types**: only `single_choice` and `multiple_choice` are implemented, and `multiple_choice` cannot be published until Phase 2 defines its scoring (`docs/DECISIONS.md` ADR-020). `range` from the logical model is deferred: it needs bounds and scoring semantics that Phase 2 defines (SPEC §4 limits sliders to clearly bounded values such as budget). Adding it later is a migration that extends the CHECK constraint.
+- **Selection conditions**: `selection_tags` / explicit conditions are deferred to Phase 2, when the question-selection algorithm and its rule format are documented.
+- **Options**: unique per question by `value` (stable slug), so updates match options by value. Options omitted from an admin update are archived, not deleted.
+- **Settings**: `app_settings` stores the `quiz` key (validated JSON); see `docs/DECISIONS.md` ADR-020.
+- **Deletion**: no hard deletes through the API. Foreign keys use `ON DELETE CASCADE` only from parent rows to their translations/child rows and `RESTRICT` for references between independent entities.

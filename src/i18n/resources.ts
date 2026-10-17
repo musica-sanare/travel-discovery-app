@@ -1,4 +1,4 @@
-import type { Locale } from "./locales";
+import type { Locale } from "../../shared/locales";
 import { en } from "./messages/en";
 import { es } from "./messages/es";
 import { ja, type Messages } from "./messages/ja";

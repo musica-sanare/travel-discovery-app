@@ -1,0 +1,28 @@
+{
+  // Admin Worker: admin SPA + admin API. Every URL of this Worker must be
+  // protected by Worker-level Cloudflare Access, and every admin API request
+  // also validates the Access JWT in code (docs/DECISIONS.md, ADR-004).
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "travel-discovery-admin",
+  "main": "./admin-worker/index.ts",
+  "compatibility_date": "2026-10-12",
+  "upload_source_maps": true,
+  "preview_urls": false,
+  "assets": {
+    "not_found_handling": "single-page-application",
+    "run_worker_first": ["/api/*"]
+  },
+  "d1_databases": [
+    {
+      // Same database as the public Worker (ADR-018). This config owns the
+      // migrations. "local-travel-discovery" is a local-only placeholder: both
+      // configs must use the same database_id so local development shares one
+      // database (without an id, local state is keyed per binding). Replace it
+      // with the real id only after the owner approves creating the database.
+      "binding": "ADMIN_DB",
+      "database_name": "travel-discovery",
+      "database_id": "local-travel-discovery",
+      "migrations_dir": "migrations"
+    }
+  ]
+}

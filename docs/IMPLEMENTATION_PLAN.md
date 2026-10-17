@@ -84,6 +84,7 @@ Acceptance:
 - Add Playwright E2E tests for quiz and admin authorization.
 - Add GitHub Actions for lint, type-check, tests, and build.
 - Review accessibility, security, error messages, dependencies, and secrets.
+- Add rate limiting for admin API endpoints (deferred from Phase 1; `docs/DECISIONS.md` ADR-020) together with the AI endpoint limits.
 - Write README and deployment runbook.
 - Deploy only after user approval and with documented free-tier/billing implications.
 

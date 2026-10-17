@@ -1,0 +1,4 @@
+# Local development only (copy to .dev.vars, which is git-ignored).
+# Lets the admin Worker accept requests without Cloudflare Access when
+# running `npm run dev:admin`. Production builds ignore it entirely.
+ADMIN_DEV_IDENTITY_EMAIL=dev@example.test
