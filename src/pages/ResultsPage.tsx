@@ -7,6 +7,7 @@ import type { BudgetStatus, DurationStatus, RankedDestination, SeasonStatus } fr
 import { buttonClass, cardClass, headingClass, noticeClass } from "../components/classes";
 import { ContentStatus } from "../components/ContentStatus";
 import { LocalizedText } from "../components/LocalizedText";
+import { SEARCH_LINKS } from "../diagnosis/searchLinks";
 import { drawSeed, results } from "../diagnosis/session";
 import { useDiagnosis } from "../diagnosis/useDiagnosis";
 
@@ -123,6 +124,27 @@ function ResultItem({
             <CostLine cost={primaryCost} locale={locale} />
           </div>
         )}
+        <div className="flex flex-col gap-2">
+          <h3 className="font-semibold">
+            {t("results.search.heading")}
+          </h3>
+          <div className="flex flex-wrap gap-2">
+            {SEARCH_LINKS.map((link) => (
+              <a key={link.id} href={link.url} target="_blank" rel="noopener noreferrer" className={buttonClass.secondary}>
+                {t(`results.search.${link.id}`, { provider: link.provider })}
+                <span className="sr-only"> {t("results.search.newTab")}</span>
+                <span aria-hidden="true">↗</span>
+              </a>
+            ))}
+          </div>
+          <p className="text-xs text-muted">
+            {t("results.search.note", {
+              destination: destination.country.name
+                ? t("results.search.place", { name: destination.name, country: destination.country.name })
+                : destination.name,
+            })}
+          </p>
+        </div>
         <details className="group rounded-lg border border-line">
           <summary className="flex min-h-11 cursor-pointer items-center px-4 font-semibold text-accent">
             {t("results.more")}

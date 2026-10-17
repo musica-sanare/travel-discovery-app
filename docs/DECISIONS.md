@@ -353,6 +353,19 @@ Notes:
 - Measured public JS bundle (gzip): 116.4 kB before Phase 3a, 150.3 kB with regular `zod` in the client, 132.7 kB with `zod/mini`.
 - Alternative: a hand-written validator (smaller, but duplicates the contract and loses shared types).
 
+## ADR-024: Outbound flight and hotel search links
+- Status: **Accepted** (Phase 3c, 2026-10-17; owner set the candidates Google Flights or Skyscanner, and Booking.com, prefilling only when safe and reliable, and no affiliate IDs)
+- Decision: link to the providers' start pages without search parameters: Google Flights `https://www.google.com/travel/flights` and Booking.com `https://www.booking.com/`. The URLs are fixed constants in `src/diagnosis/searchLinks.ts`; no user input, answers, constraints, or destination data is added to them. Links open in a new tab with `rel="noopener noreferrer"`, say so in their accessible name, and are labelled as external sites whose prices differ from our indicative costs. The results card shows the destination and country name next to the links so the user can type them into the provider's search.
+- Why no prefilled search (checked 2026-10-17):
+  - Skyscanner documents referral links with named parameters (`origin`, `destination`, `outboundDate`, Stays `entity_id`/`checkin`/`checkout`) only as part of its affiliate programme: the endpoint `https://skyscanner.net/g/referrals/v1/{vertical}/{pagetype}` takes an Impact `mediaPartnerId` and tracking parameters, and the docs do not say it may be used without them. Our destinations also have no IATA codes or Skyscanner entity IDs.
+    Sources: https://developers.skyscanner.net/docs/referrals/overview, https://developers.skyscanner.net/docs/referrals/examples
+  - Google Flights: no official documentation of its URL parameters was found; the `q` free-text parameter is described only by third parties.
+  - Booking.com: official developer documentation shows search URLs only as returned by its affiliate (Demand) API with an `aid`; the public `searchresults.html` parameters are documented only by third parties.
+  - Both start pages were opened in a browser and load. Booking.com redirects to a localized page and appends its own default `aid`/`label`; the app does not add them.
+- Flights provider: Google Flights rather than Skyscanner because, without prefilling, both are equivalent start pages, and Skyscanner's documented linking route is its affiliate programme. Swapping providers is a change to one constant list.
+- No departure-airport input: it would only be useful for prefilled searches, so it is not collected (SPEC §5 lists it as optional).
+- Revisit if a provider publishes a documented, affiliate-free deep-link format, or if the owner decides to join an affiliate programme (requires a new decision on privacy, disclosure, and SPEC §3 "no affiliate tracking").
+
 ---
 
 ## Admin authentication status (2026-10-17)

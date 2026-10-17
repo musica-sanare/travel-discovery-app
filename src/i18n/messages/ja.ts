@@ -59,6 +59,14 @@ export const ja = {
     restart: "最初からやり直す",
   },
   results: {
+    search: {
+      heading: "航空券・ホテルを探す",
+      flights: "{{provider}}で航空券を探す",
+      hotels: "{{provider}}でホテルを探す",
+      newTab: "（新しいタブで開きます）",
+      place: "{{name}}（{{country}}）",
+      note: "外部サイトが新しいタブで開きます。検索条件は引き継がれないため、目的地「{{destination}}」などを入力してください。表示される価格は各サイトのもので、本アプリの参考費用とは異なります。",
+    },
     rank: "{{rank}}位",
     more: "詳しく見る",
     highlights: "見どころ",

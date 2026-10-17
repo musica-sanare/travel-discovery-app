@@ -89,6 +89,16 @@ describe("diagnosis flow", () => {
     expect(screen.queryByText(/AI アシストは現在利用できません/)).toBeNull();
     // One snapshot request; answers and constraints never leave the browser.
     expect(requests).toEqual(["/api/diagnosis-content?locale=ja"]);
+
+    // Outbound search links are fixed start pages that carry no user data (ADR-024).
+    const flights = screen.getAllByRole("link", { name: /Google Flightsで航空券を探す.*新しいタブで開きます/ });
+    const hotels = screen.getAllByRole("link", { name: /Booking\.comでホテルを探す.*新しいタブで開きます/ });
+    expect(flights).toHaveLength(2);
+    for (const link of [...flights, ...hotels]) {
+      expect(["https://www.google.com/travel/flights", "https://www.booking.com/"]).toContain(link.getAttribute("href"));
+      expect(link.getAttribute("target")).toBe("_blank");
+      expect(link.getAttribute("rel")).toBe("noopener noreferrer");
+    }
   });
 
   it("shows the AI-unavailable notice when the toggle is on, without any AI request", async () => {

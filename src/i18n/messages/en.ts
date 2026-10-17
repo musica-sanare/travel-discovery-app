@@ -60,6 +60,14 @@ export const en: Messages = {
     restart: "Start over",
   },
   results: {
+    search: {
+      heading: "Search flights and hotels",
+      flights: "Search flights on {{provider}}",
+      hotels: "Search hotels on {{provider}}",
+      newTab: "(opens in a new tab)",
+      place: "{{name}}, {{country}}",
+      note: "External sites open in a new tab. Your trip details are not passed on, so enter “{{destination}}” and your dates there. Prices shown there are the site’s own and differ from our indicative costs.",
+    },
     rank: "No. {{rank}}",
     more: "More details",
     highlights: "Highlights",

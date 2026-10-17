@@ -60,6 +60,14 @@ export const es: Messages = {
     restart: "Empezar de nuevo",
   },
   results: {
+    search: {
+      heading: "Buscar vuelos y hoteles",
+      flights: "Buscar vuelos en {{provider}}",
+      hotels: "Buscar hoteles en {{provider}}",
+      newTab: "(se abre en una pestaña nueva)",
+      place: "{{name}}, {{country}}",
+      note: "Los sitios externos se abren en una pestaña nueva. No se transmiten los datos de tu viaje, así que introduce «{{destination}}» y tus fechas allí. Los precios que muestren son suyos y difieren de nuestros costes orientativos.",
+    },
     rank: "N.º {{rank}}",
     more: "Más detalles",
     highlights: "Lo más destacado",
