@@ -37,6 +37,19 @@ describe("compareBudget", () => {
     });
   });
 
+  it("is partial when only part of the per-day range fits for the given trip days (D2)", () => {
+    // 10,000-20,000 per day x 3 days = 30,000-60,000 against a 40,000 budget.
+    // The recommended 5-7 days would give 50,000+ ("over"), so trip days must win.
+    const place = destination("x", {}, {
+      recommendedDays: { min: 5, max: 7 },
+      costs: [estimate({ period: "per_day", min: 10_000, max: 20_000 })],
+    });
+    expect(compareBudget(place, { amount: 40_000, currency: "JPY" }, 3)).toEqual({
+      status: "partial",
+      estimate: { currency: "JPY", period: "per_day", tripMin: 30_000, tripMax: 60_000 },
+    });
+  });
+
   it("uses the shortest recommended stay for the lower bound without trip days (D2)", () => {
     const place = destination("x", {}, {
       recommendedDays: { min: 3, max: 10 },
