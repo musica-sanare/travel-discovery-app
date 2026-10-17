@@ -1,0 +1,17 @@
+/**
+ * Deterministic diagnostic engine (docs/DIAGNOSTIC_ALGORITHM.md). Pure
+ * TypeScript: no React, database, Cloudflare bindings, network, or AI.
+ */
+export type * from "./types";
+export { durationStatus, seasonStatus, type DurationStatus, type SeasonStatus } from "./annotations";
+export { compareBudget, type BudgetComparison, type BudgetStatus } from "./budget";
+export type { IgnoredAnswer, IgnoredAnswerReason } from "./preferences";
+export { isValidSeed } from "./random";
+export {
+  rankDestinations,
+  type RankedDestination,
+  type RankingNotice,
+  type RankingResult,
+} from "./ranking";
+export type { AttributeContribution } from "./scoring";
+export { nextQuestion, type NextStep, type StopReason } from "./selection";

@@ -41,7 +41,8 @@ function destinationBody(countryId: number, attributeId: number, overrides: Reco
     type: "city",
     status: "draft",
     recommendedDays: { min: 2, max: 4 },
-    cost: null,
+    bestMonths: [],
+    costs: [],
     image: null,
     translations: { en: { name: "Test City", summary: "A test city.", highlights: ["One"] } },
     attributeScores: [{ attributeId, score: 3 }],
@@ -81,18 +82,34 @@ describe("admin CRUD", () => {
     const updated = destinationBody(countryId, attributeId, {
       slug: body.slug,
       status: "published",
-      cost: {
-        min: 100000,
-        max: 200000,
-        currency: "JPY",
-        scope: "per_person_excluding_international_flights",
-        sourceName: "Test source",
-        sourceUrl: "https://example.test/source",
-        updatedAt: "2026-10-01",
-      },
+      bestMonths: [10, 4, 5],
+      costs: [
+        {
+          currency: "EUR",
+          period: "per_trip",
+          scope: "per_person_including_international_flights",
+          min: 900,
+          max: 1500,
+          sourceName: "Other source",
+          sourceUrl: null,
+          updatedAt: "2026-09-15",
+          basis: { en: "Whole trip.", es: "Viaje completo." },
+        },
+        {
+          currency: "JPY",
+          period: "per_day",
+          scope: "per_person_excluding_international_flights",
+          min: 10000,
+          max: 20000,
+          sourceName: "Test source",
+          sourceUrl: "https://example.test/source",
+          updatedAt: "2026-10-01",
+          basis: { en: "Lodging and meals.", es: "Alojamiento y comidas." },
+        },
+      ],
       translations: {
-        en: { name: "Renamed", summary: "Updated.", highlights: [], costBasis: "Lodging and meals." },
-        es: { name: "Renombrada", summary: "Actualizada.", highlights: [], costBasis: "Alojamiento y comidas." },
+        en: { name: "Renamed", summary: "Updated.", highlights: [] },
+        es: { name: "Renombrada", summary: "Actualizada.", highlights: [] },
       },
       attributeScores: [],
     });
@@ -100,18 +117,41 @@ describe("admin CRUD", () => {
     expect(put.status).toBe(200);
 
     const after = (await json(await adminRequest(`/api/admin/destinations/${String(id)}`))) as {
-      item: { status: string; cost: { min: number } | null; attributeScores: unknown[]; translations: Record<string, unknown> };
+      item: {
+        status: string;
+        bestMonths: number[];
+        costs: { currency: string; period: string; min: number; basis: Record<string, string> }[];
+        attributeScores: unknown[];
+        translations: Record<string, unknown>;
+      };
     };
     expect(after.item.status).toBe("published");
-    expect(after.item.cost?.min).toBe(100000);
+    expect(after.item.bestMonths).toEqual([4, 5, 10]);
+    expect(after.item.costs).toMatchObject([
+      { currency: "JPY", period: "per_day", min: 10000, basis: { en: "Lodging and meals.", es: "Alojamiento y comidas." } },
+      { currency: "EUR", period: "per_trip", min: 900, basis: { en: "Whole trip.", es: "Viaje completo." } },
+    ]);
     expect(after.item.attributeScores).toEqual([]);
     expect(Object.keys(after.item.translations).sort()).toEqual(["en", "es"]);
 
     const archive = await adminRequest(`/api/admin/destinations/${String(id)}`, {
       method: "PUT",
-      body: { ...updated, status: "archived" },
+      body: { ...updated, status: "archived", costs: [], bestMonths: [] },
     });
     expect(archive.status).toBe(200);
+    const archived = (await json(await adminRequest(`/api/admin/destinations/${String(id)}`))) as {
+      item: { costs: unknown[]; bestMonths: number[] };
+    };
+    expect(archived.item).toMatchObject({ costs: [], bestMonths: [] });
+    const leftovers = await env.ADMIN_DB.prepare(
+      `SELECT
+         (SELECT count(*) FROM destination_cost_estimates WHERE destination_id = ?1) AS estimates,
+         (SELECT count(*) FROM destination_cost_estimate_translations
+           WHERE estimate_id NOT IN (SELECT id FROM destination_cost_estimates)) AS orphans`,
+    )
+      .bind(id)
+      .first<{ estimates: number; orphans: number }>();
+    expect(leftovers).toEqual({ estimates: 0, orphans: 0 });
     const list = (await json(await adminRequest(`/api/admin/destinations?status=archived&q=${body.slug}`))) as {
       items: { id: number }[];
     };
@@ -203,25 +243,13 @@ describe("admin validation and error responses", () => {
     });
   });
 
-  it("rejects publishing multiple-choice questions but allows them as drafts", async () => {
+  it("publishes multiple-choice questions (ADR-021)", async () => {
     const { attributeId, categoryId } = await createFixtures();
     const published = await adminRequest("/api/admin/questions", {
       method: "POST",
       body: questionBody(categoryId, attributeId, { type: "multiple_choice", status: "published" }),
     });
-    expect(published.status).toBe(400);
-    expect(await json(published)).toEqual({
-      error: "invalid_request",
-      issues: [{ path: "type", code: "question_type_not_publishable" }],
-    });
-
-    const draftBody = questionBody(categoryId, attributeId, { type: "multiple_choice", status: "draft" });
-    const id = await create("/api/admin/questions", draftBody);
-    const publish = await adminRequest(`/api/admin/questions/${String(id)}`, {
-      method: "PUT",
-      body: { ...draftBody, status: "published" },
-    });
-    expect(publish.status).toBe(400);
+    expect(published.status).toBe(201);
   });
 
   it("returns field issues for invalid values", async () => {
@@ -243,23 +271,62 @@ describe("admin validation and error responses", () => {
     );
   });
 
-  it("requires a cost basis when a cost is set, and an all-or-nothing cost", async () => {
+  it("validates cost estimates and best months", async () => {
     const { countryId, attributeId } = await createFixtures();
-    const response = await adminRequest("/api/admin/destinations", {
+    const estimate = {
+      currency: "EUR",
+      period: "per_day",
+      scope: "per_person_excluding_international_flights",
+      min: 1,
+      max: 2,
+      sourceName: "Source",
+      updatedAt: "2026-10-01",
+      basis: {},
+    };
+    const missingBasis = await adminRequest("/api/admin/destinations", {
+      method: "POST",
+      body: destinationBody(countryId, attributeId, { costs: [estimate] }),
+    });
+    expect(await json(missingBasis)).toMatchObject({
+      issues: [{ path: "costs.0.basis.en", code: "cost_basis_required" }],
+    });
+
+    const invalid = await adminRequest("/api/admin/destinations", {
       method: "POST",
       body: destinationBody(countryId, attributeId, {
-        cost: {
-          min: 1,
-          max: 2,
-          currency: "EUR",
-          scope: "per_person_excluding_international_flights",
-          sourceName: "Source",
-          updatedAt: "2026-10-01",
-        },
+        costs: [
+          { ...estimate, basis: { en: "Basis." } },
+          { ...estimate, basis: { en: "Basis." } },
+          { ...estimate, currency: "GBP", period: "per_week", basis: { en: "Basis." } },
+        ],
+        bestMonths: [4, 4, 13],
       }),
     });
-    expect(await json(response)).toMatchObject({
-      issues: [{ path: "translations.en.costBasis", code: "cost_basis_required" }],
+    expect(invalid.status).toBe(400);
+    const { issues } = (await json(invalid)) as { issues: { path: string; code: string }[] };
+    expect(issues).toEqual(
+      expect.arrayContaining([
+        { path: "costs.2.currency", code: "invalid_value" },
+        { path: "costs.2.period", code: "invalid_value" },
+        { path: "bestMonths.2", code: "too_big" },
+      ]),
+    );
+
+    const duplicates = await adminRequest("/api/admin/destinations", {
+      method: "POST",
+      body: destinationBody(countryId, attributeId, {
+        costs: [
+          { ...estimate, basis: { en: "Basis." } },
+          { ...estimate, basis: { en: "Basis." } },
+        ],
+        bestMonths: [4, 4],
+      }),
+    });
+    expect(await json(duplicates)).toMatchObject({
+      issues: expect.arrayContaining([
+        { path: "costs", code: "duplicate_currency" },
+        { path: "bestMonths", code: "duplicate_month" },
+      ]) as unknown,
     });
   });
 

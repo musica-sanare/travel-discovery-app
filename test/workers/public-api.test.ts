@@ -12,7 +12,8 @@ interface PublicDestination {
   locale: string;
   name: string;
   country: { slug: string; name: string | null; locale: string | null };
-  cost: unknown;
+  costs: unknown[];
+  bestMonths: number[] | null;
   [key: string]: unknown;
 }
 
@@ -181,6 +182,47 @@ describe("localization and fallback", () => {
 
   it("does not present missing costs as zero", async () => {
     const { item } = (await json(await publicRequest("/api/destinations/lisbon"))) as { item: PublicDestination };
-    expect(item.cost).toBeNull();
+    expect(item.costs).toEqual([]);
+  });
+
+  it("returns structured best months, or null when unknown", async () => {
+    const lisbon = (await json(await publicRequest("/api/destinations/lisbon"))) as { item: PublicDestination };
+    expect(lisbon.item.bestMonths).toEqual([3, 4, 5, 9, 10, 11]);
+    const iceland = (await json(await publicRequest("/api/destinations/south-iceland"))) as { item: PublicDestination };
+    expect(iceland.item.bestMonths).toBeNull();
+  });
+
+  it("returns cost estimates with a localized basis and no internal IDs", async () => {
+    await env.ADMIN_DB.batch([
+      env.ADMIN_DB.prepare(
+        `INSERT INTO destination_cost_estimates
+           (destination_id, currency, period, scope, min, max, source_name, source_url, updated_at)
+         SELECT id, 'USD', 'per_day', 'per_person_excluding_international_flights', 80, 150,
+           'Illustrative test source', NULL, '2026-10-01'
+         FROM destinations WHERE slug = 'taipei'`,
+      ),
+      env.ADMIN_DB.prepare(
+        `INSERT INTO destination_cost_estimate_translations (estimate_id, locale, basis)
+         SELECT e.id, 'ja', '宿泊と食事' FROM destination_cost_estimates e
+         JOIN destinations d ON d.id = e.destination_id WHERE d.slug = 'taipei'`,
+      ),
+    ]);
+    const { item } = (await json(await publicRequest("/api/destinations/taipei?locale=en"))) as {
+      item: PublicDestination;
+    };
+    expect(item.costs).toEqual([
+      {
+        currency: "USD",
+        period: "per_day",
+        scope: "per_person_excluding_international_flights",
+        min: 80,
+        max: 150,
+        basis: "宿泊と食事",
+        basisLocale: "ja",
+        sourceName: "Illustrative test source",
+        sourceUrl: null,
+        updatedAt: "2026-10-01",
+      },
+    ]);
   });
 });

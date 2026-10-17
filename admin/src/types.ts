@@ -3,24 +3,21 @@
  * server validates every payload (server/admin/validation.ts); these types only
  * describe the JSON exchanged with it.
  */
+import type { CostPeriod, CostScope, Currency } from "../../shared/costs";
 import type { Locale } from "../../shared/locales";
+
+export type { CostPeriod, CostScope, Currency };
+export { COST_PERIODS, COST_SCOPES, SUPPORTED_CURRENCIES } from "../../shared/costs";
 
 export type Translated<T> = Partial<Record<Locale, T>>;
 export type ContentStatus = "draft" | "published" | "archived";
 export type TaxonomyStatus = "active" | "archived";
 export type DestinationType = "city" | "region" | "island" | "other";
-export type CostScope =
-  | "per_person_excluding_international_flights"
-  | "per_person_including_international_flights";
 export type QuestionType = "single_choice" | "multiple_choice";
 
 export const CONTENT_STATUSES: readonly ContentStatus[] = ["draft", "published", "archived"];
 export const TAXONOMY_STATUSES: readonly TaxonomyStatus[] = ["active", "archived"];
 export const DESTINATION_TYPES: readonly DestinationType[] = ["city", "region", "island", "other"];
-export const COST_SCOPES: readonly CostScope[] = [
-  "per_person_excluding_international_flights",
-  "per_person_including_international_flights",
-];
 export const QUESTION_TYPES: readonly QuestionType[] = ["single_choice", "multiple_choice"];
 
 export interface TaxonomyItem {
@@ -50,7 +47,6 @@ export interface DestinationTranslation {
   highlights: string[];
   cautions: string | null;
   bestSeason: string | null;
-  costBasis: string | null;
   imageAlt: string | null;
 }
 
@@ -61,15 +57,18 @@ export interface DestinationDetail {
   type: DestinationType;
   status: ContentStatus;
   recommendedDays: { min: number | null; max: number | null };
-  cost: {
+  bestMonths: number[];
+  costs: {
+    currency: Currency;
+    period: CostPeriod;
+    scope: CostScope;
     min: number;
     max: number;
-    currency: string;
-    scope: CostScope;
     sourceName: string;
     sourceUrl: string | null;
     updatedAt: string;
-  } | null;
+    basis: Translated<string>;
+  }[];
   image: { url: string; attribution: string } | null;
   translations: Translated<DestinationTranslation>;
   attributeScores: { attributeId: number; score: number }[];

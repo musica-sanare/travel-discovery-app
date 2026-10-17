@@ -16,11 +16,12 @@ const KNOWN_ISSUE_CODES = [
   "min_exceeds_max",
   "duplicate_attribute",
   "duplicate_value",
+  "duplicate_currency",
+  "duplicate_month",
   "min_two_options",
   "zero_weight",
   "target_below_min",
   "target_above_max",
-  "question_type_not_publishable",
 ] as const;
 
 type IssueCode = (typeof KNOWN_ISSUE_CODES)[number] | "other";

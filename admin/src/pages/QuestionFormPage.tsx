@@ -2,14 +2,13 @@ import { useId, useState, type SyntheticEvent } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useNavigate, useParams } from "react-router";
 import { SUPPORTED_LOCALES, type Locale } from "../../../shared/locales";
-import { AdminApiError, adminApi } from "../api";
+import { adminApi } from "../api";
 import { ErrorBanner } from "../components/ErrorBanner";
 import { TranslationFieldset } from "../components/TranslationFieldset";
 import { toTranslationDraft, type TranslationDraft } from "../components/translationDraft";
 import { intOrNull, numberToText, textOrNull } from "../forms";
 import { useLoad } from "../hooks";
 import { useContentText } from "../localizedContent";
-import { questionPublishIssues } from "../questionRules";
 import {
   CONTENT_STATUSES,
   QUESTION_TYPES,
@@ -160,12 +159,6 @@ export function QuestionFormPage() {
 
   const submit = async (event: SyntheticEvent) => {
     event.preventDefault();
-    const localIssues = questionPublishIssues(current);
-    if (localIssues.length > 0) {
-      setSaved(false);
-      setSaveError(new AdminApiError("invalid_request", localIssues));
-      return;
-    }
     setSaving(true);
     setSaveError(null);
     try {

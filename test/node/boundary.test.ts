@@ -88,3 +88,28 @@ describe("public SPA boundary", () => {
     }
   });
 });
+
+describe("diagnostic domain boundary", () => {
+  const graph = reachable("domain/diagnosis/index.ts");
+
+  it("reaches only domain and shared modules", () => {
+    expect(graph.files).toContain("domain/diagnosis/ranking.ts");
+    for (const file of graph.files) {
+      expect(file).toMatch(/^(domain|shared)\//);
+    }
+  });
+
+  it("uses no packages (no UI, database, platform, or AI SDKs)", () => {
+    expect(graph.packages).toEqual([]);
+  });
+
+  it("uses no network, clock, or uncontrolled randomness", () => {
+    const forbidden = [/\bfetch\s*\(/, /XMLHttpRequest/, /WebSocket/, /Math\.random/, /Date\.now/, /new Date\(/];
+    for (const file of graph.files) {
+      const source = readFileSync(path.join(root, file), "utf8");
+      for (const pattern of forbidden) {
+        expect(source, `${file} matches ${String(pattern)}`).not.toMatch(pattern);
+      }
+    }
+  });
+});

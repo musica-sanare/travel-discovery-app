@@ -9,18 +9,35 @@ import { toTranslationDraft, type TranslationDraft } from "../components/transla
 import { intOrNull, numberToText, textOrNull } from "../forms";
 import { useLoad } from "../hooks";
 import { useContentText } from "../localizedContent";
+import { MONTHS } from "../../../shared/months";
 import {
   CONTENT_STATUSES,
+  COST_PERIODS,
   COST_SCOPES,
   DESTINATION_TYPES,
+  SUPPORTED_CURRENCIES,
   type ContentStatus,
+  type CostPeriod,
   type CostScope,
+  type Currency,
   type DestinationDetail,
   type DestinationType,
   type TaxonomyItem,
 } from "../types";
 
-type TextKey = "name" | "summary" | "highlights" | "cautions" | "bestSeason" | "costBasis" | "imageAlt";
+type TextKey = "name" | "summary" | "highlights" | "cautions" | "bestSeason" | "imageAlt";
+
+interface CostDraft {
+  currency: Currency;
+  period: CostPeriod;
+  scope: CostScope;
+  min: string;
+  max: string;
+  sourceName: string;
+  sourceUrl: string;
+  updatedAt: string;
+  basis: Partial<Record<Locale, string>>;
+}
 
 interface Draft {
   slug: string;
@@ -29,16 +46,8 @@ interface Draft {
   status: ContentStatus;
   daysMin: string;
   daysMax: string;
-  hasCost: boolean;
-  cost: {
-    min: string;
-    max: string;
-    currency: string;
-    scope: CostScope;
-    sourceName: string;
-    sourceUrl: string;
-    updatedAt: string;
-  };
+  bestMonths: number[];
+  costs: CostDraft[];
   hasImage: boolean;
   image: { url: string; attribution: string };
   translations: TranslationDraft<TextKey>;
@@ -53,22 +62,28 @@ function newDraft(): Draft {
     status: "draft",
     daysMin: "",
     daysMax: "",
-    hasCost: false,
-    cost: {
-      min: "",
-      max: "",
-      currency: "JPY",
-      scope: "per_person_excluding_international_flights",
-      sourceName: "",
-      sourceUrl: "",
-      updatedAt: "",
-    },
+    bestMonths: [],
+    costs: [],
     hasImage: false,
     image: { url: "", attribution: "" },
     translations: {
-      ja: { name: "", summary: "", highlights: "", cautions: "", bestSeason: "", costBasis: "", imageAlt: "" },
+      ja: { name: "", summary: "", highlights: "", cautions: "", bestSeason: "", imageAlt: "" },
     },
     scores: {},
+  };
+}
+
+function newCostDraft(currency: Currency): CostDraft {
+  return {
+    currency,
+    period: "per_day",
+    scope: "per_person_excluding_international_flights",
+    min: "",
+    max: "",
+    sourceName: "",
+    sourceUrl: "",
+    updatedAt: "",
+    basis: {},
   };
 }
 
@@ -84,18 +99,18 @@ function fromDetail(
     status: detail.status,
     daysMin: numberToText(detail.recommendedDays.min),
     daysMax: numberToText(detail.recommendedDays.max),
-    hasCost: detail.cost !== null,
-    cost: detail.cost
-      ? {
-          min: String(detail.cost.min),
-          max: String(detail.cost.max),
-          currency: detail.cost.currency,
-          scope: detail.cost.scope,
-          sourceName: detail.cost.sourceName,
-          sourceUrl: detail.cost.sourceUrl ?? "",
-          updatedAt: detail.cost.updatedAt,
-        }
-      : base.cost,
+    bestMonths: detail.bestMonths,
+    costs: detail.costs.map((cost) => ({
+      currency: cost.currency,
+      period: cost.period,
+      scope: cost.scope,
+      min: String(cost.min),
+      max: String(cost.max),
+      sourceName: cost.sourceName,
+      sourceUrl: cost.sourceUrl ?? "",
+      updatedAt: cost.updatedAt,
+      basis: { ...cost.basis },
+    })),
     hasImage: detail.image !== null,
     image: detail.image ?? base.image,
     translations: toTranslationDraft(fields, detail.translations),
@@ -117,7 +132,6 @@ function toPayload(draft: Draft) {
         .filter((line) => line !== ""),
       cautions: textOrNull(entry.cautions),
       bestSeason: textOrNull(entry.bestSeason),
-      costBasis: textOrNull(entry.costBasis),
       imageAlt: textOrNull(entry.imageAlt),
     };
   }
@@ -127,17 +141,23 @@ function toPayload(draft: Draft) {
     type: draft.type,
     status: draft.status,
     recommendedDays: { min: intOrNull(draft.daysMin), max: intOrNull(draft.daysMax) },
-    cost: draft.hasCost
-      ? {
-          min: intOrNull(draft.cost.min),
-          max: intOrNull(draft.cost.max),
-          currency: draft.cost.currency.trim().toUpperCase(),
-          scope: draft.cost.scope,
-          sourceName: draft.cost.sourceName,
-          sourceUrl: textOrNull(draft.cost.sourceUrl),
-          updatedAt: draft.cost.updatedAt,
-        }
-      : null,
+    bestMonths: [...draft.bestMonths].sort((a, b) => a - b),
+    costs: draft.costs.map((cost) => ({
+      currency: cost.currency,
+      period: cost.period,
+      scope: cost.scope,
+      min: intOrNull(cost.min),
+      max: intOrNull(cost.max),
+      sourceName: cost.sourceName,
+      sourceUrl: textOrNull(cost.sourceUrl),
+      updatedAt: cost.updatedAt,
+      basis: Object.fromEntries(
+        SUPPORTED_LOCALES.flatMap((locale) => {
+          const basis = cost.basis[locale];
+          return draft.translations[locale] && basis !== undefined ? [[locale, textOrNull(basis)]] : [];
+        }),
+      ),
+    })),
     image: draft.hasImage ? { url: draft.image.url.trim(), attribution: draft.image.attribution } : null,
     translations,
     attributeScores: Object.entries(draft.scores)
@@ -156,7 +176,8 @@ function Field({ id, label, children }: { id: string; label: string; children: R
 }
 
 export function DestinationFormPage() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const monthFormat = new Intl.DateTimeFormat(i18n.language, { month: "long", timeZone: "UTC" });
   const content = useContentText();
   const navigate = useNavigate();
   const params = useParams();
@@ -169,7 +190,6 @@ export function DestinationFormPage() {
     { key: "highlights", label: t("fields.highlights"), multiline: true, optional: true },
     { key: "cautions", label: t("fields.cautions"), multiline: true, optional: true },
     { key: "bestSeason", label: t("fields.bestSeason"), optional: true },
-    { key: "costBasis", label: t("fields.costBasis"), multiline: true, optional: true },
     { key: "imageAlt", label: t("fields.imageAlt"), optional: true },
   ];
 
@@ -234,6 +254,9 @@ export function DestinationFormPage() {
     );
   }
   const { countries, attributes } = references.data;
+  const unusedCurrency = SUPPORTED_CURRENCIES.find(
+    (currency) => !current.costs.some((cost) => cost.currency === currency),
+  );
 
   return (
     <section aria-labelledby={`${id}-heading`}>
@@ -328,58 +351,148 @@ export function DestinationFormPage() {
         </Field>
 
         <fieldset>
-          <legend>{t("fields.hasCost")}</legend>
-          <label className="checkbox">
-            <input
-              type="checkbox"
-              checked={current.hasCost}
-              onChange={(event) => {
-                update({ hasCost: event.target.checked });
-              }}
-            />
-            {t("fields.hasCost")}
-          </label>
-          {current.hasCost && (
-            <>
-              {(
-                [
-                  ["min", "costMin", "number"],
-                  ["max", "costMax", "number"],
-                  ["currency", "costCurrency", "text"],
-                  ["sourceName", "costSourceName", "text"],
-                  ["sourceUrl", "costSourceUrl", "url"],
-                  ["updatedAt", "costUpdatedAt", "date"],
-                ] as const
-              ).map(([key, label, type]) => (
-                <Field key={key} id={`${id}-cost-${key}`} label={t(`fields.${label}`)}>
-                  <input
-                    id={`${id}-cost-${key}`}
-                    type={type}
-                    value={current.cost[key]}
-                    onChange={(event) => {
-                      update({ cost: { ...current.cost, [key]: event.target.value } });
-                    }}
-                  />
-                </Field>
-              ))}
-              <Field id={`${id}-cost-scope`} label={t("fields.costScope")}>
-                <select
-                  id={`${id}-cost-scope`}
-                  value={current.cost.scope}
+          <legend>{t("fields.bestMonths")}</legend>
+          <div className="months">
+            {MONTHS.map((month) => (
+              <label key={month} className="checkbox">
+                <input
+                  type="checkbox"
+                  checked={current.bestMonths.includes(month)}
                   onChange={(event) => {
-                    const scope = COST_SCOPES.find((value) => value === event.target.value);
-                    if (scope) update({ cost: { ...current.cost, scope } });
+                    update({
+                      bestMonths: event.target.checked
+                        ? [...current.bestMonths, month]
+                        : current.bestMonths.filter((value) => value !== month),
+                    });
                   }}
-                >
-                  {COST_SCOPES.map((value) => (
-                    <option key={value} value={value}>
-                      {t(`costScopes.${value}`)}
-                    </option>
-                  ))}
-                </select>
-              </Field>
-            </>
-          )}
+                />
+                {monthFormat.format(new Date(Date.UTC(2000, month - 1, 1)))}
+              </label>
+            ))}
+          </div>
+        </fieldset>
+
+        <fieldset>
+          <legend>{t("fields.costs")}</legend>
+          {current.costs.map((cost, index) => {
+            const prefix = `${id}-cost-${String(index)}`;
+            const setCost = (patch: Partial<CostDraft>) => {
+              update({
+                costs: current.costs.map((item, itemIndex) => (itemIndex === index ? { ...item, ...patch } : item)),
+              });
+            };
+            return (
+              <fieldset key={index}>
+                <legend>{cost.currency}</legend>
+                <Field id={`${prefix}-currency`} label={t("fields.costCurrency")}>
+                  <select
+                    id={`${prefix}-currency`}
+                    value={cost.currency}
+                    onChange={(event) => {
+                      const currency = SUPPORTED_CURRENCIES.find((value) => value === event.target.value);
+                      if (currency) setCost({ currency });
+                    }}
+                  >
+                    {SUPPORTED_CURRENCIES.map((value) => (
+                      <option key={value} value={value}>
+                        {value}
+                      </option>
+                    ))}
+                  </select>
+                </Field>
+                <Field id={`${prefix}-period`} label={t("fields.costPeriod")}>
+                  <select
+                    id={`${prefix}-period`}
+                    value={cost.period}
+                    onChange={(event) => {
+                      const period = COST_PERIODS.find((value) => value === event.target.value);
+                      if (period) setCost({ period });
+                    }}
+                  >
+                    {COST_PERIODS.map((value) => (
+                      <option key={value} value={value}>
+                        {t(`costPeriods.${value}`)}
+                      </option>
+                    ))}
+                  </select>
+                </Field>
+                <Field id={`${prefix}-scope`} label={t("fields.costScope")}>
+                  <select
+                    id={`${prefix}-scope`}
+                    value={cost.scope}
+                    onChange={(event) => {
+                      const scope = COST_SCOPES.find((value) => value === event.target.value);
+                      if (scope) setCost({ scope });
+                    }}
+                  >
+                    {COST_SCOPES.map((value) => (
+                      <option key={value} value={value}>
+                        {t(`costScopes.${value}`)}
+                      </option>
+                    ))}
+                  </select>
+                </Field>
+                {(
+                  [
+                    ["min", "costMin", "number"],
+                    ["max", "costMax", "number"],
+                    ["sourceName", "costSourceName", "text"],
+                    ["sourceUrl", "costSourceUrl", "url"],
+                    ["updatedAt", "costUpdatedAt", "date"],
+                  ] as const
+                ).map(([key, label, type]) => (
+                  <Field key={key} id={`${prefix}-${key}`} label={t(`fields.${label}`)}>
+                    <input
+                      id={`${prefix}-${key}`}
+                      type={type}
+                      value={cost[key]}
+                      onChange={(event) => {
+                        setCost({ [key]: event.target.value });
+                      }}
+                    />
+                  </Field>
+                ))}
+                {SUPPORTED_LOCALES.filter((locale) => current.translations[locale] !== undefined).map((locale) => (
+                  <Field
+                    key={locale}
+                    id={`${prefix}-basis-${locale}`}
+                    label={t("fields.costBasis", { language: t(`language.names.${locale}`) })}
+                  >
+                    <textarea
+                      id={`${prefix}-basis-${locale}`}
+                      lang={locale}
+                      rows={3}
+                      value={cost.basis[locale] ?? ""}
+                      onChange={(event) => {
+                        setCost({ basis: { ...cost.basis, [locale]: event.target.value } });
+                      }}
+                    />
+                  </Field>
+                ))}
+                <div className="actions">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      update({ costs: current.costs.filter((_, itemIndex) => itemIndex !== index) });
+                    }}
+                  >
+                    {t("common.remove")}
+                  </button>
+                </div>
+              </fieldset>
+            );
+          })}
+          <div className="actions">
+            <button
+              type="button"
+              disabled={unusedCurrency === undefined}
+              onClick={() => {
+                if (unusedCurrency) update({ costs: [...current.costs, newCostDraft(unusedCurrency)] });
+              }}
+            >
+              {t("fields.addCost")}
+            </button>
+          </div>
         </fieldset>
 
         <fieldset>

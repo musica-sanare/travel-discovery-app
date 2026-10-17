@@ -5,16 +5,15 @@
  */
 import { relations, sql } from "drizzle-orm";
 import { check, index, integer, primaryKey, sqliteTable, text, unique } from "drizzle-orm/sqlite-core";
+import { COST_PERIODS, COST_SCOPES, SUPPORTED_CURRENCIES } from "../../shared/costs";
 import { SUPPORTED_LOCALES } from "../../shared/locales";
+
+export { COST_PERIODS, COST_SCOPES, SUPPORTED_CURRENCIES };
 
 export const CONTENT_STATUSES = ["draft", "published", "archived"] as const;
 export const TAXONOMY_STATUSES = ["active", "archived"] as const;
 export const DESTINATION_TYPES = ["city", "region", "island", "other"] as const;
 export const QUESTION_TYPES = ["single_choice", "multiple_choice"] as const;
-export const COST_SCOPES = [
-  "per_person_excluding_international_flights",
-  "per_person_including_international_flights",
-] as const;
 
 const inList = (values: readonly string[]) =>
   sql.raw(values.map((value) => `'${value}'`).join(", "));
@@ -115,15 +114,8 @@ export const destinations = sqliteTable(
     destinationType: text("destination_type", { enum: DESTINATION_TYPES }).notNull(),
     recommendedDaysMin: integer("recommended_days_min"),
     recommendedDaysMax: integer("recommended_days_max"),
-    // Indicative cost in whole units of `cost_currency`; all cost columns are
-    // either all NULL (no estimate) or all set except the optional source URL.
-    costMin: integer("cost_min"),
-    costMax: integer("cost_max"),
-    costCurrency: text("cost_currency"),
-    costScope: text("cost_scope", { enum: COST_SCOPES }),
-    costSourceName: text("cost_source_name"),
-    costSourceUrl: text("cost_source_url"),
-    costUpdatedAt: text("cost_updated_at"),
+    // Best travel months as a 12-bit mask (bit m - 1 = month m); NULL = unknown.
+    bestMonthsMask: integer("best_months_mask"),
     imageUrl: text("image_url"),
     imageAttribution: text("image_attribution"),
     status: text("status", { enum: CONTENT_STATUSES }).notNull().default("draft"),
@@ -145,15 +137,8 @@ export const destinations = sqliteTable(
           OR ${t.recommendedDaysMin} <= ${t.recommendedDaysMax})`,
     ),
     check(
-      "destinations_cost_check",
-      sql`(${t.costMin} IS NULL AND ${t.costMax} IS NULL AND ${t.costCurrency} IS NULL
-          AND ${t.costScope} IS NULL AND ${t.costSourceName} IS NULL
-          AND ${t.costSourceUrl} IS NULL AND ${t.costUpdatedAt} IS NULL)
-        OR (${t.costMin} IS NOT NULL AND ${t.costMax} IS NOT NULL
-          AND ${t.costCurrency} IS NOT NULL AND ${t.costScope} IS NOT NULL
-          AND ${t.costSourceName} IS NOT NULL AND ${t.costUpdatedAt} IS NOT NULL
-          AND ${t.costMin} >= 0 AND ${t.costMin} <= ${t.costMax}
-          AND ${t.costScope} IN (${inList(COST_SCOPES)}))`,
+      "destinations_best_months_check",
+      sql`${t.bestMonthsMask} IS NULL OR ${t.bestMonthsMask} BETWEEN 1 AND 4095`,
     ),
   ],
 );
@@ -171,12 +156,57 @@ export const destinationTranslations = sqliteTable(
     highlightsJson: text("highlights_json").notNull().default("[]"),
     cautions: text("cautions"),
     bestSeasonText: text("best_season_text"),
-    costBasis: text("cost_basis"),
     imageAlt: text("image_alt"),
   },
   (t) => [
     primaryKey({ columns: [t.destinationId, t.locale] }),
     localeCheck("destination_translations_locale_check", t.locale),
+  ],
+);
+
+/** Indicative cost per destination and currency (docs/DECISIONS.md ADR-021). */
+export const destinationCostEstimates = sqliteTable(
+  "destination_cost_estimates",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    destinationId: integer("destination_id")
+      .notNull()
+      .references(() => destinations.id, { onDelete: "cascade" }),
+    currency: text("currency", { enum: SUPPORTED_CURRENCIES }).notNull(),
+    period: text("period", { enum: COST_PERIODS }).notNull(),
+    scope: text("scope", { enum: COST_SCOPES }).notNull(),
+    // Whole units of `currency`.
+    min: integer("min").notNull(),
+    max: integer("max").notNull(),
+    sourceName: text("source_name").notNull(),
+    sourceUrl: text("source_url"),
+    // ISO date (YYYY-MM-DD).
+    updatedAt: text("updated_at").notNull(),
+  },
+  (t) => [
+    unique("destination_cost_estimates_destination_currency_unique").on(t.destinationId, t.currency),
+    check(
+      "destination_cost_estimates_currency_check",
+      sql`${t.currency} IN (${inList(SUPPORTED_CURRENCIES)})`,
+    ),
+    check("destination_cost_estimates_period_check", sql`${t.period} IN (${inList(COST_PERIODS)})`),
+    check("destination_cost_estimates_scope_check", sql`${t.scope} IN (${inList(COST_SCOPES)})`),
+    check("destination_cost_estimates_range_check", sql`${t.min} >= 0 AND ${t.min} <= ${t.max}`),
+  ],
+);
+
+export const destinationCostEstimateTranslations = sqliteTable(
+  "destination_cost_estimate_translations",
+  {
+    estimateId: integer("estimate_id")
+      .notNull()
+      .references(() => destinationCostEstimates.id, { onDelete: "cascade" }),
+    locale: locale(),
+    basis: text("basis").notNull(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.estimateId, t.locale] }),
+    localeCheck("destination_cost_estimate_translations_locale_check", t.locale),
   ],
 );
 
@@ -331,7 +361,29 @@ export const destinationsRelations = relations(destinations, ({ one, many }) => 
   country: one(countries, { fields: [destinations.countryId], references: [countries.id] }),
   translations: many(destinationTranslations),
   attributeScores: many(destinationAttributes),
+  costEstimates: many(destinationCostEstimates),
 }));
+
+export const destinationCostEstimatesRelations = relations(
+  destinationCostEstimates,
+  ({ one, many }) => ({
+    destination: one(destinations, {
+      fields: [destinationCostEstimates.destinationId],
+      references: [destinations.id],
+    }),
+    translations: many(destinationCostEstimateTranslations),
+  }),
+);
+
+export const destinationCostEstimateTranslationsRelations = relations(
+  destinationCostEstimateTranslations,
+  ({ one }) => ({
+    estimate: one(destinationCostEstimates, {
+      fields: [destinationCostEstimateTranslations.estimateId],
+      references: [destinationCostEstimates.id],
+    }),
+  }),
+);
 
 export const destinationTranslationsRelations = relations(destinationTranslations, ({ one }) => ({
   destination: one(destinations, {

@@ -1,6 +1,6 @@
 -- Local development seed data (apply after migrations to an empty database:
 -- `npm run db:reset:local`). Small curated sample with ja/en/es text.
--- Indicative costs are intentionally left NULL: no sourced estimates exist
+-- No indicative cost estimates are seeded: no sourced estimates exist
 -- yet, and seed data must not present invented prices (docs/SPEC.md §7).
 -- Rows reference each other by slug so the file does not depend on IDs.
 -- Multi-row VALUES are used because D1 limits compound SELECT terms.
@@ -56,14 +56,18 @@ INSERT INTO attribute_translations (attribute_id, locale, name, description)
 SELECT a.id, t.locale, t.name, NULL FROM t JOIN attributes a ON a.slug = t.slug;
 
 -- Destinations (three published, one draft to demonstrate publication filtering)
-WITH d(slug, country, type, days_min, days_max, status) AS (VALUES
-  ('lisbon', 'portugal', 'city', 3, 6, 'published'),
-  ('taipei', 'taiwan', 'city', 3, 5, 'published'),
-  ('south-iceland', 'iceland', 'region', 5, 10, 'published'),
-  ('da-nang', 'vietnam', 'city', 4, 7, 'draft'))
+-- best_months is a 12-bit mask (bit m - 1 = month m) mirroring each
+-- destination's authored best-season text; NULL where that text names no
+-- single period (South Iceland) or is missing (Da Nang).
+-- Lisbon: Mar-May, Sep-Nov = 1820. Taipei: Oct-Apr = 3599.
+WITH d(slug, country, type, days_min, days_max, best_months, status) AS (VALUES
+  ('lisbon', 'portugal', 'city', 3, 6, 1820, 'published'),
+  ('taipei', 'taiwan', 'city', 3, 5, 3599, 'published'),
+  ('south-iceland', 'iceland', 'region', 5, 10, NULL, 'published'),
+  ('da-nang', 'vietnam', 'city', 4, 7, NULL, 'draft'))
 INSERT INTO destinations
-  (slug, country_id, destination_type, recommended_days_min, recommended_days_max, status, created_at, updated_at)
-SELECT d.slug, c.id, d.type, d.days_min, d.days_max, d.status,
+  (slug, country_id, destination_type, recommended_days_min, recommended_days_max, best_months_mask, status, created_at, updated_at)
+SELECT d.slug, c.id, d.type, d.days_min, d.days_max, d.best_months, d.status,
   '2026-10-17T00:00:00.000Z', '2026-10-17T00:00:00.000Z'
 FROM d JOIN countries c ON c.slug = d.country;
 

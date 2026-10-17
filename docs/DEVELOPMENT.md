@@ -51,7 +51,8 @@ server/db/              Drizzle schema and client (shared)
 server/http/            Error contract and request parsing (shared)
 server/public/          Published-content reads (public Worker only)
 server/admin/           Admin validation, reads, writes, Access auth (admin only)
-shared/                 Locale list and API error codes (browser and Workers)
+shared/                 Locale, currency, month, and API error constants (browser and Workers)
+domain/diagnosis/       Pure diagnostic engine (docs/DIAGNOSTIC_ALGORITHM.md)
 migrations/             Generated SQL migrations (+ drizzle-kit snapshots in meta/)
 db/seed/dev.sql         Local seed data
 test/workers/           Workers-runtime tests (D1, auth, CRUD, public API)
@@ -61,7 +62,7 @@ wrangler.jsonc          Public Worker config (binding PUBLIC_DB)
 wrangler.admin.jsonc    Admin Worker config (binding ADMIN_DB; owns migrations)
 ```
 
-ESLint (`no-restricted-imports`) and `test/node/boundary.test.ts` keep admin code out of the public Worker and SPA (ADR-018).
+ESLint (`no-restricted-imports`) and `test/node/boundary.test.ts` keep admin code out of the public Worker and SPA (ADR-018). The same mechanisms keep `domain/` free of UI, server, database, platform, and AI dependencies (ADR-021).
 
 ## Database
 

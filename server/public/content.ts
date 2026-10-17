@@ -6,7 +6,9 @@
  */
 import { and, asc, eq } from "drizzle-orm";
 import { z } from "zod";
+import { compareCurrencies } from "../../shared/costs";
 import type { Locale } from "../../shared/locales";
+import { maskToMonths } from "../../shared/months";
 import type { Database } from "../db/client";
 import { destinations, questions } from "../db/schema";
 import { pickTranslation } from "../localization";
@@ -28,13 +30,7 @@ const destinationColumns = {
   destinationType: true,
   recommendedDaysMin: true,
   recommendedDaysMax: true,
-  costMin: true,
-  costMax: true,
-  costCurrency: true,
-  costScope: true,
-  costSourceName: true,
-  costSourceUrl: true,
-  costUpdatedAt: true,
+  bestMonthsMask: true,
   imageUrl: true,
   imageAttribution: true,
 } as const;
@@ -49,6 +45,20 @@ async function loadPublishedDestinations(db: Database, slug?: string) {
     with: {
       translations: true,
       country: { columns: { slug: true }, with: { translations: true } },
+      costEstimates: {
+        columns: {
+          id: true,
+          currency: true,
+          period: true,
+          scope: true,
+          min: true,
+          max: true,
+          sourceName: true,
+          sourceUrl: true,
+          updatedAt: true,
+        },
+        with: { translations: true },
+      },
     },
   });
 }
@@ -62,24 +72,23 @@ function toPublicDestination(row: LoadedDestination, locale: Locale) {
   }
   const countryText = pickTranslation(row.country.translations, locale);
 
-  const cost =
-    row.costMin !== null &&
-    row.costMax !== null &&
-    row.costCurrency !== null &&
-    row.costScope !== null &&
-    row.costSourceName !== null &&
-    row.costUpdatedAt !== null
-      ? {
-          min: row.costMin,
-          max: row.costMax,
-          currency: row.costCurrency,
-          scope: row.costScope,
-          basis: text.costBasis,
-          sourceName: row.costSourceName,
-          sourceUrl: row.costSourceUrl,
-          updatedAt: row.costUpdatedAt,
-        }
-      : null;
+  const costs = [...row.costEstimates]
+    .sort((a, b) => compareCurrencies(a.currency, b.currency))
+    .map((estimate) => {
+      const basis = pickTranslation(estimate.translations, locale);
+      return {
+        currency: estimate.currency,
+        period: estimate.period,
+        scope: estimate.scope,
+        min: estimate.min,
+        max: estimate.max,
+        basis: basis?.basis ?? null,
+        basisLocale: basis?.locale ?? null,
+        sourceName: estimate.sourceName,
+        sourceUrl: estimate.sourceUrl,
+        updatedAt: estimate.updatedAt,
+      };
+    });
 
   return {
     slug: row.slug,
@@ -91,12 +100,13 @@ function toPublicDestination(row: LoadedDestination, locale: Locale) {
     cautions: text.cautions,
     bestSeason: text.bestSeasonText,
     recommendedDays: { min: row.recommendedDaysMin, max: row.recommendedDaysMax },
+    bestMonths: maskToMonths(row.bestMonthsMask),
     country: {
       slug: row.country.slug,
       name: countryText?.name ?? null,
       locale: countryText?.locale ?? null,
     },
-    cost,
+    costs,
     image: row.imageUrl
       ? { url: row.imageUrl, alt: text.imageAlt, attribution: row.imageAttribution }
       : null,

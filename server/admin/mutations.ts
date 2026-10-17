@@ -9,6 +9,7 @@
 import { and, eq, inArray, notInArray, sql } from "drizzle-orm";
 import type { BatchItem } from "drizzle-orm/batch";
 import { SUPPORTED_LOCALES, type Locale } from "../../shared/locales";
+import { monthsToMask } from "../../shared/months";
 import type { Database } from "../db/client";
 import {
   appSettings,
@@ -17,6 +18,8 @@ import {
   countries,
   countryTranslations,
   destinationAttributes,
+  destinationCostEstimates,
+  destinationCostEstimateTranslations,
   destinations,
   destinationTranslations,
   optionScoreEffects,
@@ -187,13 +190,7 @@ function destinationColumns(input: DestinationInput) {
     status: input.status,
     recommendedDaysMin: input.recommendedDays.min,
     recommendedDaysMax: input.recommendedDays.max,
-    costMin: input.cost?.min ?? null,
-    costMax: input.cost?.max ?? null,
-    costCurrency: input.cost?.currency ?? null,
-    costScope: input.cost?.scope ?? null,
-    costSourceName: input.cost?.sourceName ?? null,
-    costSourceUrl: input.cost?.sourceUrl ?? null,
-    costUpdatedAt: input.cost?.updatedAt ?? null,
+    bestMonthsMask: monthsToMask(input.bestMonths),
     imageUrl: input.image?.url ?? null,
     imageAttribution: input.image?.attribution ?? null,
   };
@@ -214,7 +211,6 @@ function destinationChildStatements(
         highlightsJson: JSON.stringify(t.highlights),
         cautions: t.cautions,
         bestSeasonText: t.bestSeason,
-        costBasis: t.costBasis,
         imageAlt: t.imageAlt,
       })),
     ),
@@ -229,6 +225,28 @@ function destinationChildStatements(
         })),
       ),
     );
+  }
+  for (const estimate of input.costs) {
+    const estimateRef = sql`(SELECT id FROM destination_cost_estimates WHERE destination_id = ${destinationId} AND currency = ${estimate.currency})`;
+    statements.push(
+      db.insert(destinationCostEstimates).values({
+        destinationId,
+        currency: estimate.currency,
+        period: estimate.period,
+        scope: estimate.scope,
+        min: estimate.min,
+        max: estimate.max,
+        sourceName: estimate.sourceName,
+        sourceUrl: estimate.sourceUrl,
+        updatedAt: estimate.updatedAt,
+      }),
+    );
+    const basisRows = entries(estimate.basis).flatMap(([locale, basis]) =>
+      basis ? [{ estimateId: estimateRef, locale, basis }] : [],
+    );
+    if (basisRows.length > 0) {
+      statements.push(db.insert(destinationCostEstimateTranslations).values(basisRows));
+    }
   }
   return statements;
 }
@@ -258,6 +276,8 @@ export async function updateDestination(
       .where(eq(destinations.id, id)),
     db.delete(destinationTranslations).where(eq(destinationTranslations.destinationId, id)),
     db.delete(destinationAttributes).where(eq(destinationAttributes.destinationId, id)),
+    // Estimate translations are removed by ON DELETE CASCADE.
+    db.delete(destinationCostEstimates).where(eq(destinationCostEstimates.destinationId, id)),
     ...destinationChildStatements(db, id, input),
   ]);
 }

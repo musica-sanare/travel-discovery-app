@@ -4,11 +4,12 @@
  * unpublishable content with field-level issues.
  */
 import { z } from "zod";
-import { PUBLISHABLE_BASE_LOCALES, type Locale } from "../../shared/locales";
+import { COST_PERIODS, COST_SCOPES, SUPPORTED_CURRENCIES } from "../../shared/costs";
+import { PUBLISHABLE_BASE_LOCALES, SUPPORTED_LOCALES, type Locale } from "../../shared/locales";
+import { MONTHS } from "../../shared/months";
 import { MAX_SLUG_LENGTH, SLUG_PATTERN } from "../../shared/slug";
 import {
   CONTENT_STATUSES,
-  COST_SCOPES,
   DESTINATION_TYPES,
   QUESTION_TYPES,
   TAXONOMY_STATUSES,
@@ -87,17 +88,28 @@ export const categoryInput = z
     requireBaseLocale(value.translations, ctx, ["translations"]);
   });
 
-const costInput = z
+const costEstimateInput = z
   .object({
+    currency: z.enum(SUPPORTED_CURRENCIES),
+    period: z.enum(COST_PERIODS),
+    scope: z.enum(COST_SCOPES),
     min: z.number().int().min(0).max(100_000_000),
     max: z.number().int().min(0).max(100_000_000),
-    currency: z.string().regex(/^[A-Z]{3}$/),
-    scope: z.enum(COST_SCOPES),
     sourceName: requiredText(200),
     sourceUrl: httpsUrl.nullish().transform((value) => value ?? null),
     updatedAt: z.iso.date(),
+    basis: z.object({
+      ja: optionalText(1000).optional(),
+      en: optionalText(1000).optional(),
+      es: optionalText(1000).optional(),
+    }),
   })
   .refine((value) => value.min <= value.max, { message: "min_exceeds_max", path: ["min"] });
+
+const bestMonths = z
+  .array(z.number().int().min(1).max(12))
+  .max(MONTHS.length)
+  .refine((items) => uniqueBy(items, (item) => item), { message: "duplicate_month" });
 
 const destinationTranslation = z.object({
   name: requiredText(120),
@@ -105,7 +117,6 @@ const destinationTranslation = z.object({
   highlights: z.array(requiredText(200)).max(8).default([]),
   cautions: optionalText(1000),
   bestSeason: optionalText(300),
-  costBasis: optionalText(1000),
   imageAlt: optionalText(300),
 });
 
@@ -118,7 +129,14 @@ export const destinationInput = z
     type: z.enum(DESTINATION_TYPES),
     status: z.enum(CONTENT_STATUSES),
     recommendedDays: z.object({ min: days, max: days }),
-    cost: costInput.nullable(),
+    bestMonths: bestMonths.default([]),
+    costs: z
+      .array(costEstimateInput)
+      .max(SUPPORTED_CURRENCIES.length)
+      .default([])
+      .refine((items) => uniqueBy(items, (item) => item.currency), {
+        message: "duplicate_currency",
+      }),
     image: z.object({ url: httpsUrl, attribution: requiredText(300) }).nullable(),
     translations: translations(destinationTranslation),
     attributeScores: z
@@ -136,17 +154,18 @@ export const destinationInput = z
     if (value.status === "published") {
       requireBaseLocale(value.translations, ctx, ["translations"]);
     }
-    if (value.cost !== null) {
-      for (const [locale, text] of Object.entries(value.translations)) {
-        if (text && !text.costBasis) {
+    // Every estimate needs a basis in each locale the destination is translated into.
+    value.costs.forEach((estimate, index) => {
+      for (const locale of SUPPORTED_LOCALES) {
+        if (value.translations[locale] && !estimate.basis[locale]) {
           ctx.addIssue({
             code: "custom",
             message: "cost_basis_required",
-            path: ["translations", locale, "costBasis"],
+            path: ["costs", index, "basis", locale],
           });
         }
       }
-    }
+    });
     if (value.image !== null) {
       for (const [locale, text] of Object.entries(value.translations)) {
         if (text && !text.imageAlt) {
@@ -196,11 +215,6 @@ export const questionInput = z
   .superRefine((value, ctx) => {
     if (value.status !== "published") {
       return;
-    }
-    // Multiple-choice scoring semantics are defined in Phase 2 (SPEC §4); until
-    // then such questions may exist as drafts but cannot be published (ADR-020).
-    if (value.type === "multiple_choice") {
-      ctx.addIssue({ code: "custom", message: "question_type_not_publishable", path: ["type"] });
     }
     requireBaseLocale(value.translations, ctx, ["translations"]);
     if (value.options.length < 2) {

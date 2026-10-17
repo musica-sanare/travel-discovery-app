@@ -14,6 +14,19 @@ const SERVER_ONLY_IMPORTS = [
   { group: ["**/server/**", "**/worker/**", "**/admin-worker/**"], message: "Server-only module." },
 ];
 
+// The diagnostic engine is pure (docs/DIAGNOSTIC_ALGORITHM.md): it may import
+// only its own modules and `shared/` constants.
+const DOMAIN_FORBIDDEN_IMPORTS = [
+  {
+    group: ["**/server/**", "**/worker/**", "**/admin-worker/**", "**/src/**", "**/admin/**"],
+    message: "The domain must not depend on application, UI, or server code.",
+  },
+  {
+    group: ["react", "react-*", "react/*", "hono", "hono/*", "drizzle-orm", "drizzle-orm/*", "@cloudflare/*", "cloudflare:*", "jose", "i18next"],
+    message: "The domain must not depend on UI, HTTP, database, or platform packages.",
+  },
+];
+
 export default tseslint.config(
   { ignores: ["dist", "dist-admin", ".wrangler", "coverage", "node_modules"] },
   js.configs.recommended,
@@ -36,6 +49,10 @@ export default tseslint.config(
   {
     files: ["worker/**/*.ts", "server/public/**/*.ts", "server/http/**/*.ts", "server/db/**/*.ts"],
     rules: { "no-restricted-imports": ["error", { patterns: ADMIN_ONLY_IMPORTS }] },
+  },
+  {
+    files: ["domain/**/*.ts"],
+    rules: { "no-restricted-imports": ["error", { patterns: DOMAIN_FORBIDDEN_IMPORTS }] },
   },
   {
     files: ["*.config.{js,ts}", "scripts/**/*.mjs"],

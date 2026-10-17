@@ -2,7 +2,9 @@
  * Admin read queries (all statuses). Used only by the admin Worker.
  */
 import { and, asc, eq, exists, or, sql, type SQL } from "drizzle-orm";
+import { compareCurrencies } from "../../shared/costs";
 import type { Locale } from "../../shared/locales";
+import { maskToMonths } from "../../shared/months";
 import type { Database } from "../db/client";
 import {
   appSettings,
@@ -145,18 +147,15 @@ export async function listDestinations(db: Database, filter: ListFilter) {
 export async function getDestination(db: Database, id: number) {
   const row = await db.query.destinations.findFirst({
     where: eq(destinations.id, id),
-    with: { translations: true, attributeScores: true },
+    with: {
+      translations: true,
+      attributeScores: true,
+      costEstimates: { with: { translations: true } },
+    },
   });
   if (!row) {
     return undefined;
   }
-  const hasCost =
-    row.costMin !== null &&
-    row.costMax !== null &&
-    row.costCurrency !== null &&
-    row.costScope !== null &&
-    row.costSourceName !== null &&
-    row.costUpdatedAt !== null;
 
   return {
     id: row.id,
@@ -165,17 +164,20 @@ export async function getDestination(db: Database, id: number) {
     type: row.destinationType,
     status: row.status,
     recommendedDays: { min: row.recommendedDaysMin, max: row.recommendedDaysMax },
-    cost: hasCost
-      ? {
-          min: row.costMin,
-          max: row.costMax,
-          currency: row.costCurrency,
-          scope: row.costScope,
-          sourceName: row.costSourceName,
-          sourceUrl: row.costSourceUrl,
-          updatedAt: row.costUpdatedAt,
-        }
-      : null,
+    bestMonths: maskToMonths(row.bestMonthsMask) ?? [],
+    costs: [...row.costEstimates]
+      .sort((a, b) => compareCurrencies(a.currency, b.currency))
+      .map((estimate) => ({
+        currency: estimate.currency,
+        period: estimate.period,
+        scope: estimate.scope,
+        min: estimate.min,
+        max: estimate.max,
+        sourceName: estimate.sourceName,
+        sourceUrl: estimate.sourceUrl,
+        updatedAt: estimate.updatedAt,
+        basis: toTranslationMap(estimate.translations, (t) => t.basis),
+      })),
     image: row.imageUrl ? { url: row.imageUrl, attribution: row.imageAttribution } : null,
     translations: toTranslationMap(row.translations, (t) => ({
       name: t.name,
@@ -183,7 +185,6 @@ export async function getDestination(db: Database, id: number) {
       highlights: safeStringArray(t.highlightsJson),
       cautions: t.cautions,
       bestSeason: t.bestSeasonText,
-      costBasis: t.costBasis,
       imageAlt: t.imageAlt,
     })),
     attributeScores: row.attributeScores.map((score) => ({

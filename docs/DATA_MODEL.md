@@ -23,10 +23,8 @@ Localization rule: base tables hold only locale-neutral data (IDs, slugs, enums,
 - `country_id`: foreign key
 - `destination_type`: city / region / island / other supported enum
 - `recommended_days_min`, `recommended_days_max`
-- `cost_min`, `cost_max`, `cost_currency`
-- `cost_scope`: stable enum, e.g. `per_person_excluding_international_flights`; its label is localized in UI message catalogs
-- `cost_source_name`, `cost_source_url`
-- `cost_updated_at`
+- `best_months_mask`: structured best travel months (Phase 2, ADR-021)
+- indicative costs live in `destination_cost_estimates` (Phase 2, ADR-021)
 - `image_url`, `image_attribution`
 - `flight_search_config` / `hotel_search_config` only if safe, documented, and necessary; otherwise generate known safe URLs in application code
 - `status`: draft / published / archived
@@ -40,9 +38,24 @@ Localization rule: base tables hold only locale-neutral data (IDs, slugs, enums,
 - `highlights` (normalized child table or validated JSON, decision documented)
 - `cautions`
 - `best_season_text`
-- `cost_basis`: explanation of what the estimate includes and its assumptions
 - `image_alt`
 - composite primary key `(destination_id, locale)`
+
+### destination_cost_estimates (Phase 2)
+- `id`
+- `destination_id`
+- `currency`: `JPY` / `USD` / `EUR`; unique per destination
+- `period`: `per_day` / `per_trip`
+- `scope`: stable enum, e.g. `per_person_excluding_international_flights`; its label is localized in UI message catalogs
+- `min`, `max`
+- `source_name`, `source_url`
+- `updated_at` (date)
+
+### destination_cost_estimate_translations (Phase 2)
+- `estimate_id`
+- `locale`: `ja` / `en` / `es`
+- `basis`: explanation of what the estimate includes and its assumptions
+- composite primary key `(estimate_id, locale)`
 
 ### attributes
 - `id`
@@ -152,11 +165,19 @@ The concrete schema is `server/db/schema.ts` (Drizzle ORM 0.45) and the generate
 - **Status values**: destinations and questions use `draft / published / archived`; attributes, question categories, and question options use `active / archived`. Countries have no status (they are reference data and are never deleted). CHECK constraints enforce the allowed values.
 - **Translations**: `country_translations`, `attribute_translations`, and `question_category_translations` were added so every user-visible string is localized (see the localization rule above). `locale` is constrained to `ja`, `en`, `es`.
 - **Highlights**: stored as a validated JSON array of strings (`destination_translations.highlights_json`, max 8 items of 200 characters) instead of a child table. Tradeoff: simpler writes and reads for a short ordered list; validated with Zod on write and read.
-- **Indicative cost**: `cost_min` / `cost_max` are integers in whole units of `cost_currency` (ISO 4217 code); indicative ranges do not need sub-unit precision. A CHECK constraint makes the cost group all-or-nothing (min, max, currency, scope, source name, updated date; source URL optional) with `0 <= cost_min <= cost_max`. When a cost is set, every provided translation must include `cost_basis` (API validation). `cost_scope` is a stable enum whose label is localized in the UI.
+- **Indicative cost** (*superseded by "Phase 2 schema notes"*): `cost_min` / `cost_max` are integers in whole units of `cost_currency` (ISO 4217 code); indicative ranges do not need sub-unit precision. A CHECK constraint makes the cost group all-or-nothing (min, max, currency, scope, source name, updated date; source URL optional) with `0 <= cost_min <= cost_max`. When a cost is set, every provided translation must include `cost_basis` (API validation). `cost_scope` is a stable enum whose label is localized in the UI.
 - **Images**: `image_url` and `image_attribution` on the destination; `image_alt` per translation (required for each provided translation when an image is set). URLs must be `https`.
 - **Scales**: `destination_attributes.score` is an integer 0–5. `option_score_effects.weight` is a non-zero integer from −5 to 5 (initial range; Phase 2 may refine it when the scoring formula is documented). `questions.priority_weight` is an integer 1–10 (default 5).
-- **Question types**: only `single_choice` and `multiple_choice` are implemented, and `multiple_choice` cannot be published until Phase 2 defines its scoring (`docs/DECISIONS.md` ADR-020). `range` from the logical model is deferred: it needs bounds and scoring semantics that Phase 2 defines (SPEC §4 limits sliders to clearly bounded values such as budget). Adding it later is a migration that extends the CHECK constraint.
-- **Selection conditions**: `selection_tags` / explicit conditions are deferred to Phase 2, when the question-selection algorithm and its rule format are documented.
+- **Question types**: only `single_choice` and `multiple_choice` are implemented, and both are publishable since Phase 2 (`docs/DECISIONS.md` ADR-021). `range` from the logical model is not implemented: the only bounded numeric input, the budget, is a trip constraint (ADR-021). Adding it later is a migration that extends the CHECK constraint.
+- **Selection conditions**: not stored. Phase 2 question selection adapts through attribute coverage instead of per-question conditions (`docs/DIAGNOSTIC_ALGORITHM.md` §7).
 - **Options**: unique per question by `value` (stable slug), so updates match options by value. Options omitted from an admin update are archived, not deleted.
 - **Settings**: `app_settings` stores the `quiz` key (validated JSON); see `docs/DECISIONS.md` ADR-020.
 - **Deletion**: no hard deletes through the API. Foreign keys use `ON DELETE CASCADE` only from parent rows to their translations/child rows and `RESTRICT` for references between independent entities.
+
+## Phase 2 schema notes
+
+Migration `0001` (decision: `docs/DECISIONS.md` ADR-021; algorithm: `docs/DIAGNOSTIC_ALGORITHM.md`):
+
+- **Cost estimates**: `destination_cost_estimates` replaces the cost columns on `destinations`; `destination_cost_estimate_translations.basis` replaces `destination_translations.cost_basis`. At most one estimate per `(destination_id, currency)`. `currency` is `JPY`, `USD`, or `EUR` (`shared/costs.ts`); `period` is `per_day` or `per_trip`; `min`/`max` are whole currency units with `0 <= min <= max`. Every locale for which the destination has a translation must have a basis for each estimate (API validation). Estimates are replaced as part of the destination aggregate `PUT`.
+- **Best months**: `destinations.best_months_mask` is `NULL` (unknown) or 1–4095, where bit `m − 1` means month `m` is a recommended travel month. The API exchanges it as a sorted list of months (`shared/months.ts`).
+- **Migration safety**: the `destinations` rebuild preserves IDs, translations, and attribute scores (see ADR-021). Legacy single-currency cost values are discarded.
