@@ -1,49 +1,18 @@
 /**
- * Global settings stored in `app_settings` as validated JSON per key.
- * Bounds follow docs/SPEC.md §4 and §6 (defaults: 6 / 10 / 12 questions,
- * 3–5 results).
+ * Admin input for global settings. The `quiz` value schema is shared with the
+ * public diagnosis content endpoint (shared/quiz-settings.ts).
  */
 import { z } from "zod";
+import { QUIZ_SETTINGS_KEY, quizSettingsSchema } from "../../shared/quiz-settings";
 
-export const quizSettingsSchema = z
-  .object({
-    minQuestions: z.number().int().min(1).max(30),
-    targetQuestions: z.number().int().min(1).max(30),
-    maxQuestions: z.number().int().min(1).max(30),
-    resultCount: z.number().int().min(3).max(5),
-  })
-  .refine((value) => value.minQuestions <= value.targetQuestions, {
-    message: "target_below_min",
-    path: ["targetQuestions"],
-  })
-  .refine((value) => value.targetQuestions <= value.maxQuestions, {
-    message: "target_above_max",
-    path: ["targetQuestions"],
-  });
-
-export type QuizSettings = z.infer<typeof quizSettingsSchema>;
-
-export const DEFAULT_QUIZ_SETTINGS: QuizSettings = {
-  minQuestions: 6,
-  targetQuestions: 10,
-  maxQuestions: 12,
-  resultCount: 5,
-};
+export {
+  DEFAULT_QUIZ_SETTINGS,
+  parseStoredQuizSettings,
+  quizSettingsSchema,
+  type QuizSettings,
+} from "../../shared/quiz-settings";
 
 export const settingsInput = z.object({ quiz: quizSettingsSchema });
 export type SettingsInput = z.infer<typeof settingsInput>;
 
-export const SETTINGS_KEYS = { quiz: "quiz" } as const;
-
-/** Parses a stored value, falling back to defaults if missing or invalid. */
-export function parseStoredQuizSettings(valueJson: string | undefined): QuizSettings {
-  if (valueJson === undefined) {
-    return DEFAULT_QUIZ_SETTINGS;
-  }
-  try {
-    const parsed = quizSettingsSchema.safeParse(JSON.parse(valueJson));
-    return parsed.success ? parsed.data : DEFAULT_QUIZ_SETTINGS;
-  } catch {
-    return DEFAULT_QUIZ_SETTINGS;
-  }
-}
+export const SETTINGS_KEYS = { quiz: QUIZ_SETTINGS_KEY } as const;

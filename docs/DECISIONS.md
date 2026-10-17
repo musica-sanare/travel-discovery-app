@@ -189,7 +189,7 @@ Notes:
   - UI strings must be complete in every locale (compile-time check), so fallback only matters for admin-entered content. Published seeded content must have all three translations. When content falls back, the UI marks the text with the correct `lang` attribute and a visible "shown in <language>" hint (Phase 1 data layer returns the locale actually used; Phase 3 renders the hint).
 - Rationale: Mature, widely used, typed keys via `CustomTypeOptions`, supports React 19 and TypeScript 6; TypeScript catalogs give stronger guarantees than JSON without extra tooling.
 - Alternatives considered: JSON catalogs (lose compile-time key parity), lighter custom context (would re-implement plurals, interpolation, fallback).
-- **Deferred to Phase 3 routing design**: whether the locale is reflected in the URL (e.g. `/en/...`) and whether the choice is persisted in `localStorage`. Until then the locale is in-memory only and defaults to `ja` on every load. Phase 1/2 APIs must therefore accept the locale as an explicit, validated parameter rather than inferring it from the URL path, so either routing choice remains possible.
+- **Resolved in ADR-022**: the locale is not in the URL; the choice is persisted in `localStorage`, with browser-language detection on first visit. (Before Phase 3 the locale was in-memory only and defaulted to `ja` on every load.) Phase 1/2 APIs must therefore accept the locale as an explicit, validated parameter rather than inferring it from the URL path, so either routing choice remains possible.
 
 ## ADR-013: Toolchain and package manager
 - Status: **Accepted** (Phase 0)
@@ -318,7 +318,7 @@ Notes:
 ## ADR-021: Phase 2 diagnostic engine, costs, and seasons
 - Status: **Accepted** (owner-approved 2026-10-17)
 - Engine: pure TypeScript in `domain/diagnosis/`, specified in `docs/DIAGNOSTIC_ALGORITHM.md` (formula, multiple-choice averaging, selection weights, seeded draw, stopping rule, tie-breaking, budget/season/duration rules). The domain may import only `shared/` constants; ESLint and `test/node/boundary.test.ts` enforce this.
-- Where the engine runs (Worker or browser) is decided at the start of Phase 3. The module works in both. A `POST` scoring endpoint on the public Worker would require revisiting ADR-018 ("GET/HEAD only").
+- Where the engine runs: decided in ADR-022 (browser). The module works in both environments.
 - Multiple choice: contributions are averaged over the selected options, counting undefined effects as 0. `multiple_choice` questions can now be published (lifts the ADR-020 restriction).
 - Question selection is deliberately simple: priority × category balance × novelty, drawn with a per-step seeded PRNG. Discrimination-based selection and stability-based early stopping are deferred until content volume can validate them (thresholds in the algorithm document).
 - Costs: moved to `destination_cost_estimates` (at most one estimate per destination and currency; amount range, `period` `per_day`/`per_trip`, scope, source, update date) with `destination_cost_estimate_translations` for the per-locale basis. Supported currencies: `JPY`, `USD`, `EUR` (`shared/costs.ts`), default `JPY`.
@@ -328,6 +328,21 @@ Notes:
 - Fallback explanation: structured data from the engine (top contributing attributes, statuses) rendered with message-catalog templates and the destination's authored text. No new database field.
 - `range` question type: not added. The only bounded numeric input (budget) is a trip constraint, not a quiz question.
 - Migration `0001`: rebuilds `destinations` to drop the legacy cost columns and their CHECK constraint. Because D1 enforces foreign keys during migrations, dropping the old table would cascade-delete destination translations and attribute scores, so the migration copies those rows to temporary tables and restores them. Legacy single-currency cost values are discarded (no production database exists; local data must be re-entered). Covered by `test/workers/migration.test.ts`.
+
+## ADR-022: Client-side diagnosis, diagnosis content endpoint, locale preference
+- Status: **Accepted** (owner-approved 2026-10-17; Phase 3)
+- Scoring location: the browser runs question selection, scoring, and ranking with `domain/diagnosis/` on a content snapshot from `GET /api/diagnosis-content`. Answers, trip constraints, and quiz progress are never sent to or stored on the server.
+  - Rationale: one Worker invocation per quiz session (Workers Free, ADR-015), no answers leave the browser, and the public Worker stays `GET`/`HEAD` only (ADR-018).
+  - Trade-off: attribute scores and option weights become public. They are content, not secrets, and the repository is intended to become public. A user can only tamper with their own results, which are not shared or stored.
+  - Phase 4 constraint: the AI explanation endpoint must not trust client-supplied rankings. It validates the submitted answers and constraints, recomputes the ranking server-side with the same domain module and current published content, and explains only those destinations. That endpoint requires revisiting ADR-018 (first non-`GET` public route) at that time.
+- `GET /api/diagnosis-content?locale=ja|en|es`:
+  - Returns only published questions in active categories with their active options, effects on active attributes only, active attributes, published destinations, and the validated quiz settings (defaults when unset or invalid). No internal IDs, statuses, or timestamps other than cost `updatedAt`.
+  - Missing `locale` means `ja`; any other value returns `400 invalid_request` (same rule as the other public endpoints). Translated text follows ADR-012's fallback chain; each translated object reports the locale actually used. Content without any translation in the chain is omitted.
+  - Response shape is defined once in `shared/diagnosis-content.ts` (Zod) and validated by the client, so non-JSON or unexpected responses (for example the platform's Error 1027 page) become a localized "temporarily unavailable" state.
+  - Caching: the response is `Cache-Control: no-store`, so a reload always sees the latest published content. The client keeps one snapshot in memory for up to 5 minutes and reuses it for "restart"; a quiz in progress keeps its snapshot so selection and ranking stay consistent. Admin changes are therefore visible to a new page load immediately and to an already open page within 5 minutes.
+- Locale preference: not part of the URL. On load: a stored preference (`localStorage` key `travel-discovery.locale`) if it is a supported locale; otherwise the first supported primary language in `navigator.languages` (for example `es-MX` → `es`); otherwise `ja`. Changing the language stores the choice. Only this UI preference is stored; storage errors (private mode, disabled storage) are ignored. Invalid stored values are ignored. Content fallback follows ADR-012; UI strings are complete in every locale (compile-time check). Changing the language during a quiz reloads the content snapshot in the new locale and keeps the answers, which are keyed by stable slugs.
+- Quiz state: in memory only (React state). A reload restarts the quiz. Nothing is written to `localStorage`, `sessionStorage`, cookies, or the server. Changing an earlier answer discards the later answers, because later questions depend on earlier answers (`docs/DIAGNOSTIC_ALGORITHM.md` §7). Restart draws a new seed with `crypto.getRandomValues`.
+- AI toggle (Phase 3): visible, default OFF, stored only in the in-memory quiz state. No AI endpoint exists yet; when ON, the results page shows the "AI assistance unavailable" notice and the deterministic explanation.
 
 ---
 
@@ -397,7 +412,7 @@ Decided by the owner on 2026-10-17: separate admin Worker (ADR-004), Drizzle 0.4
 4. ~~`range` question type and `multiple_choice` publishing~~: resolved in ADR-021 (no `range` type; multiple choice publishable).
 5. **Admin API rate limiting**: deferred to Phase 5 (ADR-020).
 6. ~~Phase 2 inputs~~ (budget currencies, structured seasons, fallback explanation): resolved in ADR-021. Remaining: whether to add curated estimates per currency or a dated reference-rate table so `USD`/`EUR` budgets can be compared with destinations that only have `JPY` estimates.
-10. **Scoring location**: Worker or browser, decided at the start of Phase 3 (ADR-021).
+10. ~~Scoring location~~: browser (ADR-022).
 7. **drizzle-kit audit advisory** (ADR-003): held as a development-only transitive dependency; re-evaluate on dependency or usage changes.
 8. **Shared D1 (ADR-018)**: revisit the private content Worker option if the code-level read-only boundary proves insufficient.
 9. **Locale in URL**: deferred to Phase 3 routing design.

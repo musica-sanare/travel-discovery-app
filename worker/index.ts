@@ -11,6 +11,7 @@ import { createDatabase } from "../server/db/client";
 import { errorResponse, jsonResponse, toErrorResponse } from "../server/http/errors";
 import { parseLocaleParam } from "../server/http/request";
 import { isSlug } from "../shared/slug";
+import { getDiagnosisContent } from "../server/public/diagnosis-content";
 import {
   getPublishedDestination,
   listPublishedDestinations,
@@ -55,6 +56,11 @@ app.get("/api/questions", async (c) => {
   const locale = parseLocaleParam(new URL(c.req.url));
   const items = await listPublishedQuestions(createDatabase(c.env.PUBLIC_DB), locale);
   return jsonResponse({ items });
+});
+
+app.get("/api/diagnosis-content", async (c) => {
+  const locale = parseLocaleParam(new URL(c.req.url));
+  return jsonResponse(await getDiagnosisContent(createDatabase(c.env.PUBLIC_DB), locale));
 });
 
 app.notFound(() => errorResponse("not_found"));

@@ -63,6 +63,11 @@ export function drawWeighted(candidates: readonly { slug: string; weight: number
   return candidates[candidates.length - 1]?.slug;
 }
 
+/** Questions the quiz will ask if every usable question remains available (for progress display). */
+export function plannedQuestionCount(content: DiagnosisContent, limits: QuizLimits): number {
+  return Math.min(limits.targetQuestions, limits.maxQuestions, prepareContent(content).questions.size);
+}
+
 /**
  * @param limits validated quiz settings (min <= target <= max)
  * @param seed unsigned 32-bit session seed

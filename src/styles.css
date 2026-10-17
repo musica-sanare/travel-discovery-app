@@ -75,3 +75,22 @@ a {
 .notice {
   color: var(--color-muted);
 }
+
+/* Functional Phase 3a layout; the visual design follows in Phase 3b. */
+.choice {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  padding: 0.25rem 0;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+fieldset {
+  margin: 1rem 0;
+}

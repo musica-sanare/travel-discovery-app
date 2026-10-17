@@ -35,7 +35,7 @@ const destinationColumns = {
   imageAttribution: true,
 } as const;
 
-async function loadPublishedDestinations(db: Database, slug?: string) {
+export async function loadPublishedDestinations(db: Database, slug?: string) {
   return db.query.destinations.findMany({
     columns: destinationColumns,
     where: slug
@@ -63,9 +63,9 @@ async function loadPublishedDestinations(db: Database, slug?: string) {
   });
 }
 
-type LoadedDestination = Awaited<ReturnType<typeof loadPublishedDestinations>>[number];
+export type LoadedDestination = Awaited<ReturnType<typeof loadPublishedDestinations>>[number];
 
-function toPublicDestination(row: LoadedDestination, locale: Locale) {
+export function toPublicDestination(row: LoadedDestination, locale: Locale) {
   const text = pickTranslation(row.translations, locale);
   if (!text) {
     return undefined;

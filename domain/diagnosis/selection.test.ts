@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { prepareContent } from "./content";
 import { mulberry32, stepRandom } from "./random";
-import { drawWeighted, nextQuestion, questionWeight } from "./selection";
+import { drawWeighted, nextQuestion, plannedQuestionCount, questionWeight } from "./selection";
 import { LIMITS, attributes, content, option, question } from "./test-fixtures";
 import type { Answer, DiagnosisContent, QuizLimits } from "./types";
 
@@ -67,6 +67,11 @@ describe("nextQuestion", () => {
       reason: "no_more_questions",
       insufficientQuestions: true,
     });
+  });
+
+  it("reports the planned question count for progress", () => {
+    expect(plannedQuestionCount(pool(15), LIMITS)).toBe(10);
+    expect(plannedQuestionCount(pool(4), LIMITS)).toBe(4);
   });
 
   it("counts skipped answers as asked", () => {

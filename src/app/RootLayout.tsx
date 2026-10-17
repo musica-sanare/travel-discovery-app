@@ -2,12 +2,13 @@ import { useTranslation } from "react-i18next";
 import { Link, Outlet } from "react-router";
 import { DocumentMetadata } from "../components/DocumentMetadata";
 import { LanguageSwitcher } from "../components/LanguageSwitcher";
+import { QuizSessionProvider } from "../diagnosis/QuizSessionProvider";
 
 export function RootLayout() {
   const { t } = useTranslation();
 
   return (
-    <>
+    <QuizSessionProvider>
       <DocumentMetadata />
       <header className="site-header">
         <Link to="/" className="site-name">
@@ -18,6 +19,6 @@ export function RootLayout() {
       <main className="site-main">
         <Outlet />
       </main>
-    </>
+    </QuizSessionProvider>
   );
 }

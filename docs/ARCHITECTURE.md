@@ -68,12 +68,13 @@ Domain logic must not import React, Cloudflare bindings, database clients, or AI
 ## 3. Request flow
 
 ### Diagnosis
-1. Client loads active quiz configuration and content through public API.
-2. Client manages answers in memory for the session.
-3. Client or server invokes deterministic scoring; choose one canonical location during implementation and document why. Recommended: perform authoritative scoring in the Worker using submitted answer IDs and server-loaded content, so clients cannot tamper with destination scores.
-4. Worker returns ranked destination IDs and safe result data.
-5. If AI assistance is enabled, client makes a separate explicit request for explanation generation. Worker revalidates the request and generates explanation text for the already-ranked results.
-6. If AI fails, client uses the deterministic fallback included in normal result data.
+Scoring runs in the browser (`docs/DECISIONS.md` ADR-022).
+
+1. When the user starts a quiz, the client loads one content snapshot from `GET /api/diagnosis-content?locale=` (published content, scoring data, quiz settings). The response is not cached by HTTP; the client reuses it in memory for up to 5 minutes.
+2. The client keeps trip constraints, answers, and the seed in memory only. Nothing is sent to or stored on the server, and a reload restarts the quiz.
+3. The client runs question selection, scoring, and ranking with `domain/diagnosis/` (`docs/DIAGNOSTIC_ALGORITHM.md`) and renders results with the deterministic explanation.
+4. Phase 4: if AI assistance is enabled, the client sends a separate explicit request. The Worker validates the answers and constraints, recomputes the ranking from current published content with the same domain module, and generates explanation text only for those destinations. It never trusts a client-supplied ranking.
+5. If AI is off or fails, the deterministic explanation is shown.
 
 Do not persist individual answer histories in D1.
 

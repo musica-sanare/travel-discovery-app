@@ -14,4 +14,4 @@ export {
   type RankingResult,
 } from "./ranking";
 export type { AttributeContribution } from "./scoring";
-export { nextQuestion, type NextStep, type StopReason } from "./selection";
+export { nextQuestion, plannedQuestionCount, type NextStep, type StopReason } from "./selection";
