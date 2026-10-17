@@ -33,6 +33,8 @@ Do not install with `--omit=optional`: the `workerd` and `esbuild` binaries come
 | `npm run typecheck` | TypeScript project references build, no emit. |
 | `npm test` | Vitest: `unit` project (Node/jsdom) and `workers` project (Workers runtime with a migrated local D1). |
 | `npm run check` | Lint, type-check, tests, and build in sequence. |
+| `npm run test:e2e` | Playwright end-to-end tests against a production build (see "End-to-end tests"). Not part of `check`. |
+| `npm run e2e:db` | Recreate the isolated E2E database in `.wrangler/e2e/state` (migrate and seed). Run automatically by `test:e2e`. |
 | `npm run db:generate` | Generate a SQL migration from `server/db/schema.ts` into `migrations/` (drizzle-kit). Review the SQL before applying. |
 | `npm run db:migrate:local` | Apply pending migrations to the local D1 database. |
 | `npm run db:seed:local` | Load `db/seed/dev.sql` into the local database (expects an empty, migrated database). |
@@ -113,6 +115,14 @@ curl "http://localhost:5173/api/destinations?locale=en"
 ## Accessibility checks
 
 `src/app/accessibility.test.tsx` runs axe-core (dev dependency) on every public page state in ja/en/es, including validation errors, the error state, and expanded result details. jsdom cannot compute colors, so `color-contrast` is disabled there; check contrast in a real browser (light and dark color schemes) when changing colors. Keyboard behavior and screen-reader output still need manual checks.
+
+## End-to-end tests
+
+`npm run test:e2e` runs the specs in `e2e/` with Playwright (`playwright.config.ts`) in a desktop and a mobile (Pixel 7) project. Playwright starts its own server: it recreates an isolated local D1 database in `.wrangler/e2e/state` (`npm run e2e:db`), builds the public app, and serves it with `vite preview` on port 4180 with `E2E_STATE_DIR` set, so development data in `.wrangler/state` is never touched and the security headers from `public/_headers` apply.
+
+Browsers: by default the tests use the locally installed Google Chrome (`channel: "chrome"`), so nothing is downloaded. To use Playwright's bundled Chromium instead (for example in CI), run `npx playwright install chromium` (downloads a few hundred MB from Microsoft's CDN; get the owner's approval first) and set `PLAYWRIGHT_CHANNEL=bundled`.
+
+The specs cover the core journey without AI, the AI toggle (no AI request either way), back/edit/restart, reload behavior and storage, language detection and switching, API errors and empty content, security headers and CSP errors, horizontal overflow, a keyboard-only run (desktop), and axe-core checks in light and dark mode. The axe test disables CSP for its own context only, because axe is injected as an inline script.
 
 ## Environment variables
 - Local: `.dev.vars` (see "Admin locally"). `.env.example` lists all variables.

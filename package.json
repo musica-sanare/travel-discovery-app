@@ -20,7 +20,9 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate:local": "wrangler d1 migrations apply travel-discovery --local --config wrangler.admin.jsonc",
     "db:seed:local": "wrangler d1 execute travel-discovery --local --config wrangler.admin.jsonc --file db/seed/dev.sql",
-    "db:reset:local": "node -e \"require('node:fs').rmSync('.wrangler/state/v3/d1',{recursive:true,force:true})\" && npm run db:migrate:local && npm run db:seed:local"
+    "db:reset:local": "node -e \"require('node:fs').rmSync('.wrangler/state/v3/d1',{recursive:true,force:true})\" && npm run db:migrate:local && npm run db:seed:local",
+    "test:e2e": "playwright test",
+    "e2e:db": "node -e \"require('node:fs').rmSync('.wrangler/e2e',{recursive:true,force:true})\" && wrangler d1 migrations apply travel-discovery --local --persist-to .wrangler/e2e/state --config wrangler.admin.jsonc && wrangler d1 execute travel-discovery --local --persist-to .wrangler/e2e/state --config wrangler.admin.jsonc --file db/seed/dev.sql"
   },
   "dependencies": {
     "drizzle-orm": "^0.45.4",
@@ -38,6 +40,7 @@
     "@cloudflare/vitest-plugin": "^1.4.4",
     "@cloudflare/workers-types": "^5.20261016.1",
     "@eslint/js": "^10.0.1",
+    "@playwright/test": "^1.64.1",
     "@tailwindcss/vite": "^4.3.3",
     "@testing-library/dom": "^10.4.2",
     "@testing-library/react": "^16.3.3",

@@ -366,6 +366,13 @@ Notes:
 - No departure-airport input: it would only be useful for prefilled searches, so it is not collected (SPEC §5 lists it as optional).
 - Revisit if a provider publishes a documented, affiliate-free deep-link format, or if the owner decides to join an affiliate programme (requires a new decision on privacy, disclosure, and SPEC §3 "no affiliate tracking").
 
+## ADR-025: End-to-end tests with Playwright
+- Status: **Accepted** (Phase 3d, 2026-10-17; owner approved Playwright and asked to confirm before any browser download)
+- Decision: `@playwright/test` 1.64.1 (dev dependency; no install scripts, so it installs under `strict-allow-scripts`, ADR-016). Local runs use the installed Google Chrome through `channel: "chrome"`, so no browser binary is downloaded. Tests run against a production build in `vite preview` with an isolated, freshly seeded D1 state (`E2E_STATE_DIR`, `.wrangler/e2e/state`). Desktop and mobile (Pixel 7) projects. Details: `docs/DEVELOPMENT.md` "End-to-end tests".
+  - *Verified* (https://playwright.dev/docs/browsers, 2026-10-17): installing the npm package does not install browsers; `npx playwright install` downloads them from Microsoft's CDN (a few hundred MB); `channel: "chrome"` uses an installed branded Chrome.
+- Not yet decided: which browser CI uses (Phase 5). Bundled Chromium needs a download in CI; this requires the owner's approval at that time.
+- Admin authorization E2E is part of Phase 5 (`prompts/05-polish-and-e2e.md`).
+
 ---
 
 ## Admin authentication status (2026-10-17)

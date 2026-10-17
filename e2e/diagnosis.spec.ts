@@ -1,0 +1,161 @@
+import { expect, test } from "@playwright/test";
+import { answerAllQuestions, startQuiz, unexpectedRequests, watchPage } from "./fixtures";
+
+test.describe("core journey without AI", () => {
+  test("landing → constraints → quiz → results", async ({ page, baseURL }) => {
+    const { errors, requests } = watchPage(page);
+    await startQuiz(page);
+
+    await page.getByLabel(/旅行日数/).fill("4");
+    await page.getByLabel("4月").check();
+    await page.getByLabel("金額").fill("200000");
+    await expect(page.getByLabel("AI アシストを使う")).not.toBeChecked();
+    await page.getByRole("button", { name: "質問に進む" }).click();
+
+    await expect(page.getByRole("heading", { level: 1, name: /^質問 1 \/ \d+$/ })).toBeVisible();
+    expect(await answerAllQuestions(page)).toBeGreaterThan(0);
+
+    const results = page.getByRole("article");
+    await expect(results.first()).toBeVisible();
+    expect(await results.count()).toBeGreaterThanOrEqual(1);
+    expect(await results.count()).toBeLessThanOrEqual(5);
+    await expect(results.first().getByText(/^相対的な適合度: \d+ \/ 100$/)).toBeVisible();
+    await expect(page.getByText("現在の登録データに基づく相対的な目安です。確率や保証ではありません。")).toBeVisible();
+
+    const flights = results.first().getByRole("link", { name: /Google Flightsで航空券を探す/ });
+    await expect(flights).toHaveAttribute("href", "https://www.google.com/travel/flights");
+    await expect(flights).toHaveAttribute("target", "_blank");
+    await expect(flights).toHaveAttribute("rel", "noopener noreferrer");
+
+    // No AI endpoint and no other API calls; answers never leave the browser.
+    expect(unexpectedRequests(requests, baseURL ?? "")).toEqual([]);
+    expect(requests.filter((url) => url.includes("/api/")).every((url) => url.includes("/api/diagnosis-content?locale=ja"))).toBe(true);
+    expect(errors).toEqual([]);
+  });
+
+  test("AI toggle on shows a notice and still makes no AI request", async ({ page, baseURL }) => {
+    const { errors, requests } = watchPage(page);
+    await startQuiz(page);
+    await page.getByLabel("AI アシストを使う").check();
+    await page.getByRole("button", { name: "質問に進む" }).click();
+    await answerAllQuestions(page);
+    await expect(page.getByRole("status").filter({ hasText: "AI アシストは現在利用できません" })).toBeVisible();
+    expect(unexpectedRequests(requests, baseURL ?? "")).toEqual([]);
+    expect(errors).toEqual([]);
+  });
+
+  test("back, edit, and restart", async ({ page }) => {
+    await startQuiz(page);
+    await page.getByRole("button", { name: "質問に進む" }).click();
+    const first = page.getByRole("group").locator("input").first();
+    await first.check();
+    await page.getByRole("button", { name: "次へ" }).click();
+    await expect(page.getByRole("heading", { level: 1, name: /^質問 2 \/ \d+$/ })).toBeVisible();
+
+    await page.getByRole("button", { name: "前の質問に戻る" }).click();
+    await expect(page.getByRole("heading", { level: 1, name: /^質問 1 \/ \d+$/ })).toBeVisible();
+    await expect(page.getByRole("group").locator("input").first()).toBeChecked();
+
+    await page.getByRole("button", { name: "次へ" }).click();
+    await page.getByRole("button", { name: "この質問をスキップ" }).click();
+    await answerAllQuestions(page);
+    await expect(page.getByText("スキップ", { exact: true })).toBeVisible();
+
+    await page.getByRole("button", { name: "回答を見直す" }).first().click();
+    await expect(page.getByRole("heading", { level: 1, name: /^質問 1 \/ \d+$/ })).toBeVisible();
+
+    await page.getByRole("button", { name: "最初からやり直す" }).click();
+    await expect(page.getByRole("heading", { level: 1, name: /^質問 1 \/ \d+$/ })).toBeVisible();
+    await expect(page.getByRole("group").locator("input:checked")).toHaveCount(0);
+  });
+
+  test("a reload restarts the quiz and stores nothing but the language", async ({ page }) => {
+    await startQuiz(page);
+    await page.getByLabel(/旅行日数/).fill("5");
+    await page.getByRole("button", { name: "質問に進む" }).click();
+    await page.getByRole("group").locator("input").first().check();
+    await page.getByRole("button", { name: "次へ" }).click();
+    await page.reload();
+    await expect(page.getByRole("heading", { level: 1, name: "旅の条件（任意）" })).toBeVisible();
+    await expect(page.getByLabel(/旅行日数/)).toHaveValue("");
+    const stored = await page.evaluate(() => ({
+      local: Object.keys(localStorage),
+      session: Object.keys(sessionStorage),
+      cookies: document.cookie,
+    }));
+    expect(stored).toEqual({ local: [], session: [], cookies: "" });
+  });
+});
+
+test.describe("languages", () => {
+  test.use({ locale: "es-MX" });
+
+  test("detects the browser language and keeps a manual choice across reloads", async ({ page }) => {
+    await page.goto("/");
+    await expect(page.locator("html")).toHaveAttribute("lang", "es");
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText("Encuentra un destino en el extranjero hecho para ti");
+
+    await page.getByLabel("Idioma").selectOption("en");
+    await expect(page.locator("html")).toHaveAttribute("lang", "en");
+    await page.reload();
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText("Find an overseas destination that suits you");
+    expect(await page.evaluate(() => localStorage.getItem("travel-discovery.locale"))).toBe("en");
+  });
+
+  test("switching language mid-quiz keeps progress", async ({ page }) => {
+    await page.goto("/plan");
+    await page.getByRole("button", { name: "Continuar a las preguntas" }).click();
+    await page.getByRole("group").locator("input").first().check();
+    await page.getByRole("button", { name: "Siguiente" }).click();
+    await expect(page.getByRole("heading", { level: 1, name: /^Pregunta 2 de \d+$/ })).toBeVisible();
+    await page.getByLabel("Idioma").selectOption("ja");
+    await expect(page.getByRole("heading", { level: 1, name: /^質問 2 \/ \d+$/ })).toBeVisible();
+  });
+});
+
+test.describe("error and empty data", () => {
+  test("shows a retryable error when the content API fails", async ({ page }) => {
+    let fail = true;
+    await page.route("**/api/diagnosis-content**", (route) =>
+      fail ? route.fulfill({ status: 503, contentType: "application/json", body: '{"error":"service_unavailable"}' }) : route.continue(),
+    );
+    await startQuiz(page);
+    await page.getByRole("button", { name: "質問に進む" }).click();
+    const alert = page.getByRole("alert");
+    await expect(alert).toContainText("現在ご利用いただけません");
+    fail = false;
+    await alert.getByRole("button", { name: "再読み込み" }).click();
+    await expect(page.getByRole("heading", { level: 1, name: /^質問 1 \/ \d+$/ })).toBeVisible();
+  });
+
+  test("treats a non-JSON platform error page as unavailable", async ({ page }) => {
+    await page.route("**/api/diagnosis-content**", (route) =>
+      route.fulfill({ status: 200, contentType: "text/html", body: "<html>Error 1027</html>" }),
+    );
+    await startQuiz(page);
+    await page.getByRole("button", { name: "質問に進む" }).click();
+    await expect(page.getByRole("alert")).toContainText("現在ご利用いただけません");
+  });
+
+  test("handles empty published content", async ({ page }) => {
+    await page.route("**/api/diagnosis-content**", (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          locale: "ja",
+          settings: { minQuestions: 6, targetQuestions: 10, maxQuestions: 12, resultCount: 5 },
+          attributes: [],
+          questions: [],
+          destinations: [],
+        }),
+      }),
+    );
+    await startQuiz(page);
+    await page.getByRole("button", { name: "質問に進む" }).click();
+    await expect(page.getByRole("heading", { level: 1, name: "あなたへのおすすめ" })).toBeVisible();
+    await expect(page.getByText("条件に合う旅行先が見つかりませんでした。条件を変えてお試しください。")).toBeVisible();
+    await expect(page.getByText("質問の数が少ないため、通常より短い診断になりました。")).toBeVisible();
+    await expect(page.getByRole("article")).toHaveCount(0);
+  });
+});
