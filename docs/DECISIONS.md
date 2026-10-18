@@ -741,7 +741,7 @@ Status: **Accepted by the owner (2026-10-18)**, subject to the owner's review of
 ### Open decisions (要確認)
 Updated 2026-10-18. Decided: see the status lines of "Stage 5 preparation decisions" and "Model decision".
 1. Rate Limiting binding availability for this account: confirm on an approved preview deployment. If unavailable, choose between a Durable Object limiter and keeping AI disabled.
-2. Confirm in the dashboard that the account is on Workers Free and whether a payment method is attached (budget alert eligibility).
+2. Confirm in the dashboard that the account is on Workers Free and whether a payment method is attached (budget alert eligibility). *Update (2026-10-18)*: the owner confirmed the account is on Workers Free and logged in with `wrangler login`; the preview D1 database `travel-discovery-preview` was created with owner approval.
 3. ~~Model choice~~: Gemma 4 26B ("Model decision"); JSON Schema and disabled reasoning confirmed to work for it in both rounds.
 4. Approval of the evaluation run itself (API token creation, Neuron use) and of C5 with a deployment plan.
 5. Whether a dashboard variable edit is an acceptable fast kill switch, or the redeploy procedure is the only one. *Update (2026-10-18, "Phase 6 verification log")*: a dashboard edit is overwritten by the next `wrangler deploy` unless `keep_vars` is set, so after an emergency dashboard edit the same value must also be committed to the configuration before the next deployment.

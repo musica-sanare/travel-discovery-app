@@ -53,11 +53,10 @@
       "observability": { "enabled": true },
       "d1_databases": [
         {
-          // Same database as the public preview Worker (ADR-018). Replace with
-          // the ID printed by `wrangler d1 create` after the owner approves it.
+          // Same database as the public preview Worker (ADR-018).
           "binding": "ADMIN_DB",
           "database_name": "travel-discovery-preview",
-          "database_id": "replace-with-preview-database-id",
+          "database_id": "d0f881f6-cc73-40cc-9de0-1460a5589625",
           "migrations_dir": "migrations"
         }
       ],

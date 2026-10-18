@@ -36,11 +36,10 @@
       "observability": { "enabled": true },
       "d1_databases": [
         {
-          // Replace with the ID printed by `wrangler d1 create` after the owner
-          // approves creating the database; a deployment fails until then.
+          // Created 2026-10-18 (docs/DEPLOYMENT.md "3.2 D1 databases").
           "binding": "PUBLIC_DB",
           "database_name": "travel-discovery-preview",
-          "database_id": "replace-with-preview-database-id"
+          "database_id": "d0f881f6-cc73-40cc-9de0-1460a5589625"
         }
       ],
       "ai": { "binding": "AI" },

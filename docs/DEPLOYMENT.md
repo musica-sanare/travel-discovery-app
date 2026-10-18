@@ -1,6 +1,6 @@
 # Deployment Runbook
 
-**Status (Phase 6, 2026-10-18): commands checked against current official documentation ("Phase 6 verification log" in `docs/DECISIONS.md`); nothing in this document has been executed yet.** No Cloudflare resource, Access application, or deployment exists. `env.preview` (C5) is configured in both Wrangler configs with a placeholder database ID; `env.production` is not configured yet. Every step that logs in, creates resources, changes account settings, or deploys requires the owner's explicit approval at that time. Items marked *(要確認)* are not covered by the documentation and are confirmed at the step where they occur.
+**Status (Phase 6, 2026-10-18): commands checked against current official documentation ("Phase 6 verification log" in `docs/DECISIONS.md`).** Progress: the preview D1 database `travel-discovery-preview` was created on 2026-10-18 (region APAC) and `env.preview` (C5) is configured in both Wrangler configs with its ID; no migration, Access application, or deployment exists yet, and `env.production` is not configured. Every step that logs in, creates resources, changes account settings, or deploys requires the owner's explicit approval at that time. Items marked *(要確認)* are not covered by the documentation and are confirmed at the step where they occur.
 
 ## 1. Target setup
 
@@ -57,7 +57,7 @@ npx wrangler d1 create travel-discovery-preview
 Record the printed `database_id` in the matching environment of **both** configs (C5). The ID is not a secret. Do not reuse the local placeholder `local-travel-discovery`; a deployment with it fails rather than touching another database (ADR-018). Create `travel-discovery-production` the same way only when production is approved. `--location` (location hint) is optional; leave it unset unless the owner chooses one.
 
 ### 3.3 Configuration (C5, ADR-026 "Stage 5 preparation decisions" C)
-`env.preview` exists in both Wrangler configs (Phase 6, 2026-10-18); add `env.production` the same way when production is approved, with its own database and `namespace_id` values. The preview `database_id` is the placeholder `replace-with-preview-database-id` until 3.2. `vars` and bindings are not inherited by named environments, so each environment declares everything it uses:
+`env.preview` exists in both Wrangler configs (Phase 6, 2026-10-18); add `env.production` the same way when production is approved, with its own database and `namespace_id` values. `vars` and bindings are not inherited by named environments, so each environment declares everything it uses:
 - Both Workers: `d1_databases` with that environment's `database_name` and `database_id` (the admin config also keeps `migrations_dir`); `"observability": { "enabled": true }` (Workers Logs); `"workers_dev": true` and `"preview_urls": false`, set explicitly so the dashboard cannot silently diverge; `upload_source_maps`.
 - Public Worker: `ai` binding; `vars` `AI_ASSIST_ENABLED: "false"` and `AI_MODEL: "@cf/google/gemma-4-26b-a4b-it"`; `ratelimits` binding `AI_CLIENT_RATE_LIMITER` (`simple: { limit: 5, period: 60 }`).
 - Admin Worker: `ratelimits` binding `ADMIN_RATE_LIMITER` (suggested `limit: 120, period: 60`); `vars` `ACCESS_TEAM_DOMAIN` and `ACCESS_POLICY_AUD` (not secrets; known after 3.4, different for each admin Worker).
