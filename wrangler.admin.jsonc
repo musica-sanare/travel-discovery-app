@@ -41,6 +41,30 @@
           "migrations_dir": "migrations"
         }
       ]
+    },
+    // Deployment environment (docs/DEPLOYMENT.md "3.3 Configuration" and
+    // "3.4 Cloudflare Access"). workers_dev stays false until Worker-level
+    // Access protects this Worker; ACCESS_TEAM_DOMAIN and ACCESS_POLICY_AUD are
+    // added then. Without them the admin API answers 403 (fail closed).
+    "preview": {
+      "workers_dev": false,
+      "preview_urls": false,
+      "upload_source_maps": true,
+      "observability": { "enabled": true },
+      "d1_databases": [
+        {
+          // Same database as the public preview Worker (ADR-018). Replace with
+          // the ID printed by `wrangler d1 create` after the owner approves it.
+          "binding": "ADMIN_DB",
+          "database_name": "travel-discovery-preview",
+          "database_id": "replace-with-preview-database-id",
+          "migrations_dir": "migrations"
+        }
+      ],
+      "ratelimits": [
+        // Keyed by the Access email (ADR-020); namespace_id unique in the account.
+        { "name": "ADMIN_RATE_LIMITER", "namespace_id": "1002", "simple": { "limit": 120, "period": 60 } }
+      ]
     }
   }
 }

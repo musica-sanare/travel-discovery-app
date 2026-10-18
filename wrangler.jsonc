@@ -21,5 +21,38 @@
       "database_name": "travel-discovery",
       "database_id": "local-travel-discovery"
     }
-  ]
+  ],
+  // Deployment environments (docs/DEPLOYMENT.md "3.3 Configuration"), selected
+  // with CLOUDFLARE_ENV at build time only. Bindings and vars are not inherited,
+  // so each environment declares all of them. The top level above must never
+  // get the ai or ratelimits bindings: an ai binding always connects to
+  // Cloudflare, also from `npm run dev` and the tests (ADR-026 C). Never run
+  // `npm run dev` with CLOUDFLARE_ENV set to a deployment environment.
+  "env": {
+    "preview": {
+      "workers_dev": true,
+      "preview_urls": false,
+      "upload_source_maps": true,
+      "observability": { "enabled": true },
+      "d1_databases": [
+        {
+          // Replace with the ID printed by `wrangler d1 create` after the owner
+          // approves creating the database; a deployment fails until then.
+          "binding": "PUBLIC_DB",
+          "database_name": "travel-discovery-preview",
+          "database_id": "replace-with-preview-database-id"
+        }
+      ],
+      "ai": { "binding": "AI" },
+      "ratelimits": [
+        // namespace_id must be unique in the account (ADR-026 B).
+        { "name": "AI_CLIENT_RATE_LIMITER", "namespace_id": "1001", "simple": { "limit": 5, "period": 60 } }
+      ],
+      "vars": {
+        // Kill switch: anything but "true" means no model call (ADR-026 A).
+        "AI_ASSIST_ENABLED": "false",
+        "AI_MODEL": "@cf/google/gemma-4-26b-a4b-it"
+      }
+    }
+  }
 }

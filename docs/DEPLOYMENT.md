@@ -1,6 +1,6 @@
 # Deployment Runbook
 
-**Status (Phase 6, 2026-10-18): commands checked against current official documentation ("Phase 6 verification log" in `docs/DECISIONS.md`); nothing in this document has been executed yet.** No Cloudflare resource, Access application, or deployment exists, and the named environments (C5) are not configured yet. Every step that logs in, creates resources, changes account settings, or deploys requires the owner's explicit approval at that time. Items marked *(要確認)* are not covered by the documentation and are confirmed at the step where they occur.
+**Status (Phase 6, 2026-10-18): commands checked against current official documentation ("Phase 6 verification log" in `docs/DECISIONS.md`); nothing in this document has been executed yet.** No Cloudflare resource, Access application, or deployment exists. `env.preview` (C5) is configured in both Wrangler configs with a placeholder database ID; `env.production` is not configured yet. Every step that logs in, creates resources, changes account settings, or deploys requires the owner's explicit approval at that time. Items marked *(要確認)* are not covered by the documentation and are confirmed at the step where they occur.
 
 ## 1. Target setup
 
@@ -57,14 +57,15 @@ npx wrangler d1 create travel-discovery-preview
 Record the printed `database_id` in the matching environment of **both** configs (C5). The ID is not a secret. Do not reuse the local placeholder `local-travel-discovery`; a deployment with it fails rather than touching another database (ADR-018). Create `travel-discovery-production` the same way only when production is approved. `--location` (location hint) is optional; leave it unset unless the owner chooses one.
 
 ### 3.3 Configuration (C5, ADR-026 "Stage 5 preparation decisions" C)
-Add `env.preview` and later `env.production` to both Wrangler configs. `vars` and bindings are not inherited by named environments, so each environment declares everything it uses:
+`env.preview` exists in both Wrangler configs (Phase 6, 2026-10-18); add `env.production` the same way when production is approved, with its own database and `namespace_id` values. The preview `database_id` is the placeholder `replace-with-preview-database-id` until 3.2. `vars` and bindings are not inherited by named environments, so each environment declares everything it uses:
 - Both Workers: `d1_databases` with that environment's `database_name` and `database_id` (the admin config also keeps `migrations_dir`); `"observability": { "enabled": true }` (Workers Logs); `"workers_dev": true` and `"preview_urls": false`, set explicitly so the dashboard cannot silently diverge; `upload_source_maps`.
 - Public Worker: `ai` binding; `vars` `AI_ASSIST_ENABLED: "false"` and `AI_MODEL: "@cf/google/gemma-4-26b-a4b-it"`; `ratelimits` binding `AI_CLIENT_RATE_LIMITER` (`simple: { limit: 5, period: 60 }`).
 - Admin Worker: `ratelimits` binding `ADMIN_RATE_LIMITER` (suggested `limit: 120, period: 60`); `vars` `ACCESS_TEAM_DOMAIN` and `ACCESS_POLICY_AUD` (not secrets; known after 3.4, different for each admin Worker).
 - Every `ratelimits` entry needs its own `namespace_id` (a positive integer as a string, unique in the account); bindings sharing an ID share counters, so preview and production must not share one.
 - Never add `ai`, `ratelimits`, or AI variables to the top level: an `ai` binding always connects to Cloudflare, also from `npm run dev` and the tests.
+- Never run `npm run dev` or `npm run dev:admin` with `CLOUDFLARE_ENV` set to a deployment environment, and do not use `npm run preview` after an environment build: both would use that environment's `ai` binding. Run `npm run build` without `CLOUDFLARE_ENV` to return `dist/` and `dist-admin/` to the local configuration.
 
-Checks for C5 (local, no login): the top-level build output (`dist/worker/wrangler.json`, `dist-admin/admin_worker/wrangler.json`) is unchanged apart from the list of defined environments; `CLOUDFLARE_ENV=preview npm run build` writes the expected flattened configuration; `npm run check` and `npm run test:e2e` pass; `npm run dev` shows no remote-binding warning.
+Checks for C5 (local, no login; all passed for `env.preview` on 2026-10-18): the top-level build output (`dist/worker/wrangler.json`, `dist-admin/admin_worker/wrangler.json`) is unchanged apart from the list of defined environments; `CLOUDFLARE_ENV=preview npm run build` writes the expected flattened configuration; `npm run check` and `npm run test:e2e` pass; `npm run dev` shows no remote-binding warning.
 
 ### 3.4 Cloudflare Access for each admin Worker
 Worker-level Access can only be applied to a Worker that exists, and an admin Worker must never be reachable without it. So:
@@ -101,7 +102,7 @@ npx wrangler d1 migrations apply travel-discovery-preview --remote --env preview
    CLOUDFLARE_ENV=preview npm run build
    ```
 
-4. Inspect what would be deployed without deploying (no login needed is expected *(要確認)*):
+4. Inspect what would be deployed without deploying (no login needed; checked 2026-10-18):
 
    ```bash
    npx wrangler deploy --dry-run --config dist/worker/wrangler.json
@@ -111,7 +112,7 @@ npx wrangler d1 migrations apply travel-discovery-preview --remote --env preview
    npx wrangler deploy --dry-run --config dist-admin/admin_worker/wrangler.json
    ```
 
-   Confirm the Worker name, bindings, and `vars` in the output. Each build also writes a redirect file (`.wrangler/deploy/config.json` for the public build, `admin/.wrangler/deploy/config.json` for the admin build, because the admin Vite root is `admin/`), so a plain `npx wrangler deploy` from the repository root deploys **only the public Worker**. Whether `--config` takes precedence over the redirect is not documented *(要確認 with the dry run)*; the dry-run output must show the intended Worker before any real deployment.
+   Confirm the bindings and `vars` in the output; the dry run does not print the Worker name, which is the `name` field of the same `wrangler.json`. Each build also writes a redirect file (`.wrangler/deploy/config.json` for the public build, `admin/.wrangler/deploy/config.json` for the admin build, because the admin Vite root is `admin/`). Checked 2026-10-18 with Wrangler 4.151.1: a plain `npx wrangler deploy` from the repository root follows the redirect and deploys **only the public Worker**; with `--config <generated wrangler.json>` the redirect is not used; `--cwd admin` fails because the redirect file does not sit next to a user configuration. Always deploy with the explicit `--config` paths above.
 5. Deploy each Worker with the same command without `--dry-run`, admin first during the initial setup (3.4), preview first in general.
 6. Run section 6, then repeat with `production` after its approval.
 
