@@ -9,7 +9,9 @@ Each phase is started with the matching prompt file:
 | 2 — Deterministic diagnostic engine | `prompts/02-diagnostic-engine.md` |
 | 3 — Public UI, localization, and outbound search | `prompts/03-public-ui.md` |
 | 4 — Optional AI assistance | `prompts/04-ai-assist.md` |
-| 5 — Quality and release | `prompts/05-polish-and-e2e.md`, then `prompts/06-release.md` |
+| 5 — Quality, accessibility, and end-to-end coverage | `prompts/05-polish-and-e2e.md` |
+| 6 — Documentation, CI, and release | `prompts/06-release.md` |
+| 7 — Post-launch operations | `prompts/07-operations.md` |
 
 `prompts/FIRST_MESSAGE.md` is the kickoff message for a new Claude Code session.
 
@@ -80,11 +82,18 @@ Acceptance:
 - AI output cannot introduce new destinations or alter factual fields.
 - User receives a useful fallback explanation.
 
-## Phase 5 — Quality and release
+## Phase 5 — Quality, accessibility, and end-to-end coverage
 - Add Playwright E2E tests for quiz and admin authorization.
-- Add GitHub Actions for lint, type-check, tests, and build.
 - Review accessibility, security, error messages, dependencies, and secrets.
 - Add rate limiting for admin API endpoints (deferred from Phase 1; `docs/DECISIONS.md` ADR-020) together with the AI endpoint limits.
+
+Acceptance:
+- All automated checks pass, or any remaining failure is documented with reason and risk.
+- A checklist of manual checks before deployment exists.
+- No secrets or personal data are committed.
+
+## Phase 6 — Documentation, CI, and release
+- Add GitHub Actions for lint, type-check, tests, and build.
 - Write README and deployment runbook.
 - Deploy only after user approval and with documented free-tier/billing implications.
 
@@ -93,3 +102,16 @@ Acceptance:
 - A new developer can follow README to run locally.
 - Production deployment is repeatable.
 - No secrets or personal data are committed.
+
+## Phase 7 — Post-launch operations
+- Publish production content through the admin console and verify it in all locales.
+- Close or document the remaining deploy-only checks.
+- Run E2E tests in CI.
+- Write the operations runbook (`docs/OPERATIONS.md`).
+- Prepare the AI enablement decision; the decision itself is the owner's.
+
+Acceptance:
+- Every open check is verified, or recorded as 要確認 with a reason.
+- `docs/OPERATIONS.md` exists and covers monitoring, incidents, and the AI kill switch.
+- CI runs E2E tests, or the reason it does not is recorded.
+- AI remains disabled in all environments.
