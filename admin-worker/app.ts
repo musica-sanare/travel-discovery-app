@@ -28,6 +28,11 @@ import { parseIdParam, readJsonBody, toValidationIssues } from "../server/http/r
 
 export interface AdminEnv extends AccessConfig {
   ADMIN_DB: D1Database;
+  /**
+   * Optional Rate Limiting binding, keyed by the authenticated Access email
+   * (ADR-020); not configured until the deployment environments exist.
+   */
+  ADMIN_RATE_LIMITER?: RateLimit;
 }
 
 type AdminContext = Context<{ Bindings: AdminEnv; Variables: { identity: AdminIdentity } }>;
@@ -50,6 +55,22 @@ function parseListQuery(c: AdminContext) {
   return { q: q === "" ? undefined : q, status, categoryId, page };
 }
 
+/**
+ * Methods registered for a concrete path, so an unsupported method gets 405
+ * with `Allow` instead of 404 (ADR-015). Middleware entries (`ALL`) are
+ * ignored; HEAD is allowed wherever GET is.
+ */
+export function allowedMethods(routes: readonly { method: string; path: string }[], path: string): string[] {
+  const methods = new Set<string>();
+  for (const route of routes) {
+    if (route.method === "ALL") continue;
+    const pattern = new RegExp(`^${route.path.replace(/:[^/]+/g, "[^/]+")}$`);
+    if (pattern.test(path)) methods.add(route.method);
+  }
+  if (methods.has("GET")) methods.add("HEAD");
+  return [...methods].sort();
+}
+
 function db(c: AdminContext) {
   return createDatabase(c.env.ADMIN_DB);
 }
@@ -66,6 +87,10 @@ export function createAdminApp(authOptions: AuthOptions) {
       return errorResponse("forbidden");
     }
     c.set("identity", identity);
+    const limiter = c.env.ADMIN_RATE_LIMITER;
+    if (limiter && !(await limiter.limit({ key: `admin:${identity.email}` })).success) {
+      return errorResponse("rate_limited");
+    }
     await next();
   });
 
@@ -160,7 +185,13 @@ export function createAdminApp(authOptions: AuthOptions) {
     return jsonResponse(await queries.getSettings(db(c)));
   });
 
-  app.notFound(() => errorResponse("not_found"));
+  // Reached only after authorization, so unauthenticated callers cannot probe routes.
+  app.notFound((c) => {
+    const allowed = allowedMethods(app.routes, c.req.path);
+    return allowed.length > 0
+      ? errorResponse("method_not_allowed", undefined, { Allow: allowed.join(", ") })
+      : errorResponse("not_found");
+  });
   app.onError((error) => toErrorResponse(error, "admin_api"));
 
   return app;

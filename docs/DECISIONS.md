@@ -301,7 +301,7 @@ Official documentation only; no login, account setting, or model call.
   | 503 | Dependency unavailable: D1 errors including daily limits, AI unavailable/over quota/timeout | `service_unavailable`, `ai_unavailable` |
   | 500 | Unexpected bug (caught by a top-level handler) | `internal_error` |
 
-  Implemented in Phase 1 (`server/http/errors.ts`, tested in `test/workers/`): 400, 403, 404, 405, 409, 413, 415, 503 (D1/SQLite errors), 500. Phase 4 Stage 2 (ADR-026) adds `ai_unavailable` to `shared/api-errors.ts` and uses 403, 409, 429, and 503 `ai_unavailable` on `POST /api/ai/explanations` (tested in `test/workers/ai-explanations.test.ts`). 429 is used only there; admin rate limiting is still deferred (ADR-020).
+  Implemented in Phase 1 (`server/http/errors.ts`, tested in `test/workers/`): 400, 403, 404, 405, 409, 413, 415, 503 (D1/SQLite errors), 500. Phase 4 Stage 2 (ADR-026) adds `ai_unavailable` to `shared/api-errors.ts` and uses 403, 409, 429, and 503 `ai_unavailable` on `POST /api/ai/explanations` (tested in `test/workers/ai-explanations.test.ts`). Phase 5d: the admin API answers unsupported methods on existing paths with 405 and `Allow` (derived from the registered routes, only after authorization) and uses 429 for its optional per-identity limiter (ADR-020; `test/workers/admin-limits.test.ts`).
   - *Not verified*: the exact error text D1 returns when a Free-plan daily limit is exceeded. The mapper treats any error whose message chain contains `D1_` or `SQLITE_` as 503 and everything else as 500; confirm against a real limit error if possible.
 - Required application behavior:
   - Public API: map D1 errors (including daily-limit errors) to `503 service_unavailable`. The UI shows a localized "temporarily unavailable, please try again later" state with retry.
@@ -396,6 +396,7 @@ Official documentation only; no login, account setting, or model call.
 - Settings: single key `quiz` with `minQuestions`, `targetQuestions`, `maxQuestions` (1–30, min ≤ target ≤ max) and `resultCount` (3–5); defaults 6 / 10 / 12 / 5 when unset (SPEC §4, §6). The default `resultCount` of 5 is an implementation choice within the 3–5 range.
 - Not implemented in Phase 1: preview-before-publish beyond the draft status (SPEC §10 says "where practical"), `range` question type (see DATA_MODEL notes).
 - **Deferred to Phase 5: rate limiting for admin endpoints** (SPEC §13 asks for reasonable limits on AI and admin endpoints). Reason: every admin URL is behind Cloudflare Access for a single owner, so unauthenticated traffic is stopped at the edge and authenticated traffic is limited to the owner's own use; the remaining risk (a compromised owner session or a runaway client) is better handled together with the AI endpoint limits. Revisit during the Phase 5 security review (`prompts/05-polish-and-e2e.md` "Review API validation, error leakage, rate limits"), or earlier if admin access is extended beyond the owner or the admin API is exposed without Access.
+  - *Implemented 2026-10-18 (Phase 5d, owner option (a))*: after the Access JWT check, the admin API consults an optional Rate Limiting binding `ADMIN_RATE_LIMITER` keyed by `admin:<Access email>` and answers `429 rate_limited` when it refuses; unauthenticated requests are rejected with 403 before the limiter is consulted. The binding is configured only with the deployment environments (ADR-026 C5); a suggested starting limit is 120 requests per 60 s per identity. Without the binding no limit applies, which is acceptable while Access restricts the admin Worker to the owner. Tests: `test/workers/admin-limits.test.ts`.
 
 ## ADR-021: Phase 2 diagnostic engine, costs, and seasons
 - Status: **Accepted** (owner-approved 2026-10-17)
@@ -641,7 +642,7 @@ Status: **Accepted by the owner (2026-10-18)**, including: operate on Workers Fr
 - C2: remove the unused global limiter option.
 - C3: log `rate_limited` and `disabled` outcomes (no address).
 - C4 (optional): remember settled AI results per request in the client hook.
-- C5: `env.production` / `env.preview` in `wrangler.jsonc` with `AI_ASSIST_ENABLED: "false"`, and enabling observability (only together with an approved deployment plan).
+- C5: `env.production` / `env.preview` in `wrangler.jsonc` with `AI_ASSIST_ENABLED: "false"`, and enabling observability (only together with an approved deployment plan). The admin Worker's environments also get the `ADMIN_RATE_LIMITER` binding (ADR-020).
 - C6: the opt-in evaluation runner (`docs/AI_EVALUATION.md`), plus a git-ignored output directory.
 
 ### Implementation status (Stage 5a, 2026-10-18)
@@ -770,7 +771,7 @@ Decided by the owner on 2026-10-17: separate admin Worker (ADR-004), Drizzle 0.4
 2. **Deploy-only verifications** (need approval): Access coverage of the admin Worker's `workers.dev` URL and static assets; `Cf-Access-Jwt-Assertion` delivery through the static-assets router; RS256 signing of Access JWTs; two deployed Workers binding one D1 database; D1 daily-limit error text (ADR-015).
 3. **Remote resources** (need approval): creating the D1 database(s), replacing the placeholder `database_id`, setting `ACCESS_TEAM_DOMAIN` / `ACCESS_POLICY_AUD` for the admin Worker.
 4. ~~`range` question type and `multiple_choice` publishing~~: resolved in ADR-021 (no `range` type; multiple choice publishable).
-5. **Admin API rate limiting**: deferred to Phase 5 (ADR-020).
+5. ~~**Admin API rate limiting**~~: implemented as an optional per-identity binding in Phase 5d (ADR-020); the binding itself is configured with the deployment environments.
 6. ~~Phase 2 inputs~~ (budget currencies, structured seasons, fallback explanation): resolved in ADR-021. Remaining: whether to add curated estimates per currency or a dated reference-rate table so `USD`/`EUR` budgets can be compared with destinations that only have `JPY` estimates.
 10. ~~Scoring location~~: browser (ADR-022).
 7. **drizzle-kit audit advisory** (ADR-003): held as a development-only transitive dependency; re-evaluate on dependency or usage changes.
