@@ -586,7 +586,7 @@ Implemented locally and tested with a fake `AI` binding; no model has been calle
 - Remaining: Stage 5 (owner-approved real-model evaluation) and the configuration decisions below.
 
 ### Stage 5 preparation decisions (2026-10-18)
-Status: **Proposed**, for owner approval before Stage 5. Facts are in "Stage 5 preparation checks". Nothing below has been configured or deployed.
+Status: **Accepted by the owner (2026-10-18)**, including: operate on Workers Free while AI is enabled; per-client limit of 5 requests per 60 s keyed by IPv4 address or IPv6 /64; no global key; evaluation through the Workers AI REST API with a token from the shell environment; code changes C1–C6. Facts are in "Stage 5 preparation checks". Nothing below has been configured or deployed.
 
 #### A. Usage and cost control: what is guaranteed, what only suppresses, what only detects
 | Kind | Control | State |
@@ -643,12 +643,22 @@ Status: **Proposed**, for owner approval before Stage 5. Facts are in "Stage 5 p
 - C5: `env.production` / `env.preview` in `wrangler.jsonc` with `AI_ASSIST_ENABLED: "false"`, and enabling observability (only together with an approved deployment plan).
 - C6: the opt-in evaluation runner (`docs/AI_EVALUATION.md`), plus a git-ignored output directory.
 
+### Implementation status (Stage 5a, 2026-10-18)
+Implemented and tested without any real model call, login, or configuration change.
+- C1: `server/public/rate-limit-key.ts` builds the limiter key from `CF-Connecting-IP` only: `ip4:<address>`, `ip6:<first four hextets>::/64` (IPv4-mapped IPv6 counts as IPv4), and `unknown` for a missing or unparsable header. `X-Forwarded-For` is ignored. Unit tests in `test/node/rate-limit-key.test.ts`; Worker tests check the key per header.
+- C2: the global limiter option and `AI_GLOBAL_RATE_LIMITER` were removed; `AI_CLIENT_RATE_LIMITER` is the only limiter binding.
+- C3: requests stopped before the use case log `outcome: "disabled"` or `"rate_limited"` with the same five fields as other AI log lines (`model` is null when no provider is configured); still no addresses, answers, or texts.
+- C4: `useAiExplanations` remembers every settled result (including failures) per request for the life of the results page, so switching back to an earlier language sends nothing and failures are never retried automatically.
+- C6: opt-in runner `test/ai-eval/runner.ts` with entry `test/ai-eval/run.eval.ts`, run only by `npm run ai:eval` (the `ai-eval` Vitest project exists only for that script; `vitest list` shows no evaluation test otherwise). It refuses to start unless `AI_EVAL_CONFIRM=consume-neurons`, `CLOUDFLARE_ACCOUNT_ID`, and `CLOUDFLARE_API_TOKEN` are set; uses the production request builder and validation; makes one call per job with no retry; stops before any call that could push the estimated total over the budget (default and maximum 5,000 Neurons); records to the git-ignored `.ai-eval/` without the token or API error messages. Unit tests with a fake fetch in `test/node/ai-eval-runner.test.ts`. Verified locally that `npm run ai:eval` without the confirmation fails before any network access. Before the first run (owner-approved, 2026-10-18): the pre-call estimate counts one token per request character (was two characters per token, which could underestimate Japanese), and a run ID whose records already exist is refused. For the ten cases, the resulting worst case for one round is about 1,970 Neurons (typical about 670); the budget remains an estimate, not a measurement of billed usage.
+- Not done: C5 (`env.production` / `env.preview`, observability) waits for an approved deployment plan; the evaluation has not been run.
+- Known issue (要確認): in one of four full E2E runs, the real-server AI test on the mobile project received HTTP 500 instead of 503 from `POST /api/ai/explanations` with AI disabled. It did not recur in three further full runs (with web-server logging) or twelve repeated runs of that test, and the server log of the failing run was not captured, so the cause is unknown. The test was not relaxed. If it recurs, capture the `[WebServer]` output (`DEBUG=pw:webserver`) and look for an `api_error` line.
+
 ### Open decisions (要確認)
-Updated 2026-10-18. Decided: per-client keys by address without a global key (B), deployed-only AI configuration (C), digit rule kept (F).
+Updated 2026-10-18. Decided: see the status line of "Stage 5 preparation decisions".
 1. Rate Limiting binding availability for this account: confirm on an approved preview deployment. If unavailable, choose between a Durable Object limiter and keeping AI disabled.
-2. Account plan and payment method (Free vs Paid; budget alert eligibility), which decides whether the Neuron ceiling is a hard bound.
+2. Confirm in the dashboard that the account is on Workers Free and whether a payment method is attached (budget alert eligibility).
 3. Model choice after the evaluation (`docs/AI_EVALUATION.md`), with its license obligations, JSON-mode behaviour, and whether reasoning can be disabled.
-4. Approval of code changes C1–C6, and of the evaluation run itself (login, API token, Neuron use).
+4. Approval of the evaluation run itself (API token creation, Neuron use) and of C5 with a deployment plan.
 5. Whether a dashboard variable edit is an acceptable fast kill switch, or the redeploy procedure is the only one.
 
 ---

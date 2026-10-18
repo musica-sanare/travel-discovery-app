@@ -57,7 +57,6 @@ function send(options: SendOptions = {}): Promise<Response> {
   const dependencies: AiDependencies = {
     provider: null,
     clientLimiter: null,
-    globalLimiter: null,
     ...options.dependencies,
   };
   const app = createPublicApp({ aiDependencies: () => dependencies });
@@ -299,29 +298,26 @@ describe("POST /api/ai/explanations: untrusted model output", () => {
 });
 
 describe("POST /api/ai/explanations: rate limiting and logs", () => {
-  it("returns 429 without calling AI or reading the body when a limiter refuses", async () => {
-    for (const which of ["globalLimiter", "clientLimiter"] as const) {
-      const { provider, calls } = fakeProvider();
-      const refused = limiter(false);
-      const response = await send({ body: "{", dependencies: { provider, [which]: refused.limiter } });
-      expect(response.status).toBe(429);
-      expect(await json(response)).toEqual({ error: "rate_limited" });
-      expect(calls).toHaveLength(0);
-    }
+  it("returns 429 without calling AI or reading the body when the limiter refuses", async () => {
+    const { provider, calls } = fakeProvider();
+    const refused = limiter(false);
+    const response = await send({ body: "{", dependencies: { provider, clientLimiter: refused.limiter } });
+    expect(response.status).toBe(429);
+    expect(await json(response)).toEqual({ error: "rate_limited" });
+    expect(calls).toHaveLength(0);
   });
 
-  it("keys the client limiter by IP address and the global limiter by one key", async () => {
+  it.each([
+    [{ "CF-Connecting-IP": "203.0.113.5" }, "ip4:203.0.113.5"],
+    [{ "CF-Connecting-IP": "2001:db8:aa:bb:1:2:3:4" }, "ip6:2001:db8:aa:bb::/64"],
+    [{ "X-Forwarded-For": "198.51.100.1" }, "unknown"],
+    [{}, "unknown"],
+  ])("keys the client limiter from CF-Connecting-IP only (%o)", async (headers, key) => {
     const { provider } = fakeProvider();
     const client = limiter(true);
-    const global = limiter(true);
-    const response = await send({
-      body: body(),
-      headers: { "CF-Connecting-IP": "203.0.113.5" },
-      dependencies: { provider, clientLimiter: client.limiter, globalLimiter: global.limiter },
-    });
+    const response = await send({ body: body(), headers, dependencies: { provider, clientLimiter: client.limiter } });
     expect(response.status).toBe(200);
-    expect(client.keys).toEqual(["ip:203.0.113.5"]);
-    expect(global.keys).toEqual(["global"]);
+    expect(client.keys).toEqual([key]);
   });
 
   it("logs only outcome, model, latency, and count", async () => {
@@ -344,11 +340,17 @@ describe("POST /api/ai/explanations: rate limiting and logs", () => {
     await send({ body: body({ constraints }), headers, dependencies: { provider: ok.provider } });
     await send({ body: body({ constraints }), headers, dependencies: { provider: failing.provider } });
     await send({ body: body({ expected: [...validBody.expected].reverse() }), headers, dependencies: { provider: ok.provider } });
+    await send({ body: body(), headers, dependencies: { provider: ok.provider, clientLimiter: limiter(false).limiter } });
+    await send({ body: body(), headers, enabled: "false", dependencies: { provider: ok.provider } });
+    await send({ body: body(), headers });
 
-    expect(logs.map((line) => (JSON.parse(line) as { outcome: string }).outcome)).toEqual([
-      "ok",
-      "provider_error",
-      "content_mismatch",
+    expect(logs.map((line) => (JSON.parse(line) as { outcome: string; model: string | null }))).toEqual([
+      expect.objectContaining({ outcome: "ok", model: "fake-model" }),
+      expect.objectContaining({ outcome: "provider_error" }),
+      expect.objectContaining({ outcome: "content_mismatch" }),
+      expect.objectContaining({ outcome: "rate_limited", model: "fake-model" }),
+      expect.objectContaining({ outcome: "disabled", model: "fake-model" }),
+      expect.objectContaining({ outcome: "disabled", model: null }),
     ]);
     for (const line of logs) {
       expect(Object.keys(JSON.parse(line) as object).sort()).toEqual(["destinationCount", "event", "latencyMs", "model", "outcome"]);
@@ -392,13 +394,11 @@ describe("POST /api/ai/explanations: wiring from Worker bindings", () => {
   it("uses the AI binding with a shortlisted model and the rate-limit bindings", async () => {
     const { binding, calls } = fakeAiBinding(echoIds);
     const client = limiter(true);
-    const global = limiter(true);
     const response = await sendDefault({
       AI_ASSIST_ENABLED: "true",
       AI_MODEL: "@cf/meta/llama-3.1-8b-instruct-fp8",
       AI: binding,
       AI_CLIENT_RATE_LIMITER: client.limiter,
-      AI_GLOBAL_RATE_LIMITER: global.limiter,
     });
     expect(response.status).toBe(200);
     const result = (await json(response)) as { explanations: { slug: string; text: string }[] };
@@ -406,8 +406,7 @@ describe("POST /api/ai/explanations: wiring from Worker bindings", () => {
     expect(calls).toHaveLength(1);
     expect(calls[0]?.model).toBe("@cf/meta/llama-3.1-8b-instruct-fp8");
     expect((calls[0]?.options as { signal?: unknown }).signal).toBeInstanceOf(AbortSignal);
-    expect(client.keys).toEqual(["ip:198.51.100.9"]);
-    expect(global.keys).toEqual(["global"]);
+    expect(client.keys).toEqual(["ip4:198.51.100.9"]);
   });
 
   it.each([

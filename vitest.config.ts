@@ -11,6 +11,13 @@ import { defineConfig } from "vitest/config";
 //   with a local, migrated D1 database.
 const adminD1Databases = { ADMIN_DB: "local-travel-discovery" };
 
+// The model evaluation calls real Workers AI models and consumes Neurons, so
+// its project exists only under `npm run ai:eval` (docs/AI_EVALUATION.md).
+const aiEvaluationProjects =
+  process.env.npm_lifecycle_event === "ai:eval"
+    ? [{ test: { name: "ai-eval", include: ["test/ai-eval/**/*.eval.ts"], environment: "node" } }]
+    : [];
+
 export default defineConfig({
   test: {
     restoreMocks: true,
@@ -49,6 +56,7 @@ export default defineConfig({
           setupFiles: ["./test/workers/setup.ts"],
         },
       },
+      ...aiEvaluationProjects,
     ],
   },
 });

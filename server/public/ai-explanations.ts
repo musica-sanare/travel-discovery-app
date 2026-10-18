@@ -22,13 +22,29 @@ export const MAX_HIGHLIGHTS = 5;
 export const MAX_HIGHLIGHT_LENGTH = 100;
 export const DEFAULT_AI_TIMEOUT_MS = 8_000;
 
-export type AiOutcome = "ok" | "content_mismatch" | "provider_error" | "timeout" | "invalid_output";
+export type AiOutcome =
+  | "ok"
+  | "content_mismatch"
+  | "provider_error"
+  | "timeout"
+  | "invalid_output"
+  | "disabled"
+  | "rate_limited";
+
+/** The only log line for AI requests: no answers, texts, prompts, or addresses. */
+export interface AiLogEntry {
+  event: "ai_explanation";
+  outcome: AiOutcome;
+  model: string | null;
+  latencyMs: number;
+  destinationCount: number;
+}
 
 export interface AiExplanationOptions {
   provider: ExplanationProvider;
   timeoutMs?: number;
   now?: () => number;
-  log?: (entry: { event: "ai_explanation"; outcome: AiOutcome; model: string; latencyMs: number; destinationCount: number }) => void;
+  log?: (entry: AiLogEntry) => void;
 }
 
 function truncate(text: string, max: number): string {

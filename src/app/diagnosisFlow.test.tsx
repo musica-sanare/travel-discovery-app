@@ -189,6 +189,22 @@ describe("diagnosis flow", () => {
     await screen.findByText("AI notes have been added to each destination.");
     expect((aiBodies as { locale: string }[]).map((body) => body.locale)).toEqual(["ja", "en"]);
     expect(screen.getAllByRole("heading", { level: 3, name: "AI-generated note" })).toHaveLength(2);
+
+    // Switching back reuses the remembered result instead of sending another request.
+    fireEvent.change(screen.getByLabelText("Language"), { target: { value: "ja" } });
+    await screen.findByText("各旅行先に AI による補足を追加しました。");
+    expect((aiBodies as { locale: string }[]).map((body) => body.locale)).toEqual(["ja", "en"]);
+  });
+
+  it("does not retry a failed AI request when the results are shown again in the same language", async () => {
+    aiResponse = () => new Response(JSON.stringify({ error: "x" }), { status: 503 });
+    await finishQuizWithAi();
+    await screen.findByText(/AI アシストは現在利用できません/);
+    fireEvent.change(screen.getByLabelText("言語"), { target: { value: "en" } });
+    await screen.findByText(/AI assistance is not available right now/);
+    fireEvent.change(screen.getByLabelText("Language"), { target: { value: "ja" } });
+    await screen.findByText(/AI アシストは現在利用できません/);
+    expect((aiBodies as { locale: string }[]).map((body) => body.locale)).toEqual(["ja", "en"]);
   });
 
   it("goes back with the previous answer prefilled, edits from results, and restarts", async () => {

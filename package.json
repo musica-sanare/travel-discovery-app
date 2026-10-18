@@ -22,6 +22,7 @@
     "db:seed:local": "wrangler d1 execute travel-discovery --local --config wrangler.admin.jsonc --file db/seed/dev.sql",
     "db:reset:local": "node -e \"require('node:fs').rmSync('.wrangler/state/v3/d1',{recursive:true,force:true})\" && npm run db:migrate:local && npm run db:seed:local",
     "test:e2e": "playwright test",
+    "ai:eval": "vitest run --project ai-eval",
     "e2e:db": "node -e \"require('node:fs').rmSync('.wrangler/e2e',{recursive:true,force:true})\" && wrangler d1 migrations apply travel-discovery --local --persist-to .wrangler/e2e/state --config wrangler.admin.jsonc && wrangler d1 execute travel-discovery --local --persist-to .wrangler/e2e/state --config wrangler.admin.jsonc --file db/seed/dev.sql"
   },
   "dependencies": {

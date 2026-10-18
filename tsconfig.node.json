@@ -11,6 +11,7 @@
     "vitest.config.ts",
     "drizzle.config.ts",
     "playwright.config.ts",
-    "test/node"
+    "test/node",
+    "test/ai-eval"
   ]
 }

@@ -16,7 +16,8 @@ import { createDatabase } from "../server/db/client";
 import { errorResponse, jsonResponse, toErrorResponse } from "../server/http/errors";
 import { hasSameOrigin, parseLocaleParam, readJsonBody } from "../server/http/request";
 import { isSlug } from "../shared/slug";
-import { explainDiagnosis } from "../server/public/ai-explanations";
+import { explainDiagnosis, type AiLogEntry } from "../server/public/ai-explanations";
+import { clientRateLimitKey } from "../server/public/rate-limit-key";
 import { getDiagnosisContent } from "../server/public/diagnosis-content";
 import {
   getPublishedDestination,
@@ -33,7 +34,6 @@ export interface PublicEnv {
   /** Optional bindings; none is configured in wrangler.jsonc yet (ADR-026). */
   AI?: Ai;
   AI_CLIENT_RATE_LIMITER?: RateLimit;
-  AI_GLOBAL_RATE_LIMITER?: RateLimit;
 }
 
 /** Same shape as the Workers Rate Limiting binding. */
@@ -44,10 +44,11 @@ export interface RateLimiter {
 export interface AiDependencies {
   /** null: AI is unavailable (503 ai_unavailable). */
   provider: ExplanationProvider | null;
-  /** Per-client limiter, keyed by the client IP address; null: not applied. */
+  /**
+   * Per-client limiter keyed by client address (IPv6 by /64); null: not
+   * applied. There is deliberately no limiter shared by all clients (ADR-026 A).
+   */
   clientLimiter: RateLimiter | null;
-  /** Limiter shared by all clients; null: not applied. */
-  globalLimiter: RateLimiter | null;
   timeoutMs?: number;
 }
 
@@ -66,27 +67,27 @@ export function aiDependenciesFromEnv(env: PublicEnv): AiDependencies {
   return {
     provider,
     clientLimiter: env.AI_CLIENT_RATE_LIMITER ?? null,
-    globalLimiter: env.AI_GLOBAL_RATE_LIMITER ?? null,
   };
 }
 
 const READ_METHODS = new Set(["GET", "HEAD"]);
 
-function logAiEvent(entry: object): void {
+function logAiEvent(entry: AiLogEntry): void {
   console.log(JSON.stringify(entry));
 }
 
-async function withinRateLimits(dependencies: AiDependencies, request: Request): Promise<boolean> {
-  const checks: Promise<{ success: boolean }>[] = [];
-  if (dependencies.globalLimiter) {
-    checks.push(dependencies.globalLimiter.limit({ key: "global" }));
+/** Outcome-only log line for requests stopped before the use case (no address). */
+function logStopped(outcome: "disabled" | "rate_limited", provider: ExplanationProvider | null): void {
+  logAiEvent({ event: "ai_explanation", outcome, model: provider?.model ?? null, latencyMs: 0, destinationCount: 0 });
+}
+
+async function withinRateLimit(dependencies: AiDependencies, request: Request): Promise<boolean> {
+  if (!dependencies.clientLimiter) {
+    return true;
   }
-  if (dependencies.clientLimiter) {
-    const ip = request.headers.get("CF-Connecting-IP") ?? "unknown";
-    checks.push(dependencies.clientLimiter.limit({ key: `ip:${ip}` }));
-  }
-  const results = await Promise.all(checks);
-  return results.every((result) => result.success);
+  // CF-Connecting-IP is set by Cloudflare's edge; X-Forwarded-For can carry client-supplied values.
+  const key = clientRateLimitKey(request.headers.get("CF-Connecting-IP"));
+  return (await dependencies.clientLimiter.limit({ key })).success;
 }
 
 export function createPublicApp(options: PublicAppOptions = {}) {
@@ -140,9 +141,11 @@ export function createPublicApp(options: PublicAppOptions = {}) {
     }
     const dependencies = resolveAi(c.env);
     if (c.env.AI_ASSIST_ENABLED !== "true" || !dependencies.provider) {
+      logStopped("disabled", dependencies.provider);
       return errorResponse("ai_unavailable");
     }
-    if (!(await withinRateLimits(dependencies, c.req.raw))) {
+    if (!(await withinRateLimit(dependencies, c.req.raw))) {
+      logStopped("rate_limited", dependencies.provider);
       return errorResponse("rate_limited");
     }
     const request = await readJsonBody(c.req.raw, aiExplanationRequestSchema);

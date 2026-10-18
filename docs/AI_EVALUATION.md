@@ -27,10 +27,13 @@ Plan for a small comparison of Workers AI models for the optional AI explanation
 ## 3. Procedure
 
 1. Pre-run checks (section 7) completed and recorded; owner approves the run, the token handling, and the Neuron budget.
-2. Runner (proposed code change C6, not implemented): an opt-in script that is excluded from `npm test`, `npm run check`, and E2E and refuses to run unless an explicit flag and credentials are given. It loads `cases.json`, builds each request with the production code, calls the model, and writes one JSON line per call. Two connection options, to be decided with the owner:
-   - Workers AI REST API with an API token from the developer's shell environment (simplest; latency includes the path from the developer's machine; endpoint and token permissions 要確認).
-   - A temporary deployment to an approved preview environment that calls the binding (production-like latency; needs a deployment).
-   The token is never written to `.dev.vars`, `.env`, logs, or result files.
+2. Runner (`test/ai-eval/runner.ts`, implemented, never run against a real model yet): excluded from `npm test`, `npm run check`, and E2E; it loads `cases.json`, builds each request with the production code, calls the Workers AI REST API (owner decision; `POST https://api.cloudflare.com/client/v4/accounts/{account_id}/ai/run/{model}`, token permissions Workers AI Read and Edit, verified on the REST API getting-started page updated 2026-09-15), and writes one JSON line per call to `.ai-eval/<runId>.jsonl` (git-ignored). Latency therefore includes the path from the developer's machine. Run it only after approval, from a shell where the token is set for that command only:
+
+   ```bash
+   AI_EVAL_CONFIRM=consume-neurons CLOUDFLARE_ACCOUNT_ID=<account id> CLOUDFLARE_API_TOKEN=<token> AI_EVAL_REPETITIONS=1 npm run ai:eval
+   ```
+
+   Optional: `AI_EVAL_MODELS` (comma-separated subset of the candidates), `AI_EVAL_BUDGET_NEURONS` (at most 5,000), `AI_EVAL_RUN_ID` (a run ID whose records already exist is refused, so a rerun never appends to earlier records). Without the confirmation or credentials it stops before any network access. The token is never written to `.dev.vars`, `.env`, logs, or result files; create the narrowest token for the run and delete it afterwards.
 3. Round 1: every case once per model (30 calls), in a shuffled order so that time-of-day effects do not favour one model.
 4. Round 2 (only if round 1 stays within budget): two more repetitions (60 calls) for variance.
 5. Manual review (section 4) on the recorded outputs, blind to the model name where practical.
@@ -63,7 +66,7 @@ Request settings are the production ones (temperature 0.3, output cap 1,500 toke
 
 ## 6. Records
 
-Raw results stay out of Git (proposed git-ignored directory `.ai-eval/`); only the summary is committed.
+Raw results stay out of Git (`.ai-eval/` is git-ignored); only the summary is committed. The runner writes the record below for every call; API error messages are not stored, only HTTP status and error codes.
 
 One JSON line per call:
 
@@ -115,7 +118,7 @@ Facts already verified are in `docs/DECISIONS.md` "Phase 4 verification log". Re
 ## 8. Budget
 
 - Rough estimate: about 1,000 input and 600 output tokens per call for these cases, about 23–30 Neurons per call before reasoning tokens. Round 1 (30 calls) ≈ 700–900 Neurons; rounds 1 and 2 (90 calls) ≈ 2,100–2,700 Neurons; reasoning output could double this. Arithmetic only, to be replaced by measurements.
-- Hard stop in the runner: stop when the estimated total for the current UTC day reaches 5,000 Neurons, leaving at least half of the free allocation.
+- Hard stop in the runner: before each call it adds a conservative estimate for that call (one token per request character plus the full 1,500-token output cap); if the run total would exceed the budget (default and maximum 5,000 Neurons), it stops. Actual usage from the response replaces the estimate when reported. The runner only sees its own calls; other usage on the same UTC day is not counted, so run it on a day without other real-model use.
 - No automatic retries; a failed call is recorded as failed.
 
 ## 9. Known limitations

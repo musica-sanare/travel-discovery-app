@@ -33,16 +33,19 @@ export function buildAiRequest(
 }
 
 /**
- * Requests AI explanations once per distinct request (results and locale)
- * while `enabled`; no request at all when disabled. Results are kept in
- * memory only, and failures are not retried automatically.
+ * Requests AI explanations at most once per distinct request (results and
+ * locale) while `enabled`; no request at all when disabled. Settled results,
+ * including failures, are remembered in memory for the life of the page
+ * component, so switching back to an earlier language sends nothing; failures
+ * are never retried automatically.
  */
 export function useAiExplanations(enabled: boolean, request: AiExplanationRequest | null): AiExplanationState {
   const key = useMemo(() => (enabled && request ? JSON.stringify(request) : null), [enabled, request]);
-  const [settled, setSettled] = useState<{ key: string; result: AiExplanationResult } | null>(null);
+  const [settled, setSettled] = useState<ReadonlyMap<string, AiExplanationResult>>(() => new Map());
+  const cached = key !== null && settled.has(key);
 
   useEffect(() => {
-    if (key === null) {
+    if (key === null || cached) {
       return;
     }
     // The key is the serialized request, so the effect runs once per distinct request
@@ -51,14 +54,14 @@ export function useAiExplanations(enabled: boolean, request: AiExplanationReques
     const controller = new AbortController();
     fetchAiExplanations(body, fetch, controller.signal).then(
       (result) => {
-        setSettled({ key, result });
+        setSettled((previous) => new Map(previous).set(key, result));
       },
       () => undefined,
     );
     return () => {
       controller.abort();
     };
-  }, [key]);
+  }, [key, cached]);
 
   if (!enabled) {
     return { status: "off" };
@@ -66,10 +69,9 @@ export function useAiExplanations(enabled: boolean, request: AiExplanationReques
   if (key === null) {
     return { status: "failed", reason: "unavailable" };
   }
-  if (settled?.key !== key) {
+  const result = settled.get(key);
+  if (!result) {
     return { status: "loading" };
   }
-  return settled.result.ok
-    ? { status: "ready", texts: settled.result.texts }
-    : { status: "failed", reason: settled.result.reason };
+  return result.ok ? { status: "ready", texts: result.texts } : { status: "failed", reason: result.reason };
 }
