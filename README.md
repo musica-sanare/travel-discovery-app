@@ -1,10 +1,19 @@
 # Travel Discovery
 
-Travel Discovery is a responsive web app that recommends overseas city/region-level destinations based on a user's travel preferences and constraints. The UI supports Japanese, English, and Spanish.
+Travel Discovery is a responsive web app that recommends overseas city/region-level destinations from a short, varied quiz and optional trip constraints (length, months, budget). It explains why each destination fits, shows indicative cost ranges with their source and date, and links to flight and hotel searches. The UI supports Japanese, English, and Spanish; Japanese is the default.
 
-Status: early development (Phase 1: data layer and admin foundation). See `docs/IMPLEMENTATION_PLAN.md` for the phase plan. The full README (deployment, admin setup) is completed in Phase 5.
+Status: Phases 0–4 are complete and Phase 5 (quality, end-to-end tests, CI) is in progress. Nothing is deployed yet. See [`docs/IMPLEMENTATION_PLAN.md`](docs/IMPLEMENTATION_PLAN.md).
 
-## Quick start
+## How it works
+
+- **Deterministic diagnosis.** Question selection, scoring, and ranking are plain TypeScript in `domain/diagnosis/` ([`docs/DIAGNOSTIC_ALGORITHM.md`](docs/DIAGNOSTIC_ALGORITHM.md)). They run in the browser on a content snapshot; answers stay in memory and are never stored (ADR-022 in [`docs/DECISIONS.md`](docs/DECISIONS.md)).
+- **Optional AI notes.** A visible toggle, off by default. When on, the server recomputes the ranking and asks Workers AI (`@cf/google/gemma-4-26b-a4b-it`) for a short note per destination; AI never selects, orders, or scores destinations, and any failure leaves the normal results in place (ADR-026). AI is disabled until it is configured for a deployment.
+- **Indicative costs.** Ranges with basis, source, and update date, never live prices (ADR-008, ADR-021).
+- **Two Cloudflare Workers, one D1 database.** A public Worker (SPA + read-only API + the AI endpoint) and a separate admin Worker (admin SPA + API) protected by Cloudflare Access with JWT validation in every admin API handler ([`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md), ADR-004, ADR-018).
+
+## Local setup
+
+Requirements: Node.js `>=22.22.0` (`.nvmrc` pins 24) and npm. No Cloudflare account, login, or secret is needed.
 
 ```bash
 npm ci
@@ -12,68 +21,78 @@ npm run db:reset:local
 npm run dev
 ```
 
-See [`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md) for all commands and the project layout.
+Open http://localhost:5173. `npm run db:reset:local` deletes any existing local D1 data, then applies migrations and loads `db/seed/dev.sql`.
+
+Admin console locally (Cloudflare Access does not run locally, so a local identity is used in the dev server only):
+
+```bash
+cp .dev.vars.example .dev.vars
+npm run dev:admin
+```
+
+Open http://localhost:5174. Details, all commands, and the project layout: [`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md).
+
+## Testing
+
+| Command | What it runs |
+|---|---|
+| `npm run check` | Lint, type-check, unit and Workers-runtime tests (Vitest), production build with bundle checks. Also run by CI. |
+| `npm run test:e2e` | Playwright end-to-end tests for the public and admin apps against production builds and an admin dev server, using the installed Google Chrome. |
+| `npm run ai:eval` | Opt-in comparison of Workers AI models. Calls real models and consumes Neurons; needs explicit confirmation and an API token ([`docs/AI_EVALUATION.md`](docs/AI_EVALUATION.md)). Never part of `check`. |
+
+CI: [`.github/workflows/ci.yml`](.github/workflows/ci.yml) runs `npm ci` and `npm run check` on pushes and pull requests (ADR-027).
+
+## Configuration
+
+- Local variables live in the git-ignored `.dev.vars`; `.env.example` lists every variable with placeholders only.
+- Deployed values are set with `wrangler secret put` or the Cloudflare dashboard, never in files. AI and rate-limit bindings exist only in named deployment environments, never in the configuration used for local development and tests.
+- Deployment is not set up yet; the draft runbook is [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md). Do not deploy without the owner's approval.
 
 ## Repository layout
 
 ```text
-travel-discovery-app/
-├── CLAUDE.md                  Instructions for Claude Code
-├── README.md
-├── docs/
-│   ├── SPEC.md                Product specification
-│   ├── ARCHITECTURE.md        Architecture and layering
-│   ├── DATA_MODEL.md          Logical data model
-│   ├── IMPLEMENTATION_PLAN.md Phases and acceptance criteria
-│   ├── DECISIONS.md           Architecture decision records and verification log
-│   └── DEVELOPMENT.md         Local development guide
-├── prompts/                   Per-phase prompts for Claude Code
-│   ├── FIRST_MESSAGE.md
-│   ├── 00-bootstrap.md
-│   ├── 01-foundation.md
-│   ├── 02-diagnostic-engine.md
-│   ├── 03-public-ui.md
-│   ├── 04-ai-assist.md
-│   ├── 05-polish-and-e2e.md
-│   └── 06-release.md
-├── src/                       Public SPA (React)
-├── admin/                     Admin SPA (React)
-├── worker/                    Public Worker (read-only API under /api/*)
-├── admin-worker/              Admin Worker (admin API under /api/admin/*)
-├── server/                    Server code shared by the Workers (db, http, public, admin)
-├── shared/                    Code shared by browser and Workers (locales, API error codes)
-├── migrations/                D1 SQL migrations
-├── db/seed/                   Local seed data
-├── test/                      Workers-runtime and static boundary tests
-├── scripts/                   Build-time verification
-├── index.html
-├── wrangler.jsonc             Public Worker config
-├── wrangler.admin.jsonc       Admin Worker config
-└── package.json
+src/            Public SPA (React)           admin/          Admin SPA (React)
+worker/         Public Worker                admin-worker/   Admin Worker
+domain/         Deterministic diagnosis      server/         Worker-side code (db, http, public, admin, ai)
+shared/         Browser + Worker contracts   migrations/     D1 migrations
+db/seed/        Local seed data              e2e/            Playwright specs
+test/           Workers, Node, and AI-evaluation tests
+scripts/        Build checks and helpers     docs/           Specification, architecture, decisions, guides
+prompts/        Per-phase prompts for Claude Code
 ```
+
+## Documentation
+
+| Document | Contents |
+|---|---|
+| [`docs/SPEC.md`](docs/SPEC.md) | Product specification |
+| [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | Workers, layers, request flows, privacy |
+| [`docs/DATA_MODEL.md`](docs/DATA_MODEL.md) | Data model |
+| [`docs/DIAGNOSTIC_ALGORITHM.md`](docs/DIAGNOSTIC_ALGORITHM.md) | Scoring and ranking specification |
+| [`docs/DECISIONS.md`](docs/DECISIONS.md) | Architecture decisions and verification logs |
+| [`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md) | Local development, tests, E2E, CI |
+| [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) | Draft deployment runbook and pre-deployment checklist |
+| [`docs/AI_EVALUATION.md`](docs/AI_EVALUATION.md) | Workers AI model evaluation |
 
 ## Working with Claude Code
 
-1. Open the repository in Claude Code. It reads `CLAUDE.md` automatically.
-2. Start a new session with `prompts/FIRST_MESSAGE.md`, then run one phase at a time with the prompt files listed in `docs/IMPLEMENTATION_PLAN.md`.
-3. Do not start the next phase until the current phase's acceptance criteria pass.
+`CLAUDE.md` holds the project instructions. Work proceeds one phase at a time with the prompts in `prompts/`; a phase starts only after the previous phase's acceptance criteria pass.
 
 ## Language policy
-- Claude Code conversations with the owner: Japanese.
+
+- Conversations with the owner: Japanese.
 - Repository documentation, source comments, and docstrings: English.
-- App UI from MVP: Japanese, English, and Spanish (`ja`, `en`, `es`), with Japanese as default.
+- App UI: Japanese, English, and Spanish (`ja`, `en`, `es`), Japanese by default.
 
 ## Principles
 
-- The core diagnostic logic is plain, deterministic code; the main features keep working when AI is unavailable.
-- AI assistance is explicitly chosen by the user in the UI and is OFF by default.
-- Destinations are selected and ranked by scoring; AI never decides or reorders candidates.
-- Destinations are cities/regions, each linked to a country.
-- Costs are indicative ranges with source, basis, and last-updated date. They are never presented as live prices.
-- No user accounts and no server-side storage of diagnosis history in the initial release.
-- Free tiers, available models, prices, and limits change; verify current official documentation at implementation time.
-- Build the smallest working version first, then test and review each phase before moving on.
+- The diagnosis is deterministic and works without AI; AI is optional, user-controlled, off by default, and never ranks.
+- Destinations are cities or regions, each linked to a country.
+- Costs are indicative ranges with source, basis, and date, never live prices.
+- No user accounts and no server-side storage of answers or diagnosis history.
+- Secrets stay out of the repository and browser bundles; admin pages and APIs are protected on the server.
+- Free tiers, models, prices, and limits change; verify current official documentation before relying on them.
 
-## Note
+## License
 
-These documents are the initial specification (v0.1). Unclear points must not be guessed silently: list them as `要確認` (open items for the owner) and ask before implementing anything with a large impact.
+No license has been chosen yet; the owner decides before any public release.
