@@ -139,6 +139,8 @@ Phase 4 design (ADR-026, proposed):
 
 MVP does not require analytics. Log only operational errors and coarse AI usage/failure counters if useful. Do not log complete answers or sensitive user text. Document log retention and provider data flow.
 
+External images: a destination may reference an `https` image URL entered in the admin console. Browsers load it directly from that host, which therefore sees the visitor's IP address and user agent; the app sends no referrer (`referrerPolicy="no-referrer"`, ADR-017) and no cookies to it. Prefer images hosted on our own origin or a provider whose privacy terms are acceptable, and record the provider when adding one.
+
 AI data flow (ADR-026, proposed): with AI on, the app Worker receives answers (IDs), constraints, and displayed slugs for one request; Workers AI receives only a preference summary (attribute names) and the recommended destinations' authored descriptions. Neither stores the content; the AI endpoint logs only outcome, model, latency, and count. AI Gateway is not used.
 
 ## 9. Deployment

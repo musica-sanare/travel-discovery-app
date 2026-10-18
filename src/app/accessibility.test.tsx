@@ -172,6 +172,18 @@ describe("accessibility (axe-core)", () => {
       details.open = true;
     }
     expect(await violations(container)).toEqual([]);
+
+    // Third-party images get no referrer; external source links announce the new tab.
+    const t = createI18n(locale).t;
+    for (const image of container.querySelectorAll("img")) {
+      expect(image.getAttribute("referrerpolicy")).toBe("no-referrer");
+    }
+    const sources = screen.getAllByRole("link", { name: new RegExp(`^${t("results.source")}`) });
+    expect(sources.length).toBeGreaterThan(0);
+    for (const source of sources) {
+      expect(source.textContent).toContain(t("results.search.newTab"));
+      expect(source.getAttribute("rel")).toBe("noopener noreferrer");
+    }
   });
 
   it.each(SUPPORTED_LOCALES)("results with AI notes have no violations (%s)", async (locale) => {

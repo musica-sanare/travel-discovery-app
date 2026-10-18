@@ -8,7 +8,7 @@
  */
 import { expect, test } from "@playwright/test";
 import { ADMIN_PREVIEW_PORT } from "../playwright.config";
-import { axeViolations, waitForAnimations } from "./fixtures";
+import { answerAllQuestions, axeViolations, waitForAnimations } from "./fixtures";
 
 const ADMIN_PREVIEW = `http://localhost:${String(ADMIN_PREVIEW_PORT)}`;
 const PUBLIC = "http://localhost:4180";
@@ -69,6 +69,21 @@ test.describe("admin content workflow on the dev server", () => {
       destinations: { slug: string }[];
     };
     expect(snapshot.destinations.map((item) => item.slug)).toContain(slug);
+
+    // It has only a Japanese translation: the Spanish public UI shows it in
+    // Japanese, marked with lang="ja" and a visible hint (ADR-012).
+    const publicPage = await page.context().newPage();
+    await publicPage.goto(`${PUBLIC}/`);
+    await publicPage.getByLabel("言語").selectOption("es");
+    await publicPage.getByRole("link", { name: "Empezar el cuestionario" }).click();
+    await publicPage.getByRole("button", { name: "Continuar a las preguntas" }).click();
+    await answerAllQuestions(publicPage);
+    const card = publicPage.getByRole("article").filter({ hasText: name });
+    await expect(card).toBeVisible();
+    const fallbackName = card.getByRole("heading", { level: 2 }).locator('[lang="ja"]').first();
+    await expect(fallbackName).toContainText(name);
+    await expect(fallbackName).toContainText("(mostrado en 日本語)");
+    await publicPage.close();
 
     await page.getByLabel("状態", { exact: true }).selectOption("archived");
     await page.getByRole("button", { name: "保存" }).click();

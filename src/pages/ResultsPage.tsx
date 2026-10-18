@@ -63,6 +63,7 @@ function CostLine({ cost, locale }: { cost: Cost; locale: Locale }) {
             {" "}
             <a href={cost.sourceUrl} target="_blank" rel="noopener noreferrer">
               {t("results.source")}
+              <span className="sr-only"> {t("results.search.newTab")}</span>
             </a>
           </>
         )}
@@ -179,6 +180,8 @@ function ResultItem({
                   src={destination.image.url}
                   alt={destination.image.alt ?? ""}
                   loading="lazy"
+                  // Admin-entered images are third-party URLs; send no referrer (ADR-017).
+                  referrerPolicy="no-referrer"
                   className="aspect-video w-full rounded-lg object-cover"
                 />
                 {destination.image.attribution && (

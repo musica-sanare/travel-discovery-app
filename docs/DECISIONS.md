@@ -354,6 +354,7 @@ Official documentation only; no login, account setting, or model call.
 - Verified with `vite preview`: headers present on `/`, SPA deep links, and `/api/health`; the page renders with no CSP console errors.
   Source: https://developers.cloudflare.com/workers/static-assets/headers/
 - Revisit when external images, fonts, or AI streaming are added.
+- *Update (2026-10-18, Phase 5c)*: destination images are rendered with `referrerPolicy="no-referrer"`, so third-party image hosts do not receive the page URL; they still see the visitor's IP address (data flow in `docs/ARCHITECTURE.md` §8).
 
 ## ADR-018: Shared D1 database for the public and admin Workers
 - Status: **Accepted by the owner (2026-10-17); implemented locally in Phase 1.**
