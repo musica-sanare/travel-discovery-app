@@ -37,10 +37,17 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
+function isPresent(value: unknown): boolean {
+  return value !== undefined && value !== null;
+}
+
 /**
  * Returns the model's answer from the known output shapes: `{ response }`
- * (text generation) or `{ choices: [{ message: { content } }] }` (chat
- * completions). Anything else yields undefined, which fails validation.
+ * (text generation), `{ choices: [{ message: { content } }] }` (chat
+ * completions), or `{ choices: [{ text }] }` (text completions). A `response`
+ * key that is null or missing falls through to `choices`, because some models
+ * return both. Reasoning output (`reasoning_content`) is never used as the
+ * answer. Anything else yields undefined, which fails validation.
  */
 export function extractModelAnswer(output: unknown): unknown {
   if (typeof output === "string") {
@@ -49,13 +56,19 @@ export function extractModelAnswer(output: unknown): unknown {
   if (!isRecord(output)) {
     return undefined;
   }
-  if ("response" in output) {
+  if (isPresent(output.response)) {
     return output.response;
   }
   const choices = output.choices;
   const first: unknown = Array.isArray(choices) ? choices[0] : undefined;
-  const message = isRecord(first) ? first.message : undefined;
-  return isRecord(message) ? message.content : undefined;
+  if (!isRecord(first)) {
+    return undefined;
+  }
+  const message = first.message;
+  if (isRecord(message) && isPresent(message.content)) {
+    return message.content;
+  }
+  return isPresent(first.text) ? first.text : undefined;
 }
 
 export function buildModelRequest(profile: ModelProfile, input: ExplanationInput): Record<string, unknown> {

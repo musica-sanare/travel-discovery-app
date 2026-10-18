@@ -188,6 +188,24 @@ export function analyzeAnswer(
   return { accepted, rejection, acceptedWithoutDigitRule };
 }
 
+const SHAPE_DEPTH = 5;
+
+/**
+ * Keys, value types, and string lengths of a response, without any content,
+ * so an unexpected shape can be diagnosed without storing more text.
+ */
+export function describeShape(value: unknown, depth = 0): unknown {
+  if (value === null) return "null";
+  if (typeof value === "string") return `string(${String(value.length)})`;
+  if (typeof value !== "object") return typeof value;
+  if (depth >= SHAPE_DEPTH) return Array.isArray(value) ? "array" : "object";
+  if (Array.isArray(value)) {
+    const items: unknown[] = value;
+    return items.length === 0 ? [] : [describeShape(items[0], depth + 1), `length ${String(items.length)}`];
+  }
+  return Object.fromEntries(Object.entries(value).map(([key, item]) => [key, describeShape(item, depth + 1)]));
+}
+
 export interface EvalRecord {
   runId: string;
   timestamp: string;
@@ -205,6 +223,8 @@ export interface EvalRecord {
   promptTokens: number | null;
   completionTokens: number | null;
   estimatedNeurons: number;
+  /** Structure of the API `result` (keys, types, string lengths only); null on transport errors. */
+  resultShape: unknown;
   rawAnswer: unknown;
 }
 
@@ -307,6 +327,7 @@ export async function runEvaluation(config: EvalConfig, jobs: readonly Job[], de
       promptTokens: usage?.prompt ?? null,
       completionTokens: usage?.completion ?? null,
       estimatedNeurons: Math.round(estimatedNeurons * 10) / 10,
+      resultShape: transportError ? null : describeShape(envelope?.result),
       rawAnswer: answer ?? null,
     });
   }

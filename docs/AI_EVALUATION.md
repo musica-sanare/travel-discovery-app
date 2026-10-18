@@ -66,7 +66,7 @@ Request settings are the production ones (temperature 0.3, output cap 1,500 toke
 
 ## 6. Records
 
-Raw results stay out of Git (`.ai-eval/` is git-ignored); only the summary is committed. The runner writes the record below for every call; API error messages are not stored, only HTTP status and error codes.
+Raw results stay out of Git (`.ai-eval/` is git-ignored); only the summary is committed. The runner writes the record below for every call; API error messages are not stored, only HTTP status and error codes. `resultShape` lists the keys, value types, and string lengths of the API result (no content), to diagnose answers that cannot be extracted.
 
 One JSON line per call:
 
@@ -87,6 +87,7 @@ One JSON line per call:
   "promptTokens": 812,
   "completionTokens": 344,
   "estimatedNeurons": 17.6,
+  "resultShape": { "response": "string(412)", "usage": { "prompt_tokens": "number", "completion_tokens": "number" } },
   "rawAnswer": "<model answer as returned>"
 }
 ```

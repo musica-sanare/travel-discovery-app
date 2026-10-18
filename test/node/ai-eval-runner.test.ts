@@ -8,6 +8,7 @@ import { describe, expect, it, vi } from "vitest";
 import {
   analyzeAnswer,
   assertNewRun,
+  describeShape,
   buildJobs,
   CONFIRMATION,
   estimateNeurons,
@@ -73,6 +74,23 @@ describe("budget estimates and run IDs", () => {
     expect(() => {
       assertNewRun(false, "r1");
     }).not.toThrow();
+  });
+});
+
+describe("describeShape", () => {
+  it("keeps keys, types, and string lengths but no content", () => {
+    const result = {
+      response: null,
+      choices: [{ message: { role: "assistant", content: null, reasoning_content: "secret reasoning text" } }],
+      usage: { prompt_tokens: 10, completion_tokens: 5 },
+    };
+    const shape = describeShape(result);
+    expect(shape).toEqual({
+      response: "null",
+      choices: [{ message: { role: "string(9)", content: "null", reasoning_content: "string(21)" } }, "length 1"],
+      usage: { prompt_tokens: "number", completion_tokens: "number" },
+    });
+    expect(JSON.stringify(shape)).not.toContain("secret");
   });
 });
 
@@ -142,6 +160,11 @@ describe("runEvaluation", () => {
     expect(init?.method).toBe("POST");
     expect(new Headers(init?.headers).get("Authorization")).toBe(`Bearer ${TOKEN}`);
     expect(records.every((record) => record.accepted && record.usageReported && record.latencyMs === 1500)).toBe(true);
+    const answer = String(records[0]?.rawAnswer);
+    expect(records[0]?.resultShape).toEqual({
+      response: `string(${String(answer.length)})`,
+      usage: { prompt_tokens: "number", completion_tokens: "number" },
+    });
     const gemma = records.find((record) => record.model === "@cf/google/gemma-4-26b-a4b-it");
     expect(gemma?.estimatedNeurons).toBe(Math.round(estimateNeurons("@cf/google/gemma-4-26b-a4b-it", 900, 300) * 10) / 10);
     expect(summary.stoppedForBudget).toBe(false);
