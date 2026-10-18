@@ -22,8 +22,14 @@ beforeEach(() => {
   sharedContentCache.clear();
   vi.stubGlobal(
     "fetch",
-    vi.fn((input: string) => {
-      const locale = new URL(input, "https://app.example.test").searchParams.get("locale");
+    vi.fn((input: string, init?: RequestInit) => {
+      const url = new URL(input, "https://app.example.test");
+      if (url.pathname === "/api/ai/explanations") {
+        const { expected } = JSON.parse(typeof init?.body === "string" ? init.body : "") as { expected: string[] };
+        const text = "ゆったりとした街歩きと豊かな食文化があり、あなたの好みに合いそうです。";
+        return Promise.resolve(new Response(JSON.stringify({ explanations: expected.map((slug) => ({ slug, text })) })));
+      }
+      const locale = url.searchParams.get("locale");
       if (failRequests || !isLocale(locale)) {
         return Promise.resolve(new Response("{}", { status: 503 }));
       }
@@ -165,6 +171,20 @@ describe("accessibility (axe-core)", () => {
     for (const details of container.querySelectorAll("details")) {
       details.open = true;
     }
+    expect(await violations(container)).toEqual([]);
+  });
+
+  it.each(SUPPORTED_LOCALES)("results with AI notes have no violations (%s)", async (locale) => {
+    const t = createI18n(locale).t;
+    const { container } = renderAt("/plan", locale);
+    fireEvent.click(await screen.findByLabelText(t("plan.ai")));
+    fireEvent.click(screen.getByRole("button", { name: t("plan.submit") }));
+    await screen.findByRole("heading", { name: t("quiz.progress", { current: 1, total: 2 }) });
+    answerFirst(locale);
+    await screen.findByRole("heading", { name: t("quiz.progress", { current: 2, total: 2 }) });
+    answerFirst(locale);
+    await screen.findByText(t("results.ai.ready"));
+    expect(screen.getAllByRole("heading", { level: 3, name: t("results.ai.heading") }).length).toBeGreaterThan(0);
     expect(await violations(container)).toEqual([]);
   });
 

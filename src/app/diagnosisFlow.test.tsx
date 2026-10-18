@@ -11,16 +11,31 @@ import { routes } from "./routes";
 
 let failRequests = false;
 const requests: string[] = [];
+const aiBodies: unknown[] = [];
+const AI_TEXT = "ゆったりとした街歩きと豊かな食文化があり、あなたの好みに合いそうです。";
+/** Response of the mocked AI endpoint: echoes one text per expected slug by default. */
+let aiResponse: (body: { expected: string[] }) => Response;
+
+function echoAi(body: { expected: string[] }) {
+  return new Response(JSON.stringify({ explanations: body.expected.map((slug) => ({ slug, text: `${AI_TEXT}（${slug}）` })) }));
+}
 
 beforeEach(() => {
   failRequests = false;
   requests.length = 0;
+  aiBodies.length = 0;
+  aiResponse = echoAi;
   sharedContentCache.clear();
   vi.stubGlobal(
     "fetch",
-    vi.fn((input: string) => {
+    vi.fn((input: string, init?: RequestInit) => {
       const url = new URL(input, "https://app.example.test");
       requests.push(url.pathname + url.search);
+      if (url.pathname === "/api/ai/explanations") {
+        const body = JSON.parse(typeof init?.body === "string" ? init.body : "") as { expected: string[] };
+        aiBodies.push(body);
+        return Promise.resolve(aiResponse(body));
+      }
       const locale = url.searchParams.get("locale");
       if (failRequests || !isLocale(locale)) {
         return Promise.resolve(new Response(JSON.stringify({ error: "service_unavailable" }), { status: 503 }));
@@ -101,13 +116,79 @@ describe("diagnosis flow", () => {
     }
   });
 
-  it("shows the AI-unavailable notice when the toggle is on, without any AI request", async () => {
-    await startQuiz({ ai: true });
+  async function finishQuizWithAi(options: { days?: string } = {}) {
+    await startQuiz({ ai: true, ...options });
     answerFirstOption();
     await screen.findByRole("heading", { name: /^質問 2 \/ 2$/ });
     answerFirstOption();
-    await screen.findByText(/AI アシストは現在利用できません/);
-    expect(requests.every((url) => url.startsWith("/api/diagnosis-content?"))).toBe(true);
+    await screen.findByRole("heading", { name: "あなたへのおすすめ" });
+  }
+
+  it("with AI on, sends one request with IDs only and adds labelled AI notes next to the deterministic explanation", async () => {
+    await finishQuizWithAi({ days: "4" });
+    await screen.findByText("各旅行先に AI による補足を追加しました。");
+    const articles = screen.getAllByRole("article");
+    expect(articles).toHaveLength(2);
+    for (const article of articles) {
+      const note = within(article).getByRole("heading", { level: 3, name: "AI による補足" }).parentElement;
+      expect(note?.textContent).toContain(AI_TEXT);
+      expect(note?.textContent).toContain("AI が生成した文章です。");
+      // The deterministic explanation stays visible.
+      expect(within(article).getByText(/^相対的な適合度: \d+ \/ 100$/)).toBeTruthy();
+    }
+    expect(requests.filter((url) => url === "/api/ai/explanations")).toHaveLength(1);
+    const [body] = aiBodies as { locale: string; answers: unknown[]; constraints: unknown; expected: string[] }[];
+    expect(Object.keys(body ?? {}).sort()).toEqual(["answers", "constraints", "expected", "locale"]);
+    expect(body?.locale).toBe("ja");
+    expect(body?.constraints).toEqual({ days: 4 });
+    expect(body?.answers).toHaveLength(2);
+    // Order of cards follows the deterministic ranking, not the AI response.
+    expect(articles.map((article) => article.getAttribute("aria-labelledby"))).toEqual(
+      body?.expected.map((slug) => `result-${slug}`),
+    );
+  });
+
+  it("keeps the ranking when the AI response lists destinations in another order", async () => {
+    aiResponse = (body) =>
+      new Response(JSON.stringify({ explanations: [...body.expected].reverse().map((slug) => ({ slug, text: AI_TEXT })) }));
+    await finishQuizWithAi();
+    await screen.findByText("各旅行先に AI による補足を追加しました。");
+    const [body] = aiBodies as { expected: string[] }[];
+    expect(screen.getAllByRole("article").map((article) => article.getAttribute("aria-labelledby"))).toEqual(
+      body?.expected.map((slug) => `result-${slug}`),
+    );
+  });
+
+  it.each([
+    [409, "診断中に登録データが更新されたため"],
+    [429, "AI アシストへのリクエストが集中しています"],
+    [503, "AI アシストは現在利用できません"],
+    [500, "AI アシストは現在利用できません"],
+  ])("shows a non-blocking notice and the normal results for status %i", async (status, notice) => {
+    aiResponse = () => new Response(JSON.stringify({ error: "x" }), { status });
+    await finishQuizWithAi();
+    expect((await screen.findByRole("status")).textContent).toContain(notice);
+    expect(screen.getAllByRole("article")).toHaveLength(2);
+    expect(screen.queryByRole("heading", { name: "AI による補足" })).toBeNull();
+    expect(requests.filter((url) => url === "/api/ai/explanations")).toHaveLength(1);
+  });
+
+  it("shows the unavailable notice when the AI request fails at the network level", async () => {
+    aiResponse = () => {
+      throw new TypeError("Failed to fetch");
+    };
+    await finishQuizWithAi();
+    expect((await screen.findByRole("status")).textContent).toContain("AI アシストは現在利用できません");
+    expect(screen.getAllByRole("article")).toHaveLength(2);
+  });
+
+  it("requests AI notes again in the new language and shows them in that language", async () => {
+    await finishQuizWithAi();
+    await screen.findByText("各旅行先に AI による補足を追加しました。");
+    fireEvent.change(screen.getByLabelText("言語"), { target: { value: "en" } });
+    await screen.findByText("AI notes have been added to each destination.");
+    expect((aiBodies as { locale: string }[]).map((body) => body.locale)).toEqual(["ja", "en"]);
+    expect(screen.getAllByRole("heading", { level: 3, name: "AI-generated note" })).toHaveLength(2);
   });
 
   it("goes back with the previous answer prefilled, edits from results, and restarts", async () => {

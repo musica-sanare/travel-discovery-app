@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { expect, test, type Page } from "@playwright/test";
-import { answerAllQuestions, startQuiz, watchPage } from "./fixtures";
+import { answerAllQuestions, startQuiz, waitForAnimations, watchPage } from "./fixtures";
 
 const axeSource = readFileSync(path.join(import.meta.dirname, "../node_modules/axe-core/axe.min.js"), "utf8");
 
@@ -39,15 +39,21 @@ test("completes the quiz with the keyboard only", async ({ page, isMobile }) => 
   await page.keyboard.press("Enter");
   await page.getByRole("button", { name: "質問に進む" }).focus();
   await page.keyboard.press("Enter");
+  const results = page.getByRole("heading", { level: 1, name: "あなたへのおすすめ" });
+  const question = page.getByRole("heading", { level: 1, name: /^質問 \d+ \/ \d+$/ });
   for (let step = 0; step < 20; step += 1) {
-    if (await page.getByRole("heading", { level: 1, name: "あなたへのおすすめ" }).isVisible()) break;
+    // Wait for the next page so a question that is being replaced is never used.
+    await expect(results.or(question)).toBeVisible();
+    if (await results.isVisible()) break;
+    const before = (await question.textContent()) ?? "";
     await page.getByRole("group").locator("input").first().focus();
     await page.keyboard.press("Space");
     await page.keyboard.press("Tab");
     await page.getByRole("button", { name: "次へ" }).focus();
     await page.keyboard.press("Enter");
+    await expect(results.or(question.filter({ hasNotText: before }))).toBeVisible();
   }
-  await expect(page.getByRole("heading", { level: 1, name: "あなたへのおすすめ" })).toBeVisible();
+  await expect(results).toBeVisible();
 });
 
 test.describe("accessibility in a real browser (axe-core)", () => {
@@ -55,6 +61,8 @@ test.describe("accessibility in a real browser (axe-core)", () => {
   test.use({ bypassCSP: true });
 
   async function axeViolations(page: Page): Promise<string[]> {
+    // Contrast is measured on the final rendering, not mid-animation.
+    await waitForAnimations(page);
     await page.addScriptTag({ content: axeSource });
     return page.evaluate(async () => {
       const axe = (window as unknown as { axe: { run: (context: Document) => Promise<{ violations: { id: string; nodes: { target: string[] }[] }[] }> } }).axe;

@@ -52,3 +52,11 @@ export function unexpectedRequests(requests: readonly string[], baseURL: string)
     );
   });
 }
+
+/**
+ * Waits until running CSS animations (such as the 180 ms enter animation of
+ * each question) have finished, so checks see the final rendering.
+ */
+export async function waitForAnimations(page: Page) {
+  await page.evaluate(() => Promise.all(document.getAnimations().map((animation) => animation.finished)));
+}

@@ -1,0 +1,75 @@
+import { useEffect, useMemo, useState } from "react";
+import type { AiExplanationRequest } from "../../shared/ai-explanation";
+import type { Locale } from "../../shared/locales";
+import type { Answer, RankingResult, TripConstraints } from "../../domain/diagnosis";
+import { fetchAiExplanations, type AiExplanationResult, type AiFailure } from "./aiClient";
+
+export type AiExplanationState =
+  | { status: "off" }
+  | { status: "loading" }
+  | { status: "ready"; texts: ReadonlyMap<string, string> }
+  | { status: "failed"; reason: AiFailure };
+
+/** Builds the request from in-memory quiz state; null when there is nothing to explain. */
+export function buildAiRequest(
+  locale: Locale,
+  answers: readonly Answer[],
+  constraints: TripConstraints,
+  ranking: RankingResult,
+): AiExplanationRequest | null {
+  if (answers.length === 0 || ranking.results.length === 0) {
+    return null;
+  }
+  return {
+    locale,
+    answers: answers.map((answer) => ({ question: answer.question, options: [...answer.options] })),
+    constraints: {
+      ...(constraints.days === undefined ? {} : { days: constraints.days }),
+      ...(constraints.months === undefined ? {} : { months: [...constraints.months] }),
+      ...(constraints.budget === undefined ? {} : { budget: { ...constraints.budget } }),
+    },
+    expected: ranking.results.map((item) => item.slug),
+  };
+}
+
+/**
+ * Requests AI explanations once per distinct request (results and locale)
+ * while `enabled`; no request at all when disabled. Results are kept in
+ * memory only, and failures are not retried automatically.
+ */
+export function useAiExplanations(enabled: boolean, request: AiExplanationRequest | null): AiExplanationState {
+  const key = useMemo(() => (enabled && request ? JSON.stringify(request) : null), [enabled, request]);
+  const [settled, setSettled] = useState<{ key: string; result: AiExplanationResult } | null>(null);
+
+  useEffect(() => {
+    if (key === null) {
+      return;
+    }
+    // The key is the serialized request, so the effect runs once per distinct request
+    // even when the caller passes a new but equal object.
+    const body = JSON.parse(key) as AiExplanationRequest;
+    const controller = new AbortController();
+    fetchAiExplanations(body, fetch, controller.signal).then(
+      (result) => {
+        setSettled({ key, result });
+      },
+      () => undefined,
+    );
+    return () => {
+      controller.abort();
+    };
+  }, [key]);
+
+  if (!enabled) {
+    return { status: "off" };
+  }
+  if (key === null) {
+    return { status: "failed", reason: "unavailable" };
+  }
+  if (settled?.key !== key) {
+    return { status: "loading" };
+  }
+  return settled.result.ok
+    ? { status: "ready", texts: settled.result.texts }
+    : { status: "failed", reason: settled.result.reason };
+}

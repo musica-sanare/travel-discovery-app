@@ -123,7 +123,7 @@ curl "http://localhost:5173/api/destinations?locale=en"
 
 Browsers: by default the tests use the locally installed Google Chrome (`channel: "chrome"`), so nothing is downloaded. To use Playwright's bundled Chromium instead (for example in CI), run `npx playwright install chromium` (downloads a few hundred MB from Microsoft's CDN; get the owner's approval first) and set `PLAYWRIGHT_CHANNEL=bundled`.
 
-The specs cover the core journey without AI, the AI toggle (no AI request either way), back/edit/restart, reload behavior and storage, language detection and switching, API errors and empty content, security headers and CSP errors, horizontal overflow, a keyboard-only run (desktop), and axe-core checks in light and dark mode. The axe test disables CSP for its own context only, because axe is injected as an inline script.
+The specs cover the core journey without AI, optional AI notes (off: no request; on: one request to the real preview server, which has no AI configured and answers 503, and a mocked success; no model is ever called), back/edit/restart, reload behavior and storage, language detection and switching, API errors and empty content, security headers and CSP errors, horizontal overflow, a keyboard-only run (desktop), and axe-core checks in light and dark mode. The axe test disables CSP for its own context only, because axe is injected as an inline script.
 
 ## Environment variables
 - Local: `.dev.vars` (see "Admin locally"). `.env.example` lists all variables.

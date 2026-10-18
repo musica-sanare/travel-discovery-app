@@ -9,6 +9,7 @@ import { ContentStatus } from "../components/ContentStatus";
 import { LocalizedText } from "../components/LocalizedText";
 import { SEARCH_LINKS } from "../diagnosis/searchLinks";
 import { drawSeed, results } from "../diagnosis/session";
+import { buildAiRequest, useAiExplanations, type AiExplanationState } from "../diagnosis/useAiExplanations";
 import { useDiagnosis } from "../diagnosis/useDiagnosis";
 
 /** Statuses worth a note; "not_applicable" means the user gave no input, "over" is excluded. */
@@ -23,6 +24,18 @@ function durationNote(status: DurationStatus) {
 }
 
 type Cost = DiagnosisContentDestination["costs"][number];
+
+const AI_STATUS_KEYS = {
+  loading: "results.ai.loading",
+  ready: "results.ai.ready",
+  unavailable: "results.ai.unavailable",
+  content_changed: "results.ai.contentChanged",
+  rate_limited: "results.ai.rateLimited",
+} as const;
+
+function aiStatusKey(state: Exclude<AiExplanationState, { status: "off" }>) {
+  return AI_STATUS_KEYS[state.status === "failed" ? state.reason : state.status];
+}
 
 function CostLine({ cost, locale }: { cost: Cost; locale: Locale }) {
   const { t } = useTranslation();
@@ -63,11 +76,14 @@ function ResultItem({
   destination,
   attributeNames,
   budgetCurrency,
+  aiText,
 }: {
   ranked: RankedDestination;
   destination: DiagnosisContentDestination;
   attributeNames: ReadonlyMap<string, string>;
   budgetCurrency: string | undefined;
+  /** Optional AI-generated note; shown in addition to, never instead of, the deterministic explanation. */
+  aiText: string | undefined;
 }) {
   const { t, i18n } = useTranslation();
   const locale = isLocale(i18n.resolvedLanguage) ? i18n.resolvedLanguage : DEFAULT_LOCALE;
@@ -118,6 +134,13 @@ function ResultItem({
               <li key={note}>{note}</li>
             ))}
           </ul>
+        )}
+        {aiText !== undefined && (
+          <div className="rounded-lg border border-line p-3">
+            <h3 className="text-sm font-semibold">{t("results.ai.heading")}</h3>
+            <p className="mt-1">{aiText}</p>
+            <p className="mt-1 text-xs text-muted">{t("results.ai.label")}</p>
+          </div>
         )}
         {primaryCost && (
           <div className="rounded-lg bg-canvas p-3">
@@ -214,6 +237,11 @@ export function ResultsPage() {
     () => (snapshot && engine ? results(engine, snapshot.settings, session) : null),
     [snapshot, engine, session],
   );
+  const aiRequest = useMemo(
+    () => (snapshot && ranking ? buildAiRequest(snapshot.locale, session.answers, session.constraints, ranking) : null),
+    [snapshot, ranking, session.answers, session.constraints],
+  );
+  const ai = useAiExplanations(session.aiAssist && step?.done === true, aiRequest);
 
   if (session.seed === null) {
     return <Navigate to="/plan" replace />;
@@ -238,9 +266,9 @@ export function ResultsPage() {
         </h1>
         <p className="mt-2 text-sm text-muted">{t("results.fitNote")}</p>
       </div>
-      {session.aiAssist && (
+      {ai.status !== "off" && (
         <p role="status" className={noticeClass.info}>
-          {t("results.aiUnavailable")}
+          {t(aiStatusKey(ai))}
         </p>
       )}
       {(notices.length > 0 || ranking.excluded.length > 0) && (
@@ -261,6 +289,7 @@ export function ResultsPage() {
               destination={destination}
               attributeNames={attributeNames}
               budgetCurrency={session.constraints.budget?.currency}
+              aiText={ai.status === "ready" ? ai.texts.get(ranked.slug) : undefined}
             />
           ) : null;
         })}

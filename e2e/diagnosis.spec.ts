@@ -33,17 +33,6 @@ test.describe("core journey without AI", () => {
     expect(errors).toEqual([]);
   });
 
-  test("AI toggle on shows a notice and still makes no AI request", async ({ page, baseURL }) => {
-    const { errors, requests } = watchPage(page);
-    await startQuiz(page);
-    await page.getByLabel("AI アシストを使う").check();
-    await page.getByRole("button", { name: "質問に進む" }).click();
-    await answerAllQuestions(page);
-    await expect(page.getByRole("status").filter({ hasText: "AI アシストは現在利用できません" })).toBeVisible();
-    expect(unexpectedRequests(requests, baseURL ?? "")).toEqual([]);
-    expect(errors).toEqual([]);
-  });
-
   test("back, edit, and restart", async ({ page }) => {
     await startQuiz(page);
     await page.getByRole("button", { name: "質問に進む" }).click();
@@ -157,5 +146,69 @@ test.describe("error and empty data", () => {
     await expect(page.getByText("条件に合う旅行先が見つかりませんでした。条件を変えてお試しください。")).toBeVisible();
     await expect(page.getByText("質問の数が少ないため、通常より短い診断になりました。")).toBeVisible();
     await expect(page.getByRole("article")).toHaveCount(0);
+  });
+});
+
+test.describe("optional AI notes", () => {
+  const AI_PATH = "/api/ai/explanations";
+  const AI_TEXT = "ゆったりとした街歩きと豊かな食文化があり、あなたの好みに合いそうな旅行先です。";
+
+  test("toggle on against the real server: one request, AI unavailable notice, results intact", async ({ page, baseURL }) => {
+    // The preview server has no AI configuration, so the real endpoint answers 503 ai_unavailable.
+    const { errors, requests } = watchPage(page);
+    const aiResponses: number[] = [];
+    page.on("response", (response) => {
+      if (new URL(response.url()).pathname === AI_PATH) aiResponses.push(response.status());
+    });
+    await startQuiz(page);
+    await page.getByLabel("AI アシストを使う").check();
+    await page.getByRole("button", { name: "質問に進む" }).click();
+    await answerAllQuestions(page);
+    await expect(page.getByRole("status").filter({ hasText: "AI アシストは現在利用できません" })).toBeVisible();
+    await expect(page.getByRole("article").first()).toBeVisible();
+    expect(aiResponses).toEqual([503]);
+    expect(unexpectedRequests(requests, baseURL ?? "").map((url) => new URL(url).pathname)).toEqual([AI_PATH]);
+    // The browser reports the 503 as a failed resource load; nothing else may log errors.
+    expect(errors.filter((message) => !message.includes("503"))).toEqual([]);
+  });
+
+  test("toggle on with a mocked AI response shows labelled notes in rank order", async ({ page }) => {
+    const bodies: { expected: string[]; answers: unknown[] }[] = [];
+    await page.route(`**${AI_PATH}`, async (route) => {
+      const body = route.request().postDataJSON() as { expected: string[]; answers: unknown[] };
+      bodies.push(body);
+      await route.fulfill({
+        contentType: "application/json",
+        body: JSON.stringify({ explanations: [...body.expected].reverse().map((slug) => ({ slug, text: AI_TEXT })) }),
+      });
+    });
+    await startQuiz(page);
+    await page.getByLabel("AI アシストを使う").check();
+    await page.getByRole("button", { name: "質問に進む" }).click();
+    await answerAllQuestions(page);
+    await expect(page.getByRole("status").filter({ hasText: "各旅行先に AI による補足を追加しました。" })).toBeVisible();
+    const articles = page.getByRole("article");
+    const count = await articles.count();
+    await expect(page.getByRole("heading", { level: 3, name: "AI による補足" })).toHaveCount(count);
+    expect(bodies).toHaveLength(1);
+    const [body] = bodies;
+    expect(Object.keys(body ?? {}).sort()).toEqual(["answers", "constraints", "expected", "locale"]);
+    const order = await articles.evaluateAll((items) => items.map((item) => item.getAttribute("aria-labelledby")));
+    expect(order).toEqual(body?.expected.map((slug) => `result-${slug}`));
+  });
+
+  test("toggle off makes no AI request", async ({ page }) => {
+    let aiRequests = 0;
+    await page.route(`**${AI_PATH}`, async (route) => {
+      aiRequests += 1;
+      await route.abort();
+    });
+    await startQuiz(page);
+    await expect(page.getByLabel("AI アシストを使う")).not.toBeChecked();
+    await page.getByRole("button", { name: "質問に進む" }).click();
+    await answerAllQuestions(page);
+    await expect(page.getByRole("article").first()).toBeVisible();
+    expect(aiRequests).toBe(0);
+    await expect(page.getByRole("heading", { name: "AI による補足" })).toHaveCount(0);
   });
 });
