@@ -137,7 +137,7 @@ export async function explainDiagnosis(
     throw new ApiError("ai_unavailable");
   }
 
-  const texts = parseModelOutput(raw, [...slugById.keys()]);
+  const texts = parseModelOutput(raw, [...slugById.keys()], request.locale);
   if (!texts) {
     report("invalid_output", input.destinations.length);
     throw new ApiError("ai_unavailable");

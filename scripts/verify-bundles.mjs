@@ -2,7 +2,10 @@
 // `npm run build`). Fails the build if:
 // - the admin Worker bundle contains the local-development identity path, or
 //   lacks Access JWT verification;
-// - the public Worker or public SPA bundle contains admin API code.
+// - the public Worker or public SPA bundle contains admin API code;
+// - the public SPA bundle contains the AI prompt, or the public Worker lacks it
+//   (keeps the prompt check meaningful). Must match PROMPT_MARKER in
+//   server/ai/prompt.ts.
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import path from "node:path";
 
@@ -21,6 +24,8 @@ function readAll(dir) {
   return files;
 }
 
+const AI_PROMPT_MARKER = "travel-discovery explanation editor";
+
 const checks = [
   {
     dir: "dist-admin/admin_worker",
@@ -30,11 +35,11 @@ const checks = [
   {
     dir: "dist/worker",
     mustNotContain: ["/api/admin", "ADMIN_DB", "Cf-Access-Jwt-Assertion", "ADMIN_DEV_IDENTITY_EMAIL"],
-    mustContain: [],
+    mustContain: [AI_PROMPT_MARKER],
   },
   {
     dir: "dist/client",
-    mustNotContain: ["/api/admin", "ADMIN_DEV_IDENTITY_EMAIL"],
+    mustNotContain: ["/api/admin", "ADMIN_DEV_IDENTITY_EMAIL", AI_PROMPT_MARKER],
     mustContain: [],
   },
 ];

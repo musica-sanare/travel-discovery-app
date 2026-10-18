@@ -128,3 +128,4 @@ The specs cover the core journey without AI, the AI toggle (no AI request either
 ## Environment variables
 - Local: `.dev.vars` (see "Admin locally"). `.env.example` lists all variables.
 - Deployed admin Worker (set only after the owner approves the Access setup): `ACCESS_TEAM_DOMAIN`, `ACCESS_POLICY_AUD`. Without them every admin API request is rejected with 403.
+- Public Worker, AI explanations (docs/DECISIONS.md ADR-026; none is configured yet): `AI_ASSIST_ENABLED` (`"true"` enables the endpoint; anything else, including unset, disables it and no model is called), `AI_MODEL` (one of the model IDs in `server/ai/workers-ai.ts`), the `AI` binding, and optional rate-limit bindings `AI_CLIENT_RATE_LIMITER` / `AI_GLOBAL_RATE_LIMITER`. To disable AI, set `AI_ASSIST_ENABLED` to anything other than `"true"` or remove it; the diagnosis keeps working. Tests use fakes and never call Workers AI.

@@ -4,10 +4,12 @@ import { rankDestinations } from "../../domain/diagnosis";
 import type { DiagnosisContentResponse } from "../../shared/diagnosis-content";
 import { toEngineContent } from "../../shared/engine-content";
 import type { ExplanationInput, ExplanationProvider } from "../../server/ai/provider";
-import { createPublicApp, type AiDependencies, type PublicEnv, type RateLimiter } from "../../worker/index";
+import { app as defaultApp, createPublicApp, type AiDependencies, type PublicEnv, type RateLimiter } from "../../worker/index";
 import { ensureSeeded, json, publicRequest } from "./helpers";
 
 const ORIGIN = "https://public.example.test";
+/** Passes the text guards for `ja` (length, script, no digits, links, or markup). */
+const VALID_TEXT = "ゆったりとした街歩きと豊かな食文化があり、あなたが挙げた好みによく合いそうな旅行先です。";
 const PATH = "/api/ai/explanations";
 
 type Explain = (input: ExplanationInput, signal: AbortSignal) => Promise<unknown>;
@@ -23,7 +25,7 @@ function fakeProvider(explain?: Explain) {
         return explain(input, signal);
       }
       return Promise.resolve({
-        explanations: input.destinations.map((item) => ({ id: item.id, text: `Text for ${item.id}` })),
+        explanations: input.destinations.map((item) => ({ id: item.id, text: VALID_TEXT })),
       });
     },
   };
@@ -131,7 +133,7 @@ describe("POST /api/ai/explanations: success", () => {
   it("accepts model output given as JSON text and in any ID order", async () => {
     const { provider } = fakeProvider((input: ExplanationInput) =>
       Promise.resolve(
-        JSON.stringify({ explanations: [...input.destinations].reverse().map((item) => ({ id: item.id, text: `T ${item.id}` })) }),
+        JSON.stringify({ explanations: [...input.destinations].reverse().map((item) => ({ id: item.id, text: VALID_TEXT })) }),
       ),
     );
     const response = await send({ body: body(), dependencies: { provider } });
@@ -251,7 +253,7 @@ describe("POST /api/ai/explanations: server-side recomputation", () => {
 
 describe("POST /api/ai/explanations: untrusted model output", () => {
   const ids = () => validBody.expected.map((_, index) => `d${String(index + 1)}`);
-  const items = (list: string[], text = "Text") => list.map((id) => ({ id, text }));
+  const items = (list: string[], text = VALID_TEXT) => list.map((id) => ({ id, text }));
 
   it.each([
     ["a missing ID", () => ({ explanations: items(ids().slice(1)) })],
@@ -260,9 +262,12 @@ describe("POST /api/ai/explanations: untrusted model output", () => {
     ["a slug instead of an ID", () => ({ explanations: items(validBody.expected) })],
     ["empty text", () => ({ explanations: items(ids(), "   ") })],
     ["text over the length limit", () => ({ explanations: items(ids(), "x".repeat(401)) })],
-    ["an extra field such as a rank", () => ({ explanations: ids().map((id, index) => ({ id, text: "T", rank: index })) })],
+    ["an extra field such as a rank", () => ({ explanations: ids().map((id, index) => ({ id, text: VALID_TEXT, rank: index })) })],
     ["an extra top-level field", () => ({ explanations: items(ids()), order: ids() })],
     ["a non-JSON string", () => "Here are your explanations"],
+    ["a text with a price", () => ({ explanations: items(ids(), `${VALID_TEXT}費用は一泊１万円ほどです。`) })],
+    ["a text with a link", () => ({ explanations: items(ids(), `${VALID_TEXT}詳しくは https://example.com へ。`) })],
+    ["a text in the wrong script", () => ({ explanations: items(ids(), "This destination suits your preferences with relaxed walks and great food.") })],
     ["null", () => null],
   ])("returns 503 for %s", async (_, output) => {
     const { provider } = fakeProvider(() => Promise.resolve(output()));
@@ -329,7 +334,7 @@ describe("POST /api/ai/explanations: rate limiting and logs", () => {
     vi.spyOn(console, "warn").mockImplementation(capture);
     vi.spyOn(console, "info").mockImplementation(capture);
 
-    const secretText = "UNIQUE-MODEL-TEXT";
+    const secretText = `${VALID_TEXT}固有の確認用テキスト`;
     const ok = fakeProvider((input: ExplanationInput) =>
       Promise.resolve({ explanations: input.destinations.map((item) => ({ id: item.id, text: secretText })) }),
     );
@@ -352,5 +357,73 @@ describe("POST /api/ai/explanations: rate limiting and logs", () => {
     for (const forbidden of [secretText, "PROVIDER-SECRET-MESSAGE", "203.0.113.77", "424242", ...validBody.expected, ...validBody.answers.map((item) => item.question)]) {
       expect(all).not.toContain(forbidden);
     }
+  });
+});
+
+describe("POST /api/ai/explanations: wiring from Worker bindings", () => {
+  function fakeAiBinding(respond: (inputs: Record<string, unknown>) => unknown) {
+    const calls: { model: string; inputs: Record<string, unknown>; options: unknown }[] = [];
+    const binding = {
+      run(model: string, inputs: Record<string, unknown>, options: unknown) {
+        calls.push({ model, inputs, options });
+        return Promise.resolve(respond(inputs));
+      },
+    };
+    // Only `run` is used by the adapter; the rest of the Ai class is not needed here.
+    return { binding: binding as unknown as Ai, calls };
+  }
+
+  function echoIds(inputs: Record<string, unknown>) {
+    const schema = (inputs.response_format as { json_schema: { properties: { explanations: { items: { properties: { id: { enum: string[] } } } } } } })
+      .json_schema;
+    const ids = schema.properties.explanations.items.properties.id.enum;
+    return { response: JSON.stringify({ explanations: ids.map((id) => ({ id, text: VALID_TEXT })) }) };
+  }
+
+  function sendDefault(bindings: Partial<PublicEnv>): Promise<Response> {
+    const request = new Request(`${ORIGIN}${PATH}`, {
+      method: "POST",
+      headers: { Origin: ORIGIN, "Content-Type": "application/json", "CF-Connecting-IP": "198.51.100.9" },
+      body: JSON.stringify(validBody),
+    });
+    return Promise.resolve(defaultApp.fetch(request, { PUBLIC_DB: env.ADMIN_DB, ...bindings }));
+  }
+
+  it("uses the AI binding with a shortlisted model and the rate-limit bindings", async () => {
+    const { binding, calls } = fakeAiBinding(echoIds);
+    const client = limiter(true);
+    const global = limiter(true);
+    const response = await sendDefault({
+      AI_ASSIST_ENABLED: "true",
+      AI_MODEL: "@cf/meta/llama-3.1-8b-instruct-fp8",
+      AI: binding,
+      AI_CLIENT_RATE_LIMITER: client.limiter,
+      AI_GLOBAL_RATE_LIMITER: global.limiter,
+    });
+    expect(response.status).toBe(200);
+    const result = (await json(response)) as { explanations: { slug: string; text: string }[] };
+    expect(result.explanations.map((item) => item.slug)).toEqual(validBody.expected);
+    expect(calls).toHaveLength(1);
+    expect(calls[0]?.model).toBe("@cf/meta/llama-3.1-8b-instruct-fp8");
+    expect((calls[0]?.options as { signal?: unknown }).signal).toBeInstanceOf(AbortSignal);
+    expect(client.keys).toEqual(["ip:198.51.100.9"]);
+    expect(global.keys).toEqual(["global"]);
+  });
+
+  it.each([
+    ["no model", { AI_ASSIST_ENABLED: "true" }],
+    ["a model outside the shortlist", { AI_ASSIST_ENABLED: "true", AI_MODEL: "@cf/meta/llama-2-7b-chat-fp16" }],
+    ["the kill switch off", { AI_MODEL: "@cf/meta/llama-3.1-8b-instruct-fp8" }],
+  ])("returns 503 without calling the binding with %s", async (_, bindings) => {
+    const { binding, calls } = fakeAiBinding(echoIds);
+    const response = await sendDefault({ ...bindings, AI: binding });
+    expect(response.status).toBe(503);
+    expect(calls).toHaveLength(0);
+  });
+
+  it("returns 503 when the binding returns an unexpected shape", async () => {
+    const { binding } = fakeAiBinding(() => ({ result: "unexpected" }));
+    const response = await sendDefault({ AI_ASSIST_ENABLED: "true", AI_MODEL: "@cf/google/gemma-4-26b-a4b-it", AI: binding });
+    expect(response.status).toBe(503);
   });
 });

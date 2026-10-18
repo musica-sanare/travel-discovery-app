@@ -11,6 +11,7 @@
 import { Hono } from "hono";
 import { AI_EXPLANATIONS_PATH, aiExplanationRequestSchema } from "../shared/ai-explanation";
 import type { ExplanationProvider } from "../server/ai/provider";
+import { createWorkersAiProvider } from "../server/ai/workers-ai";
 import { createDatabase } from "../server/db/client";
 import { errorResponse, jsonResponse, toErrorResponse } from "../server/http/errors";
 import { hasSameOrigin, parseLocaleParam, readJsonBody } from "../server/http/request";
@@ -27,6 +28,12 @@ export interface PublicEnv {
   PUBLIC_DB: D1Database;
   /** AI explanations run only when this is exactly "true" (kill switch, ADR-026). */
   AI_ASSIST_ENABLED?: string;
+  /** Workers AI model ID from the shortlist in server/ai/workers-ai.ts. */
+  AI_MODEL?: string;
+  /** Optional bindings; none is configured in wrangler.jsonc yet (ADR-026). */
+  AI?: Ai;
+  AI_CLIENT_RATE_LIMITER?: RateLimit;
+  AI_GLOBAL_RATE_LIMITER?: RateLimit;
 }
 
 /** Same shape as the Workers Rate Limiting binding. */
@@ -45,13 +52,25 @@ export interface AiDependencies {
 }
 
 export interface PublicAppOptions {
-  /** Resolves AI dependencies per request. No provider is wired yet (ADR-026 Stage 3). */
+  /** Resolves AI dependencies per request; tests inject fakes. */
   aiDependencies?: (env: PublicEnv) => AiDependencies;
 }
 
-const READ_METHODS = new Set(["GET", "HEAD"]);
+/** Dependencies from the Worker's bindings; anything missing leaves AI unavailable or unlimited. */
+export function aiDependenciesFromEnv(env: PublicEnv): AiDependencies {
+  const ai = env.AI;
+  const provider =
+    ai && env.AI_MODEL
+      ? createWorkersAiProvider({ run: (model, inputs, options) => ai.run(model, inputs, options) }, env.AI_MODEL)
+      : null;
+  return {
+    provider,
+    clientLimiter: env.AI_CLIENT_RATE_LIMITER ?? null,
+    globalLimiter: env.AI_GLOBAL_RATE_LIMITER ?? null,
+  };
+}
 
-const NO_AI: AiDependencies = { provider: null, clientLimiter: null, globalLimiter: null };
+const READ_METHODS = new Set(["GET", "HEAD"]);
 
 function logAiEvent(entry: object): void {
   console.log(JSON.stringify(entry));
@@ -71,7 +90,7 @@ async function withinRateLimits(dependencies: AiDependencies, request: Request):
 }
 
 export function createPublicApp(options: PublicAppOptions = {}) {
-  const resolveAi = options.aiDependencies ?? (() => NO_AI);
+  const resolveAi = options.aiDependencies ?? aiDependenciesFromEnv;
   const app = new Hono<{ Bindings: PublicEnv }>();
 
   app.use("*", async (c, next) => {
