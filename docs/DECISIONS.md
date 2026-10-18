@@ -54,7 +54,7 @@ Facts marked *Verified* below were read from the cited official source on the st
   Source: https://developers.cloudflare.com/workers-ai/platform/limits/
 - *Verified*: Binding is configured with `"ai": { "binding": "AI" }` and invoked with `env.AI.run(model, input)`.
   Source: https://developers.cloudflare.com/workers-ai/configuration/bindings/
-- *Needs verification (Phase 4)*: model choice, model terms/data handling, structured-output (JSON mode) support, and model deprecation schedule.
+- *Needs verification (Phase 4)*: model choice, model terms/data handling, structured-output (JSON mode) support, and model deprecation schedule. *Update (2026-10-18)*: see "Phase 4 verification log". `llama-3.1-8b-instruct-fp8-fast`, used for the estimate above, is still priced but no longer listed in the model catalog.
 
 ### Package versions and compatibility (from the npm registry, 2026-10-17)
 
@@ -86,6 +86,58 @@ Notes:
 - `@cloudflare/vitest-pool-workers` (latest 0.23.0, peer `vitest ^4.1`) is superseded by `@cloudflare/vitest-plugin`; Cloudflare publishes a migration guide. Use the new plugin for Workers-runtime tests in Phase 1.
   Source: https://developers.cloudflare.com/workers/testing/vitest-integration/migration-guides/migrate-to-vitest-plugin/
 - Install scripts (`workerd`, `esbuild`): see ADR-016. *Correction (2026-10-17)*: an earlier version of this note said the scripts "did not run". That was wrong; under npm 11's default policy they ran (with a notice), which is visible because `node_modules/.bin/{esbuild,workerd}` are native executables rather than the JavaScript shims.
+
+---
+
+## Phase 4 verification log (checked 2026-10-18)
+
+Read from official documentation only; no Cloudflare login, account setting, or model call was made. Used by ADR-026.
+
+### Workers AI models and pricing
+- *Verified* (page updated 2026-10-15): prices per million tokens (input / output), in Neurons; $0.011 per 1,000 Neurons above the free 10,000 Neurons/day.
+
+  | Model | Input | Output | Est. Neurons per request (1,500 in / 500 out) | Est. requests/day in the free allocation |
+  |---|---|---|---|---|
+  | `@cf/meta/llama-3.1-8b-instruct-fp8` | 13,778 | 26,128 | ≈ 34 | ≈ 290 |
+  | `@cf/meta/llama-3.3-70b-instruct-fp8-fast` | 26,668 | 204,805 | ≈ 142 | ≈ 70 |
+  | `@cf/google/gemma-4-26b-a4b-it` | 9,091 | 27,273 | ≈ 27 + reasoning tokens | ≤ 360 |
+  | `@cf/qwen/qwen3-30b-a3b-fp8` | 4,625 | 30,475 | ≈ 22 + reasoning tokens | ≤ 450 |
+
+  The estimates are arithmetic on an assumed prompt size, not measurements; recalculate with the real prompt (ADR-026 Stage 5). Some other models on the page (marked there) require a paid billing method and are not candidates.
+  Source: https://developers.cloudflare.com/workers-ai/platform/pricing/
+- *Verified*: the model catalog lists `llama-3.1-8b-instruct-fp8` but not the `-fp8-fast`, `-awq`, or plain `llama-3.1-8b-instruct` variants that still appear on the pricing page. No text-generation model is labelled deprecated in the catalog. Treat catalog presence as the availability signal and re-check before release.
+  Source: https://developers.cloudflare.com/workers-ai/models/
+- *Verified* (model pages, no update date shown):
+  - `llama-3.1-8b-instruct-fp8`: 32,000-token context, default `max_tokens` 256, `response_format` in the input schema, license: Meta Llama 3.1 license (linked).
+  - `llama-3.3-70b-instruct-fp8-fast`: 24,000-token context, default `max_tokens` 256, `response_format` in the input schema, license: Meta Llama 3.3 license (linked).
+  - `gemma-4-26b-a4b-it`: 256,000-token context, `response_format` in the input schema, `max_tokens` deprecated in favour of `max_completion_tokens`, listed as a **reasoning** model, license linked to Google's Gemma 4 page.
+  - `qwen3-30b-a3b-fp8`: 32,768-token context, default `max_tokens` 2,000, `response_format` in the input schema, listed as a **reasoning** model, license not named on the page.
+  Sources: https://developers.cloudflare.com/workers-ai/models/llama-3.1-8b-instruct-fp8/, https://developers.cloudflare.com/workers-ai/models/llama-3.3-70b-instruct-fp8-fast/, https://developers.cloudflare.com/workers-ai/models/gemma-4-26b-a4b-it/, https://developers.cloudflare.com/workers-ai/models/qwen3-30b-a3b-fp8/
+- *Verified* (page updated 2026-09-14): JSON mode is requested with `response_format: { type: "json_schema", json_schema }` (or `json_object`). Output "isn't guaranteed" to match the schema; the app must handle the "JSON Mode couldn't be met" error. No streaming in JSON mode. The page's list of supported models (Llama 3/3.1/3.3, Hermes 2 Pro, DeepSeek) does not match the model pages, which show `response_format` for all four candidates above. Whether JSON mode is enforced for Gemma/Qwen therefore needs a real call (Stage 5).
+  Source: https://developers.cloudflare.com/workers-ai/features/json-mode/
+- *Verified* (page updated 2026-04-21): `env.AI.run(model, inputs)` documents only the `stream` input option; **no timeout or abort mechanism is documented**.
+  Source: https://developers.cloudflare.com/workers-ai/configuration/bindings/
+- *Verified* (page updated 2026-08-20): Workers AI bindings always run remotely during local development; `remote: false` is an error; `wrangler dev --local` disables remote bindings (no equivalent Vite-plugin flag is described). Whether a remote AI binding requires `wrangler login` when the dev server starts is **not stated** (needs verification without logging in, Stage 3).
+  Source: https://developers.cloudflare.com/workers/development-testing/
+
+### Workers AI data handling
+- *Verified* (page updated 2026-10-16): Cloudflare does not use Customer Content processed by Workers AI to train models. For standard (non-stateful) inference, inputs and outputs are not kept once the response is returned. Content may be stored if the app writes it to logs or storage, or enables AI Gateway logging/caching. Cloudflare keeps operational metadata (account/model IDs, timestamps, sizes, token/Neuron counts, latency, status codes) without content. Third-party models are governed by their own licenses.
+  Source: https://developers.cloudflare.com/workers-ai/platform/data-usage/
+
+### Model licenses (summaries, not legal advice)
+- *Verified*: Llama 3.3 license: display "Built with Llama" on a related website/UI/docs when making available a product containing Llama Materials; comply with the Acceptable Use Policy; separate license above 700M MAU. The text does not say whether calling a hosted API counts as "making available".
+  Source: https://github.com/meta-llama/llama-models/blob/main/models/llama3_3/LICENSE
+- *Secondary sources only*: the Llama 3.1/3.3 model cards list eight supported languages (English, German, French, Italian, Portuguese, Hindi, Spanish, Thai) — **not Japanese** — and discourage use in other languages without additional fine-tuning and controls (reproduced by https://registry.ollama.ai/library/llama3.3). Our default locale is `ja`.
+- *Verified*: Gemma 4 is released under Apache 2.0 (https://ai.google.dev/gemma/docs/gemma_4_license; the page says it is deprecated in favour of gemma.ai). Google's separate terms of use and prohibited-use policy were **not read**.
+- *Verified*: Qwen3-30B-A3B-FP8 is Apache 2.0 and claims support for "100+ languages and dialects" without listing them; thinking mode is on by default upstream (`enable_thinking`, `/no_think`). How to turn reasoning off on Workers AI is **not documented** on its model page.
+  Source: https://huggingface.co/Qwen/Qwen3-30B-A3B-FP8
+
+### Rate Limiting binding
+- *Verified* (page updated 2026-10-12): configured with a `ratelimits` entry (`name`, `namespace_id` as a positive-integer string unique per account, `simple.limit`, `simple.period` of **10 or 60 seconds only**); requires Wrangler ≥ 4.36.0 (installed: 4.151.1). `await env.LIMITER.limit({ key })` returns `{ success }`. Counters are cached on the machine running the Worker and synced asynchronously: the API is "permissive, eventually consistent" and "not … an accurate accounting system". **Limits apply per Cloudflare location**, so a key's total across locations can exceed the configured limit. Bindings sharing a `namespace_id` share counters, even across Workers. Cloudflare recommends keys that identify a user or tenant and warns against IP addresses (shared by many users). Not shown in the dashboard; monitor 429s through logs.
+  Source: https://developers.cloudflare.com/workers/runtime-apis/bindings/rate-limit/
+- *Verified* (page updated 2026-08-20): rate limiting bindings are simulated locally and cannot be remote; "Rate limiting logic should be tested against local simulations."
+  Source: https://developers.cloudflare.com/workers/development-testing/
+- *Not found*: whether the binding is available, limited, or charged on Workers Free. Neither the binding page nor the Workers pricing page (updated 2026-10-02, https://developers.cloudflare.com/workers/platform/pricing/) mentions it, and a community thread asking the same question (https://community.cloudflare.com/t/are-workers-rate-limiting-bindings-free-on-the-workers-free-plan/967562) could not be read (HTTP 403). Confirm in the dashboard or with Cloudflare before relying on it (ADR-026).
 
 ---
 
@@ -144,6 +196,7 @@ Notes:
 - Facts: 10,000 Neurons/day free; operations fail on the Free plan after the allocation is used (no surprise bills on Free). Local development calls the real remote service and counts toward usage and rate limits.
 - Phase 4 must confirm: model choice and terms, JSON/structured output support, per-request token limits, and a server-side daily request budget so one user cannot exhaust the shared allocation.
 - No AI binding is configured in Phase 0.
+- *Update (2026-10-18)*: the Phase 4 design, the model shortlist, and how the daily budget is handled are in ADR-026 (Proposed). The model is not chosen yet.
 
 ## ADR-006: AI is optional
 - Status: Accepted
@@ -216,14 +269,14 @@ Notes:
   | 403 | Admin request without a valid Access JWT (missing, bad signature/issuer/audience, expired, or auth config missing) | `forbidden` |
   | 404 | Unknown route or unpublished/missing resource | `not_found` |
   | 405 | Method not allowed (with `Allow` header) | `method_not_allowed` |
-  | 409 | Admin write conflicts (duplicate slug or other unique value) | `conflict` |
+  | 409 | Admin write conflicts (duplicate slug or other unique value); AI explanation request whose answers no longer match published content (ADR-026, proposed) | `conflict` |
   | 413 | Request body over the size limit (64 KiB) | `payload_too_large` |
   | 415 | Mutation body that is not `application/json` | `unsupported_media_type` |
   | 429 | App-level rate limit exceeded (AI/admin endpoints) | `rate_limited` |
   | 503 | Dependency unavailable: D1 errors including daily limits, AI unavailable/over quota/timeout | `service_unavailable`, `ai_unavailable` |
   | 500 | Unexpected bug (caught by a top-level handler) | `internal_error` |
 
-  Implemented in Phase 1 (`server/http/errors.ts`, tested in `test/workers/`): 400, 403, 404, 405, 409, 413, 415, 503 (D1/SQLite errors), 500. Not yet used: 429 (no rate limiting yet), `ai_unavailable` (Phase 4).
+  Implemented in Phase 1 (`server/http/errors.ts`, tested in `test/workers/`): 400, 403, 404, 405, 409, 413, 415, 503 (D1/SQLite errors), 500. Not yet used: 429 (no rate limiting yet), `ai_unavailable` (Phase 4). `ai_unavailable` is listed above but not yet defined in `shared/api-errors.ts`; ADR-026 Stage 2 adds it.
   - *Not verified*: the exact error text D1 returns when a Free-plan daily limit is exceeded. The mapper treats any error whose message chain contains `D1_` or `SQLITE_` as 503 and everything else as 500; confirm against a real limit error if possible.
 - Required application behavior:
   - Public API: map D1 errors (including daily-limit errors) to `503 service_unavailable`. The UI shows a localized "temporarily unavailable, please try again later" state with retry.
@@ -296,7 +349,7 @@ Notes:
 - Write prevention on the public side (code-level controls only, because the platform offers no read-only binding):
   1. Code layout (implemented): `worker/` (public Worker), `server/public/` (published-content reads), `admin-worker/` and `server/admin/` (admin-only: validation, reads, writes, auth). Shared code is limited to `server/db/`, `server/http/`, `server/localization.ts`, and `shared/`.
   2. ESLint `no-restricted-imports` (implemented) forbids `worker/`, `server/public/`, `server/http/`, and `server/db/` from importing `server/admin/` or `admin-worker/`, and forbids both SPAs from importing server code. `test/node/boundary.test.ts` walks the public Worker's import graph and fails on any admin module or write query (`.insert/.update/.delete/.batch/.exec` or write SQL); it was checked to fail on static, side-effect, re-export, and dynamic imports of admin code. `scripts/verify-bundles.mjs` also fails the build if the public bundle contains `/api/admin`, `ADMIN_DB`, or Access JWT code.
-  3. The public Worker exposes only `GET`/`HEAD` routes; any other method returns `405`. All queries are parameterized (Drizzle), and public endpoints never accept SQL fragments, column names, or sort expressions from clients except from fixed allowlists.
+  3. The public Worker exposes only `GET`/`HEAD` routes; any other method returns `405`. *Proposed amendment (ADR-026)*: one exception, `POST /api/ai/explanations`, which reads published content but never writes; every other route and method keeps returning `405`. All queries are parameterized (Drizzle), and public endpoints never accept SQL fragments, column names, or sort expressions from clients except from fixed allowlists.
   4. Public queries filter `status = 'published'` and select explicit columns only.
 - Residual risk (accepted for MVP): these controls do not stop a bug that slips past review, or a compromised dependency running inside the public Worker, from writing through its binding. Stronger isolation option, if needed later: remove the D1 binding from the public Worker and read through a service binding to a private, read-only "content" Worker with no public URL. Not chosen now because it adds a third Worker and more invocations for little MVP benefit.
 
@@ -335,6 +388,7 @@ Notes:
 ## ADR-022: Client-side diagnosis, diagnosis content endpoint, locale preference
 - Status: **Accepted** (owner-approved 2026-10-17; Phase 3)
 - Scoring location: the browser runs question selection, scoring, and ranking with `domain/diagnosis/` on a content snapshot from `GET /api/diagnosis-content`. Answers, trip constraints, and quiz progress are never sent to or stored on the server.
+  - *Proposed amendment (ADR-026)*: when the user turns AI assistance on, the answers and constraints are sent once to the public Worker for the explanation request and are not stored. With AI off, nothing changes.
   - Rationale: one Worker invocation per quiz session (Workers Free, ADR-015), no answers leave the browser, and the public Worker stays `GET`/`HEAD` only (ADR-018).
   - Trade-off: attribute scores and option weights become public. They are content, not secrets, and the repository is intended to become public. A user can only tamper with their own results, which are not shared or stored.
   - Phase 4 constraint: the AI explanation endpoint must not trust client-supplied rankings. It validates the submitted answers and constraints, recomputes the ranking server-side with the same domain module and current published content, and explains only those destinations. That endpoint requires revisiting ADR-018 (first non-`GET` public route) at that time.
@@ -372,6 +426,116 @@ Notes:
   - *Verified* (https://playwright.dev/docs/browsers, 2026-10-17): installing the npm package does not install browsers; `npx playwright install` downloads them from Microsoft's CDN (a few hundred MB); `channel: "chrome"` uses an installed branded Chrome.
 - Not yet decided: which browser CI uses (Phase 5). Bundled Chromium needs a download in CI; this requires the owner's approval at that time.
 - Admin authorization E2E is part of Phase 5 (`prompts/05-polish-and-e2e.md`).
+
+## ADR-026: AI explanation endpoint (Phase 4)
+- Status: **Proposed** (Stage 1, 2026-10-18). The owner approved the overall direction; the items under "Open decisions" and each implementation stage still need approval. Facts cited below are in "Phase 4 verification log".
+- Scope: AI writes a short supplementary paragraph for destinations the deterministic engine has already ranked. It never selects, orders, filters, or scores destinations, and it is not a source of facts. Everything below must keep the core diagnosis working with AI off, unavailable, or misbehaving.
+
+### Endpoint and ADR-018 / ADR-022 amendments
+- `POST /api/ai/explanations` on the **public Worker**. It is the only non-`GET`/`HEAD` route; the method guard keeps returning `405` for everything else. The handler reads published content only; the write-pattern boundary test still applies to everything it reaches.
+- POST, not GET: answers must not appear in URLs (logs, history, referrers).
+- With AI off, the client never calls this endpoint (ADR-006, SPEC §8). With AI on, it calls it at most once per displayed result set and locale, after the deterministic results are shown, without automatic retries.
+- Request preconditions: `Origin` equal to the Worker's origin (else `403 forbidden`), `Content-Type: application/json` (else `415`), body size limit (below). Cross-origin browser requests are also blocked by CORS preflight, since no CORS headers are sent. Non-browser clients can forge `Origin`, so this is not abuse protection; rate limiting is.
+- Alternative considered: a separate AI Worker (stronger isolation of the only POST route, but a third Worker with its own D1 binding, config, and deployment). Not chosen for the MVP; revisit with the ADR-018 content-Worker option.
+
+### Request contract and limits
+Defined once in `shared/ai-explanation.ts` (Stage 2); objects are strict (unknown keys rejected).
+
+| Field | Rule | Source of the bound |
+|---|---|---|
+| `locale` | `ja` / `en` / `es` | `shared/locales.ts` |
+| `answers` | 1–30 items; question slugs unique | 30 = `quizSettingsSchema` maximum for `maxQuestions`; at runtime also `≤ settings.maxQuestions` |
+| `answers[].question` | slug, ≤ 64 chars | `shared/slug.ts` (`MAX_SLUG_LENGTH`) |
+| `answers[].options` | 0–20 slugs, unique (empty = skipped) | 20 = admin maximum options per question (`server/admin/validation.ts`) |
+| `constraints.days` | optional integer 1–`MAX_TRIP_DAYS` (365) | existing constant |
+| `constraints.months` | optional, unique integers 1–12, ≤ 12 | `shared/months.ts` |
+| `constraints.budget` | optional `{ amount: 1–MAX_BUDGET (100,000,000), currency }` | existing constants; `SUPPORTED_CURRENCIES` |
+| `expected` | 1–5 unique slugs: the ranking the client displays | 5 = maximum `resultCount` |
+
+- `MAX_TRIP_DAYS` and `MAX_BUDGET` currently live in `src/diagnosis/constraintsForm.ts`, which server code may not import (ESLint). Stage 2 moves them unchanged to `shared/` and imports them from both sides; they remain the single source of truth.
+- Body size: the existing `MAX_JSON_BODY_BYTES` (64 KiB) is kept; the schema is the effective limit. Worst case allowed by the schema: one answer is at most `{"question":"<64>","options":[20 × "<64>"]}` ≈ 1,431 bytes, 30 answers ≈ 43 KB, plus constraints, `expected`, and `locale` < 1 KB, so every schema-valid body fits and the byte limit only stops oversized bodies before JSON parsing (`413`). A typical body is 1–2 KB. A smaller byte limit would require lower schema bounds than the admin allows, so it was not chosen.
+- Validation order: size and media type → JSON parse → schema (`400 invalid_request`) → `answers.length ≤ settings.maxQuestions` (`400`) → recompute.
+
+### Server-side recomputation (no trust in the client)
+1. Load published content with the same read path as `GET /api/diagnosis-content` and map it with the same mapping the browser uses (`toEngineContent`, moved to `shared/` in Stage 2 so it is not duplicated).
+2. Run `rankDestinations()` from `domain/diagnosis/` with the validated answers, constraints, and settings. No second scoring implementation exists.
+3. If the engine reports any ignored answer (unknown/unpublished question or option, too many options), or the recomputed result slugs differ from `expected` in content or order, return `409 conflict` **without calling the provider**. This covers content edited during a quiz and tampered requests.
+4. `expected` is used only for this equality check. The client never sends scores, ranks, or text, and nothing client-supplied besides validated IDs and constraint values reaches the model.
+
+### Two output shapes and the ID mapping
+- **Model-facing (internal)**: each destination gets an opaque ID (`d1`, `d2`, …) assigned in **slug order, not rank order**, and the destinations are listed in slug order, so neither IDs nor order reveal the ranking. The model returns `{ "explanations": [{ "id": "d1", "text": "…" }] }`.
+- **Client-facing API**: `{ "explanations": [{ "slug": "kyoto", "text": "…" }] }` in the server's rank order. The server maps `id → slug` with the table it built for this request; IDs never leave the server, and slugs never reach the model.
+- The model output is accepted only if its ID set equals the input ID set exactly (no missing, extra, or duplicate IDs). The client shows a text only on the card whose slug matches; responses never contain ranks, scores, or any field the client could use to reorder.
+
+### Data sent: app Worker vs Workers AI
+| Recipient | Data | Not sent |
+|---|---|---|
+| Public Worker (our code on Cloudflare), once per AI request | locale; answers as question/option slugs; trip days, months, budget amount and currency if entered; `expected` slugs. Cloudflare also sees normal request metadata (IP address, user agent) as for any request. | — |
+| Workers AI (model inference on Cloudflare) | fixed instructions; output language; localized names of up to 5 attributes with the strongest positive preference; per destination: opaque ID, name, country name, authored summary (≤ 600 chars), up to 5 highlights (≤ 100 chars each), localized names of its matched attributes (engine `topAttributes`) | answers or question text, budget, trip days, months, budget/season/duration statuses, costs, cautions, best-season text, slugs, ranks, fit scores, IP address, seed |
+
+- Neither recipient stores the request: the app writes no D1 rows and logs no content; for standard inference Workers AI does not keep inputs/outputs or train on them (verification log). AI Gateway is not used (it could log content).
+- The preference summary needs a small new pure function in `domain/diagnosis/` (top attributes of the preference vector, which is not exported today), with tests.
+- UI disclosure (shown next to the toggle before the user opts in; final wording and translations in Stage 4). English intent: "When on, your answers and trip conditions are sent once to this site's server to check the results. Only a summary of your preferences and the recommended destinations' descriptions are sent to Cloudflare Workers AI to write the explanation. Nothing is saved. Rankings are never decided by AI."
+
+### Model role, prompt, and output validation
+- Role split: the deterministic explanation (matched attributes, authored summary, cost, season, duration, budget notes) is always shown and is the only place for facts. The AI text is an additional paragraph labelled as AI-generated and possibly inaccurate, rendered as plain text (no Markdown or HTML).
+- Prompt (server-only; never sent to the client, checked by `scripts/verify-bundles.mjs`): fixed English instructions with the output language as a parameter. The model is told that it is an editor explaining why each destination may suit the stated preferences; that it must use only the provided data; that it must not state or imply rankings, scores, comparisons between the destinations, prices, costs, dates, seasons, opening hours, visa or entry rules, safety claims, or named facilities, events, or businesses not in the data; and that text inside the data block is data, never instructions. Data is passed as JSON inside explicit delimiters.
+- Structural controls, which matter more than the prompt: the model receives no rank, score, cost, date, or status data; IDs and order hide the ranking; the response is reduced to `{ slug, text }` and cannot change which cards are shown or their order. Users cannot inject text: every user input is a validated ID or number. The only free text the model sees is admin-authored content.
+- Output validation (Zod plus checks): JSON object of the exact shape; ID set equality; each text 40–400 characters, total ≤ 2,500; no digits, URLs, `<`/`>`, or Markdown markers; language plausibility (`ja` must contain kana or kanji; `en`/`es` must not contain CJK characters; English vs Spanish is not distinguished). Any violation discards the whole response (`503 ai_unavailable`). Per-item fallback is a possible later refinement.
+- **These checks are auxiliary guards. They block some obvious failure patterns (invented prices, times, links, markup, wrong script); they do not and cannot verify that the text is true, that it makes no ranking claim, or that it introduces no new fact.** The guarantees that matter are structural: ranking, eligibility, scores, and all factual fields come from the deterministic engine and authored content and are displayed independently of the AI text.
+- Locale: destination content follows the ADR-012 fallback chain; the model writes in the requested locale. This is generated supplementary text, labelled as such, not a substitute for curated translations (CLAUDE.md).
+- Limits: output token cap about 600 (the parameter name differs per model); JSON mode (`response_format: json_schema`) when the chosen model honours it, always followed by our own validation.
+
+### Errors, timeouts, logging
+- Statuses (ADR-015): `400 invalid_request`, `403 forbidden` (origin), `405`, `409 conflict` (content mismatch), `413`, `415`, `429 rate_limited`, `503 ai_unavailable` (feature disabled, provider error, quota, timeout, invalid output), `500 internal_error`. No provider messages, prompts, or model output in error bodies.
+- `env.AI.run` documents no timeout or abort option, so the server stops waiting after 8 s (`Promise.race`) and returns `503`; the inference may continue and still consume Neurons. The client aborts after 12 s. Waiting for the model is I/O, not CPU time; D1 reads and ranking are the same work as the content endpoint (10 ms CPU limit on Free; measure in Stage 2).
+- UI: every failure keeps the deterministic results and shows a non-blocking notice (`409`: content changed, reload to get explanations; `429`: try again later; others: AI assistance unavailable).
+- Logs: one line per request with `event`, `outcome`, `model`, `latencyMs`, `destinationCount`. Never answers, constraints, prompts, model output, IP addresses, or provider error text.
+
+### Usage limits and the risk of no daily budget
+- Kill switch: `AI_ASSIST_ENABLED` Worker variable; anything other than `"true"` returns `503 ai_unavailable` without calling the provider. Default disabled in config, so AI is opt-in per environment.
+- Final ceiling on Workers Free: Workers AI fails after 10,000 Neurons/day (reset 00:00 UTC) and does not bill.
+- Rate Limiting binding (if available on Free, see open decisions): two limiters checked before any D1 read or AI call: per-client key `ip:<CF-Connecting-IP>` (e.g. 5 per 60 s) and one global key (e.g. 60 per 60 s). IP is used against Cloudflare's general advice because the app has no accounts; it limits innocent users behind shared IPs (mobile carriers, offices) and does not stop an attacker rotating IPs. The IP is used only as an in-memory counter key and is not logged.
+- Properties of that binding that limit what it can promise: periods of 10 or 60 s only; counted **per Cloudflare location**, so the global key is per-location and the real worldwide rate can be a multiple of the setting; eventually consistent and permissive, so bursts can briefly exceed the limit; not an accounting system. It throttles bursts; it does not cap daily usage.
+- **No daily usage budget in the MVP** (a durable counter would need a writable store: D1 writes from the public Worker contradict ADR-018; KV or Durable Objects add a service). Accepted risks:
+  1. One client, or many IPs, can use up the shared 10,000 Neurons early in the UTC day; AI assistance is then unavailable for everyone until reset. The core diagnosis is unaffected.
+  2. Rejected requests still count against the Workers Free 100,000 requests/day shared with the content API; abuse of this endpoint can therefore also affect the core site. The rate limiter reduces work per request, not request count.
+  3. Timed-out inferences may still consume Neurons.
+  4. Local development and manual tests that call the real model consume the same daily allocation.
+  5. **On Workers Paid, usage above the free allocation is billed with no app-level ceiling.** A daily budget (or an AI Gateway/account-level spend control, if one exists) is therefore a **precondition for moving to Paid** while AI is enabled.
+  Mitigations: kill switch, rate limiter, small output cap, single request per result set, monitoring of 429/503 counts in logs.
+
+### Model selection (not decided)
+- Candidates and estimated cost: see "Phase 4 verification log". Constraints: default locale `ja`; Llama 3.x does not list Japanese as supported (secondary source); Gemma 4 and Qwen3 are Apache 2.0 and multilingual but listed as reasoning models, whose reasoning tokens add cost and latency, and how to disable reasoning on Workers AI is not documented; the JSON-mode documentation and model pages disagree on supported models.
+- Plan: Stage 3 reads the model ID from configuration, so changing it is a configuration change. Stage 5 (owner-approved, logged-in, consuming Neurons) compares `gemma-4-26b-a4b-it`, `qwen3-30b-a3b-fp8`, and `llama-3.1-8b-instruct-fp8` on a fixed set of seeded results in `ja`/`en`/`es` for: schema validity rate, guard rejection rate, language quality, statements that imply rank or add facts (human review), latency, and measured Neurons. The result and the license obligations of the chosen model (for Llama, "Built with Llama" attribution) are recorded here.
+
+### Architecture
+- `domain/diagnosis/`: unchanged ranking; one new pure preference-summary function.
+- `shared/`: request/response contract (`zod/mini`, also validated by the client), engine-content mapping, trip-constraint limits, `ai_unavailable` error code.
+- `server/ai/`: `ExplanationProvider` interface (one method, input = validated model-facing data, output = unvalidated model data), Workers AI adapter, prompt builder, output validation. `server/public/ai-explanations.ts`: the use case (validate → load → rank → compare → build input → call → validate → map IDs).
+- `worker/index.ts`: app built from injectable dependencies (provider, rate limiter, clock) so tests use fakes; production wires the `AI` and rate-limit bindings.
+- Client: a small API client and hook; results page shows the AI paragraph or a notice; nothing is stored.
+- No new npm dependency is expected (binding APIs; types from `@cloudflare/workers-types`).
+
+### Test policy
+- No test calls a real provider. Unit and Workers-runtime tests use a fake provider and a fake rate limiter; the local rate-limit simulation may be added for one integration test.
+- Required cases: valid request → texts mapped to the recomputed slugs; schema violations, duplicates, over-limit counts, values above `MAX_TRIP_DAYS`/`MAX_BUDGET`, oversized body, wrong media type, foreign origin, other methods; unpublished/unknown IDs and `expected` mismatch → `409` with zero provider calls; fake provider returning reordered, missing, extra, or duplicate IDs, text over limits, digits, URLs, markup, wrong script, non-JSON, thrown errors, quota-like errors, and a never-resolving promise (timeout) → `503` with deterministic results unaffected; response never contains rank or score fields and its order equals the engine's; kill switch and rate limit → no provider call; captured logs contain no answers, constraints, prompt, output, or IP; client bundle contains no prompt text; AI off → zero requests (unit and E2E); AI on → one request, text shown with the AI label, notices for `409`/`429`/`503`/timeout; ja/en/es catalogs complete.
+- Guard tests document known patterns only; they are not evidence of factual correctness. Prompt rules about rank and facts are evaluated by human review in Stage 5, not by automated tests.
+- E2E mocks the endpoint with `page.route`; no real model in CI.
+
+### Implementation stages (each ends with checks, a summary, and an owner-approved commit)
+1. Documentation (this ADR, verification log, ARCHITECTURE).
+2. Server foundation with a fake provider: shared contract and constants, mapping move, preference summary, endpoint, recomputation, mismatch handling, kill switch, rate-limit interface, error code, tests.
+3. Workers AI adapter, prompt, output validation, timeout, logging, `ai` binding and configuration (after checking local-development impact).
+4. Client UI, disclosure text, notices, translations, accessibility and E2E tests (mocked).
+5. Optional, owner-approved: real-model evaluation and Neuron measurement; choose the model; finalize docs (how to disable AI, how limits work).
+
+### Open decisions (要確認)
+1. Rate Limiting binding on Workers Free: availability and terms are not documented. If unavailable: ship with the kill switch and the Neuron ceiling only, or add a counter store (separate approval).
+2. Whether per-IP keys are acceptable (privacy and shared-IP trade-off) or only a global key is used.
+3. Model choice (Stage 5) and its license obligations; how to disable reasoning for Gemma/Qwen on Workers AI.
+4. Whether adding the remote `ai` binding makes `npm run dev` require a Cloudflare login; if so, keep the binding out of the default local configuration (e.g. only in deploy environments).
+5. Whether to forbid all digits in AI text (safer; also blocks harmless phrases such as "3 days") or only currency-like patterns.
 
 ---
 
@@ -445,3 +609,4 @@ Decided by the owner on 2026-10-17: separate admin Worker (ADR-004), Drizzle 0.4
 7. **drizzle-kit audit advisory** (ADR-003): held as a development-only transitive dependency; re-evaluate on dependency or usage changes.
 8. **Shared D1 (ADR-018)**: revisit the private content Worker option if the code-level read-only boundary proves insufficient.
 9. **Locale in URL**: deferred to Phase 3 routing design.
+11. **Phase 4 AI explanations (ADR-026, Proposed)**: Rate Limiting binding on Workers Free, per-IP keys, model choice and license, local-development impact of the `ai` binding, digit rule; no daily AI budget in the MVP (must exist before moving to Workers Paid with AI enabled).

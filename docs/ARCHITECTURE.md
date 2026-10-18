@@ -6,7 +6,7 @@ Two Cloudflare Workers share one D1 database (decisions: `docs/DECISIONS.md` ADR
 
 | Worker | Serves | Access protection | D1 usage |
 |---|---|---|---|
-| Public Worker | Public SPA (static assets) + public read API under `/api/*` | None (public site) | Read-only **by code structure and tests only** (no DB-level permission) |
+| Public Worker | Public SPA (static assets) + public read API under `/api/*` + the opt-in AI explanation endpoint (Phase 4, ADR-026) | None (public site) | Read-only **by code structure and tests only** (no DB-level permission) |
 | Admin Worker | Admin SPA (static assets) + admin API | Worker-level Cloudflare Access ("All traffic") on every URL, plus JWT validation in every admin API handler | Reads and writes; owns migrations |
 
 Both are TypeScript + React + Vite apps built with Cloudflare's Vite plugin, from separate configs (`vite.config.ts` + `wrangler.jsonc`, `vite.admin.config.ts` + `wrangler.admin.jsonc`) into separate outputs (`dist/`, `dist-admin/`). The public Worker contains no admin editing functions. The source layout and the module boundaries are listed in `docs/DEVELOPMENT.md` ("Project layout").
@@ -71,10 +71,10 @@ Domain logic must not import React, Cloudflare bindings, database clients, or AI
 Scoring runs in the browser (`docs/DECISIONS.md` ADR-022).
 
 1. When the user starts a quiz, the client loads one content snapshot from `GET /api/diagnosis-content?locale=` (published content, scoring data, quiz settings). The response is not cached by HTTP; the client reuses it in memory for up to 5 minutes.
-2. The client keeps trip constraints, answers, and the seed in memory only. Nothing is sent to or stored on the server, and a reload restarts the quiz.
+2. The client keeps trip constraints, answers, and the seed in memory only. Nothing is stored on the server, and a reload restarts the quiz. With AI assistance off, nothing is sent to the server either; with it on, see step 4.
 3. The client runs question selection, scoring, and ranking with `domain/diagnosis/` (`docs/DIAGNOSTIC_ALGORITHM.md`) and renders results with the deterministic explanation.
-4. Phase 4: if AI assistance is enabled, the client sends a separate explicit request. The Worker validates the answers and constraints, recomputes the ranking from current published content with the same domain module, and generates explanation text only for those destinations. It never trusts a client-supplied ranking.
-5. If AI is off or fails, the deterministic explanation is shown.
+4. Phase 4 (ADR-026, proposed): if AI assistance is enabled, the client sends one `POST /api/ai/explanations` request with the answers, constraints, locale, and the slugs it displays. The Worker validates them, recomputes the ranking from current published content with the same domain module, and returns `409` without calling AI if the slugs differ. Otherwise it sends a minimal, ranking-free summary to Workers AI and returns `{ slug, text }` pairs for those destinations only. It never trusts a client-supplied ranking and stores nothing.
+5. If AI is off or fails, the deterministic explanation is shown on its own; when AI succeeds, its text is an additional, labelled paragraph next to the deterministic explanation.
 
 Do not persist individual answer histories in D1.
 
@@ -108,6 +108,12 @@ The domain scoring engine must not depend on this interface. The Workers AI adap
 
 Do not treat destination descriptions or user input as trusted instructions. Keep the prompt explicit that the model is an editor/explainer, not a ranking engine or factual source.
 
+Phase 4 design (ADR-026, proposed):
+- `server/ai/` holds the interface, the Workers AI adapter, the prompt builder, and output validation; `server/public/ai-explanations.ts` holds the use case. The domain gains only a pure preference-summary function.
+- The model sees opaque IDs (`d1`, …) in slug order, never slugs, ranks, scores, costs, or user answers; the server maps IDs back to slugs.
+- Output checks (shape, ID set, length, digits/URLs/markup, script) are auxiliary guards; they cannot prove the text is factually correct. Ranking and factual fields stay with the deterministic engine and authored content.
+- Usage is bounded by a kill switch (`AI_ASSIST_ENABLED`), a burst rate limiter, and the Workers AI daily allocation; there is no app-level daily budget in the MVP.
+
 ## 6. Data and API principles
 
 - Use stable IDs/slugs, foreign keys, constraints, and indexes where appropriate.
@@ -118,7 +124,7 @@ Do not treat destination descriptions or user input as trusted instructions. Kee
 - Use migrations and reproducible seed data.
 - Avoid unbounded list endpoints; paginate admin lists if needed.
 - Use generic client errors and controlled server logs. Error responses follow the status-code contract in ADR-015 (`{ "error": "<stable_code>" }`, no internal details).
-- The public Worker only serves `GET`/`HEAD` and must never write to D1 (ADR-018). This is enforced by code structure (separate read/write modules), lint import restrictions, and tests, **not** by a database-level read-only permission: D1 has no read-only binding, so the public Worker's binding could technically execute writes. Stronger isolation (a private read-only content Worker behind a service binding) is the documented fallback if needed.
+- The public Worker only serves `GET`/`HEAD`, plus the single read-only `POST /api/ai/explanations` route proposed in ADR-026, and must never write to D1 (ADR-018). This is enforced by code structure (separate read/write modules), lint import restrictions, and tests, **not** by a database-level read-only permission: D1 has no read-only binding, so the public Worker's binding could technically execute writes. Stronger isolation (a private read-only content Worker behind a service binding) is the documented fallback if needed.
 
 ## 7. Internationalization
 
@@ -132,6 +138,8 @@ Do not treat destination descriptions or user input as trusted instructions. Kee
 ## 8. Observability and privacy
 
 MVP does not require analytics. Log only operational errors and coarse AI usage/failure counters if useful. Do not log complete answers or sensitive user text. Document log retention and provider data flow.
+
+AI data flow (ADR-026, proposed): with AI on, the app Worker receives answers (IDs), constraints, and displayed slugs for one request; Workers AI receives only a preference summary (attribute names) and the recommended destinations' authored descriptions. Neither stores the content; the AI endpoint logs only outcome, model, latency, and count. AI Gateway is not used.
 
 ## 9. Deployment
 
