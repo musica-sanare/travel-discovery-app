@@ -52,6 +52,31 @@
         "AI_ASSIST_ENABLED": "false",
         "AI_MODEL": "@cf/google/gemma-4-26b-a4b-it"
       }
+    },
+    "production": {
+      // Owner decision (2026-10-18): production keeps the top-level Worker name
+      // instead of the default "travel-discovery-production".
+      "name": "travel-discovery",
+      "workers_dev": true,
+      "preview_urls": false,
+      "upload_source_maps": true,
+      "observability": { "enabled": true },
+      "d1_databases": [
+        {
+          // Created 2026-10-18 (docs/DEPLOYMENT.md "3.2 D1 databases").
+          "binding": "PUBLIC_DB",
+          "database_name": "travel-discovery-production",
+          "database_id": "09ee8032-0e63-47b1-8b47-507d643d6255"
+        }
+      ],
+      "ai": { "binding": "AI" },
+      "ratelimits": [
+        { "name": "AI_CLIENT_RATE_LIMITER", "namespace_id": "2001", "simple": { "limit": 5, "period": 60 } }
+      ],
+      "vars": {
+        "AI_ASSIST_ENABLED": "false",
+        "AI_MODEL": "@cf/google/gemma-4-26b-a4b-it"
+      }
     }
   }
 }

@@ -70,6 +70,29 @@
         "ACCESS_TEAM_DOMAIN": "https://spring-dew-55d0.cloudflareaccess.com",
         "ACCESS_POLICY_AUD": "1a9ac9ffe04c9be3e18e45f745b3452d2f861ec45025c43d424c210baf31c174"
       }
+    },
+    // Same rules as preview. Owner decision (2026-10-18): production keeps the
+    // top-level Worker name. workers_dev stays false until Worker-level Access
+    // ("All traffic") protects this Worker; its own ACCESS_POLICY_AUD and
+    // ACCESS_TEAM_DOMAIN are added then.
+    "production": {
+      "name": "travel-discovery-admin",
+      "workers_dev": false,
+      "preview_urls": false,
+      "upload_source_maps": true,
+      "observability": { "enabled": true },
+      "d1_databases": [
+        {
+          // Same database as the public production Worker (ADR-018).
+          "binding": "ADMIN_DB",
+          "database_name": "travel-discovery-production",
+          "database_id": "09ee8032-0e63-47b1-8b47-507d643d6255",
+          "migrations_dir": "migrations"
+        }
+      ],
+      "ratelimits": [
+        { "name": "ADMIN_RATE_LIMITER", "namespace_id": "2002", "simple": { "limit": 120, "period": 60 } }
+      ]
     }
   }
 }
