@@ -139,6 +139,31 @@ Read from official documentation only; no Cloudflare login, account setting, or 
   Source: https://developers.cloudflare.com/workers/development-testing/
 - *Not found*: whether the binding is available, limited, or charged on Workers Free. Neither the binding page nor the Workers pricing page (updated 2026-10-02, https://developers.cloudflare.com/workers/platform/pricing/) mentions it, and a community thread asking the same question (https://community.cloudflare.com/t/are-workers-rate-limiting-bindings-free-on-the-workers-free-plan/967562) could not be read (HTTP 403). Confirm in the dashboard or with Cloudflare before relying on it (ADR-026).
 
+
+### Stage 5 preparation checks (2026-10-18)
+Official documentation only; no login, account setting, or model call.
+- *Verified* (page updated 2026-10-12): the Vite plugin selects a Wrangler environment with `CLOUDFLARE_ENV` at **dev and build** time; it is ignored by `vite preview` and `wrangler deploy`. Without it, dev and build use the top-level configuration. The build writes a `wrangler.json` flattened to the selected environment.
+  Source: https://developers.cloudflare.com/workers/vite-plugin/reference/cloudflare-environments/
+- *Verified* (page updated 2026-09-22): bindings, `vars`, and secrets are non-inheritable: a named environment must declare every binding and variable it needs (for this app also `d1_databases`). The page does not list `ai` or `ratelimits` by name; they are bindings, so treat them as non-inheritable.
+  Source: https://developers.cloudflare.com/workers/wrangler/environments/
+- *Verified* (page updated 2026-06-25): the Vite plugin option `remoteBindings` (default `true`) controls remote bindings.
+  Source: https://developers.cloudflare.com/workers/vite-plugin/reference/api/
+- *Verified*: an AI binding without `remote` connects to the remote service and warns; `remote: false` is an error; `wrangler dev --local` disables remote bindings. Whether starting a remote binding needs `wrangler login` is **not stated** (the programmatic API takes an account ID and API token). Treat any configuration that contains an `ai` binding as "may connect to Cloudflare and need credentials".
+  Source: https://developers.cloudflare.com/workers/development-testing/
+- *Verified* (page updated 2026-10-09): `CF-Connecting-IP` carries the IP address of the client that connected to Cloudflare; without a Worker subrequest it reflects the client IP. `X-Forwarded-For` can contain a client-supplied chain and should not be used for this. With Pseudo IPv4 (a zone setting), IPv6 clients can appear as Class E IPv4 addresses with the real address in `CF-Connecting-IPv6`. The page does not explicitly say that a client-supplied `CF-Connecting-IP` is always overwritten for Worker requests (*needs verification*, expected).
+  Source: https://developers.cloudflare.com/fundamentals/reference/http-headers/
+- *Verified* (page updated 2026-09-17): Workers AI text generation allows 300 requests/minute for models that do not require the Paid plan (all three evaluation candidates). No concurrency limit or error format is documented.
+  Source: https://developers.cloudflare.com/workers-ai/platform/limits/
+- *Verified* (page updated 2026-05-29): Budget alerts are informational only ("do not pause or cap usage"), account-wide across usage-based products, and available to Pay-as-you-go accounts; Free accounts without a payment method are **not mentioned**. A changelog says usage is processed once per day, so alerts arrive the day after the threshold is crossed. Per-product usage notifications require a Professional plan or higher.
+  Sources: https://developers.cloudflare.com/billing/manage/budget-alerts/, https://developers.cloudflare.com/changelog/post/2026-04-13-billable-usage-dashboard-and-budget-alerts/
+- *Verified* (page updated 2026-10-12): Workers Logs is included in Workers Free (200,000 log events/day, 3-day retention), enabled with `"observability": { "enabled": true }`, and captures `console.log`.
+  Source: https://developers.cloudflare.com/workers/observability/logs/workers-logs/
+- *Verified* (page updated 2026-09-30): Durable Objects are available on Workers Free with the SQLite backend only (100,000 requests/day, 5 million rows read/day, 100,000 rows written/day).
+  Source: https://developers.cloudflare.com/durable-objects/platform/pricing/
+- *Verified* (page updated 2026-09-30): AI Gateway rate limiting applies uniformly to all requests of a gateway (no per-user scope documented). AI Gateway pricing and default logging are not stated on that page.
+  Source: https://developers.cloudflare.com/ai-gateway/features/rate-limiting/
+- *Partially verified*: the Workers AI pricing page points to the Workers AI dashboard for Neuron usage; a GraphQL dataset `aiInferenceAdaptive` exists, but its fields were not found.
+- *Not found*: any hard spend cap for Workers AI on Workers Paid; any documented way to check Rate Limiting binding availability for an account without deploying.
 ---
 
 ## ADR-001: SPA and hosting
@@ -494,6 +519,7 @@ Defined once in `shared/ai-explanation.ts` (Stage 2); objects are strict (unknow
 - Logs: one line per request with `event`, `outcome`, `model`, `latencyMs`, `destinationCount`. Never answers, constraints, prompts, model output, IP addresses, or provider error text.
 
 ### Usage limits and the risk of no daily budget
+*Partly superseded on 2026-10-18 by "Stage 5 preparation decisions" below: no global rate-limit key, IPv6 keys by /64 prefix, and preconditions for enabling AI. The accepted risks listed here still apply.*
 - Kill switch: `AI_ASSIST_ENABLED` Worker variable; anything other than `"true"` returns `503 ai_unavailable` without calling the provider. Default disabled in config, so AI is opt-in per environment.
 - Final ceiling on Workers Free: Workers AI fails after 10,000 Neurons/day (reset 00:00 UTC) and does not bill.
 - Rate Limiting binding (if available on Free, see open decisions): two limiters checked before any D1 read or AI call: per-client key `ip:<CF-Connecting-IP>` (e.g. 5 per 60 s) and one global key (e.g. 60 per 60 s). IP is used against Cloudflare's general advice because the app has no accounts; it limits innocent users behind shared IPs (mobile carriers, offices) and does not stop an attacker rotating IPs. The IP is used only as an in-memory counter key and is not logged.
@@ -508,7 +534,7 @@ Defined once in `shared/ai-explanation.ts` (Stage 2); objects are strict (unknow
 
 ### Model selection (not decided)
 - Candidates and estimated cost: see "Phase 4 verification log". Constraints: default locale `ja`; Llama 3.x does not list Japanese as supported (secondary source); Gemma 4 and Qwen3 are Apache 2.0 and multilingual but listed as reasoning models, whose reasoning tokens add cost and latency, and how to disable reasoning on Workers AI is not documented; the JSON-mode documentation and model pages disagree on supported models.
-- Plan: Stage 3 reads the model ID from configuration, so changing it is a configuration change. Stage 5 (owner-approved, logged-in, consuming Neurons) compares `gemma-4-26b-a4b-it`, `qwen3-30b-a3b-fp8`, and `llama-3.1-8b-instruct-fp8` on a fixed set of seeded results in `ja`/`en`/`es` for: schema validity rate, guard rejection rate, language quality, statements that imply rank or add facts (human review), latency, and measured Neurons. The result and the license obligations of the chosen model (for Llama, "Built with Llama" attribution) are recorded here.
+- Plan: Stage 3 reads the model ID from configuration, so changing it is a configuration change. Stage 5 (owner-approved, logged-in, consuming Neurons) compares `gemma-4-26b-a4b-it`, `qwen3-30b-a3b-fp8`, and `llama-3.1-8b-instruct-fp8` on a fixed set of seeded results in `ja`/`en`/`es` for: schema validity rate, guard rejection rate, language quality, statements that imply rank or add facts (human review), latency, and measured Neurons. *Update (2026-10-18)*: the cases, criteria, budget, and record format are in `docs/AI_EVALUATION.md` and `docs/ai-evaluation/cases.json` (fixed model inputs, mostly fictional destinations, instead of seeded results). The result and the license obligations of the chosen model (for Llama, "Built with Llama" attribution) are recorded here.
 
 ### Architecture
 - `domain/diagnosis/`: unchanged ranking; one new pure preference-summary function.
@@ -559,12 +585,71 @@ Implemented locally and tested with a fake `AI` binding; no model has been calle
 - Tests: client and request-builder unit tests, flow tests (AI off → no request; on → one request with IDs only, notes, order kept against a reordered response; 409/429/503/500/network → notice and unchanged results; language switch → one new request), axe on results with AI notes (ja/en/es), and E2E (real preview server without AI configuration → one request, 503, notice; mocked success → notes in rank order; off → no request). E2E never calls a model.
 - Remaining: Stage 5 (owner-approved real-model evaluation) and the configuration decisions below.
 
+### Stage 5 preparation decisions (2026-10-18)
+Status: **Proposed**, for owner approval before Stage 5. Facts are in "Stage 5 preparation checks". Nothing below has been configured or deployed.
+
+#### A. Usage and cost control: what is guaranteed, what only suppresses, what only detects
+| Kind | Control | State |
+|---|---|---|
+| Guaranteed bound | Per-request limits: body ≤ 64 KiB, schema bounds (≤ 30 answers, ≤ 20 options, ≤ 5 destinations), model input truncated (summary 600, 5 highlights × 100 characters), one provider call per request, output cap 1,500 tokens, server timeout 8 s, client timeout 12 s | Implemented (Stages 2–4) |
+| Guaranteed bound | No automatic retry anywhere: the server calls the provider once; the client never retries and sends one request per distinct request | Implemented |
+| Guaranteed bound | Kill switch `AI_ASSIST_ENABLED` (anything but `"true"` → no provider call) | Implemented; takes effect on the next deployment |
+| Guaranteed bound (**only on Workers Free**) | Workers AI fails after 10,000 Neurons/day and does not bill | Platform behaviour; depends on the account plan (要確認 by the owner) |
+| Suppression (best effort) | Per-client Rate Limiting binding, one key per client address (B) | Code ready; binding not configured; availability on the account unconfirmed |
+| Detection | Workers Logs outcome counts; Workers AI dashboard Neurons; budget alerts if the account is eligible | Not enabled; runbook below |
+
+- Worst-case cost per request: about 7,000 input and 1,500 output tokens (five destinations at the truncation limits in Japanese, prompt included; estimate, not measured). At the verified prices that is about 136 Neurons for `llama-3.1-8b-instruct-fp8`, 105 for `gemma-4-26b-a4b-it`, and 78 for `qwen3-30b-a3b-fp8` (plus reasoning tokens if reasoning cannot be disabled), so the free allocation covers at least about 70 worst-case requests per day; typical requests are about 22–34 Neurons (verification log).
+- No global rate-limit key (owner decision): one shared key lets ordinary users exhaust each other's quota and does not stop distributed abuse. Total usage is protected instead by the Free-plan Neuron ceiling, detection, and the kill switch. The `globalLimiter` option in `worker/index.ts` is therefore not bound; removing it is proposed code change C2.
+- Concurrency: no app-level concurrency control. Workers AI allows 300 requests/minute per account for the candidates; the per-client limiter covers short bursts from one client; distributed bursts are bounded only by the daily Neuron ceiling.
+- Retries do not multiply usage: none on the server, none in the client; a language switch sends one new request; a timed-out inference may still consume Neurons (`AbortSignal` effect unverified). Switching back to an earlier language currently re-sends that request (the hook remembers only the last result); caching settled results per request is optional code change C4.
+- **Preconditions for enabling AI for the public** (all required):
+  1. The account is on Workers Free while AI is enabled, so the Neuron ceiling is a hard daily cost bound. On Workers Paid, an app-level daily cap must exist first (D).
+  2. A per-client limiter is active: the Rate Limiting binding, confirmed on an approved preview deployment, or, if it is unavailable, a small Durable Object limiter (separate approval; Durable Objects with SQLite are available on Free). **Without a per-client limiter AI stays disabled**, because a single client could otherwise use the whole daily allocation.
+  3. Workers Logs enabled for the public Worker and the monitoring runbook (E) in place.
+  4. `AI_ASSIST_ENABLED` defaults to `"false"` in the deployed configuration; turning it on is a separate, explicit owner decision.
+- Residual risk outside AI: requests rejected with 429 still count against the Workers Free 100,000 requests/day shared with the content API. Flooding this endpoint can therefore make the core site's API fail with Error 1027 until 00:00 UTC (the UI shows its "temporarily unavailable" state). This applies to every public API route; WAF rate-limiting rules would need a zone (custom domain) and were not examined (要確認, later phase).
+
+#### B. Rate-limit key and privacy
+- Source: `CF-Connecting-IP` only (set by Cloudflare's edge; the public Worker has no proxy in front of it). Never `X-Forwarded-For`, which can carry client-supplied values. If the header is absent (local development, tests), all such requests share one key `unknown`, which fails safe.
+- Key: IPv4 → the full address; IPv6 → the /64 prefix, because one subscriber usually controls a whole /64 and could otherwise rotate addresses freely. Proposed code change C1 (today the full address is used).
+- Using an address as a limiter key is not logging it: the address is never written to logs, responses, or storage by the app; tests assert this. The key exists only in the limiter's counters for the configured window (10 or 60 s). Hashing the key was considered and not chosen: Cloudflare already processes the address to serve the request, and a keyed hash would add a secret without reducing what the app stores (nothing).
+- Limit: proposed 5 requests per 60 s per key: one results page plus a few language switches or restarts. Users behind a shared address (mobile carrier NAT, offices) can see 429 sooner; they keep the deterministic results with a "busy" notice. Clients that change addresses can bypass the limit; they remain bounded by the daily Neuron ceiling and are visible in monitoring.
+- Separation of concerns: the per-client limiter protects fair use between users; the Neuron ceiling, monitoring, and the kill switch protect total usage.
+
+#### C. Local development and deployed environments
+- The top-level `wrangler.jsonc` stays without `ai`, `ratelimits`, or AI variables. `npm run dev`, `npm run build`, unit and Workers tests, and E2E (`vite build` + `vite preview`) therefore never configure a remote AI binding and answer `503 ai_unavailable`, as today.
+- Deployed configuration goes into a named environment (proposed `env.production`, and `env.preview` for an approved test deployment) that redeclares every binding it needs: `d1_databases`, `ai`, `ratelimits`, `vars` (`AI_ASSIST_ENABLED: "false"`, `AI_MODEL`), and `observability`. A deployment is built with `CLOUDFLARE_ENV=<env> vite build`, whose output contains only that environment, and deployed from that output (deployment commands are Phase 6 work).
+- Binding versus feature: the `ai` binding can exist with `AI_ASSIST_ENABLED: "false"`; then no model is ever called. Enabling the feature is only the variable change plus a deployment.
+- Real-model runs happen only through the opt-in evaluation runner (`docs/AI_EVALUATION.md`), never through `npm test`, `npm run check`, or E2E.
+- Secrets: the binding needs none. The evaluation runner's API token lives only in the developer's shell environment, never in `.dev.vars` (the build copies it into `dist/`, see `docs/DEVELOPMENT.md`) and never in committed files.
+- Failure handling is unchanged: missing binding, missing or unknown model, disabled switch, limiter refusal, or provider failure all keep the deterministic results and show a notice.
+
+#### D. Monthly and Paid-plan considerations
+- Workers AI has no documented hard spend cap on Paid. Budget alerts are informational, account-wide, delayed by about a day, and their availability for this account is unconfirmed. Before moving to Paid with AI enabled: an app-level daily cap (Durable Object counter) and a budget alert are required, and the owner reviews the cost estimate.
+
+#### E. Monitoring and stopping (runbook)
+- Enable Workers Logs for the public Worker. Each AI request logs one line `{ event, outcome, model, latencyMs, destinationCount }`; 429 and disabled outcomes are not logged yet (proposed code change C3, without addresses).
+- First week after enabling AI: check daily; afterwards weekly or after any announcement. Look at Workers AI Neurons in the dashboard and outcome counts in Workers Logs.
+- Stop when Neurons exceed about 70% of the daily allocation before 12:00 UTC on a normal day, when `rate_limited` or `provider_error` outcomes spike, or on any suspicion of abuse: set `AI_ASSIST_ENABLED` to `"false"` in `env.production.vars` and redeploy. Whether a dashboard edit of a variable is faster and how it interacts with the next deployment is 要確認 (dashboard-only settings are overwritten by deployments for `workers_dev`; check the same for `vars`).
+
+#### F. Digit rule
+- Kept unchanged (owner decision). The evaluation records every digit rejection separately and also reports how many responses would have passed without the digit check, so the cost of the rule is visible before any change is considered.
+
+#### Proposed code changes for Stage 5 (not implemented; each needs approval)
+- C1: limiter key from `CF-Connecting-IP` with IPv6 /64 prefixes (`worker/index.ts`), with tests.
+- C2: remove the unused global limiter option.
+- C3: log `rate_limited` and `disabled` outcomes (no address).
+- C4 (optional): remember settled AI results per request in the client hook.
+- C5: `env.production` / `env.preview` in `wrangler.jsonc` with `AI_ASSIST_ENABLED: "false"`, and enabling observability (only together with an approved deployment plan).
+- C6: the opt-in evaluation runner (`docs/AI_EVALUATION.md`), plus a git-ignored output directory.
+
 ### Open decisions (要確認)
-1. Rate Limiting binding on Workers Free: availability and terms are not documented. If unavailable: ship with the kill switch and the Neuron ceiling only, or add a counter store (separate approval).
-2. Whether per-IP keys are acceptable (privacy and shared-IP trade-off) or only a global key is used.
-3. Model choice (Stage 5) and its license obligations; how to disable reasoning for Gemma/Qwen on Workers AI.
-4. Whether adding the remote `ai` binding makes `npm run dev` require a Cloudflare login; if so, keep the binding out of the default local configuration (e.g. only in deploy environments).
-5. Whether to forbid all digits in AI text (safer; also blocks harmless phrases such as "3 days") or only currency-like patterns.
+Updated 2026-10-18. Decided: per-client keys by address without a global key (B), deployed-only AI configuration (C), digit rule kept (F).
+1. Rate Limiting binding availability for this account: confirm on an approved preview deployment. If unavailable, choose between a Durable Object limiter and keeping AI disabled.
+2. Account plan and payment method (Free vs Paid; budget alert eligibility), which decides whether the Neuron ceiling is a hard bound.
+3. Model choice after the evaluation (`docs/AI_EVALUATION.md`), with its license obligations, JSON-mode behaviour, and whether reasoning can be disabled.
+4. Approval of code changes C1–C6, and of the evaluation run itself (login, API token, Neuron use).
+5. Whether a dashboard variable edit is an acceptable fast kill switch, or the redeploy procedure is the only one.
 
 ---
 

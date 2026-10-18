@@ -147,6 +147,7 @@ AI data flow (ADR-026, proposed): with AI on, the app Worker receives answers (I
 - Start on Workers Free (ADR-015); quota errors must degrade gracefully, never silently upgrade the plan.
 - Preview and production environments must be distinct.
 - Production secrets must be set through the platform secret mechanism.
+- AI configuration (`ai` and rate-limit bindings, `AI_ASSIST_ENABLED`, `AI_MODEL`) exists only in named deployment environments selected with `CLOUDFLARE_ENV` at build time, never in the top-level configuration used by local development and tests (ADR-026 "Stage 5 preparation decisions", C).
 - Keep `.dev.vars` and `.env` out of Git.
 - Include `.env.example` with placeholders only.
 - Document database creation, migrations, seed process, Access setup, and deployment.
