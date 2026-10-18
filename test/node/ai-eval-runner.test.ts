@@ -8,6 +8,7 @@ import { describe, expect, it, vi } from "vitest";
 import {
   analyzeAnswer,
   assertNewRun,
+  completionDetails,
   describeShape,
   buildJobs,
   CONFIRMATION,
@@ -94,6 +95,18 @@ describe("describeShape", () => {
   });
 });
 
+describe("completionDetails", () => {
+  it.each([
+    [{ choices: [{ finish_reason: "length", message: { content: "{}", reasoning_content: "abcd" } }] }, { finishReason: "length", reasoningChars: 4 }],
+    [{ choices: [{ finish_reason: "stop", message: { content: "{}" } }] }, { finishReason: "stop", reasoningChars: null }],
+    [{ choices: [{ finish_reason: "Not a reason value!", message: {} }] }, { finishReason: null, reasoningChars: null }],
+    [{ response: "{}" }, { finishReason: null, reasoningChars: null }],
+    [null, { finishReason: null, reasoningChars: null }],
+  ])("reads %o", (result, expected) => {
+    expect(completionDetails(result)).toEqual(expected);
+  });
+});
+
 describe("buildJobs", () => {
   it("covers every model, case, and repetition once, in a run-specific deterministic order", () => {
     const jobs = buildJobs(cases, EVALUATION_MODELS, 2, "run-a");
@@ -131,12 +144,13 @@ describe("runEvaluation", () => {
     );
   }
 
-  function echo(body: { messages: unknown[] }) {
+  function echo(body: { messages: unknown[] }, neurons?: number) {
     const data = JSON.parse(String((body.messages[1] as { content: string }).content.split("<data>\n")[1]?.split("\n</data>")[0])) as {
       destinations: { id: string }[];
     };
     const response = JSON.stringify({ explanations: data.destinations.map((item) => ({ id: item.id, text: JA })) });
-    return Response.json({ success: true, result: { response, usage: { prompt_tokens: 900, completion_tokens: 300 } } });
+    const usage = { prompt_tokens: 900, completion_tokens: 300, ...(neurons === undefined ? {} : { neurons }) };
+    return Response.json({ success: true, result: { response, usage } });
   }
 
   async function run(fetchImpl: typeof fetch, overrides: Partial<EvalConfig> = {}) {
@@ -170,6 +184,13 @@ describe("runEvaluation", () => {
     expect(summary.stoppedForBudget).toBe(false);
     // The token never appears in any record.
     expect(JSON.stringify(records)).not.toContain(TOKEN);
+  });
+
+  it("uses Neurons reported in usage.neurons for the record and the budget", async () => {
+    const fetchImpl = fakeFetch((_url, body) => echo(body, 0.75));
+    const { records, summary } = await run(fetchImpl);
+    expect(records.every((record) => record.reportedNeurons === 0.75 && record.estimatedNeurons === 0.8)).toBe(true);
+    expect(summary.estimatedNeurons).toBeCloseTo(0.75 * EVALUATION_MODELS.length);
   });
 
   it("records transport and API errors without retrying and with a conservative Neuron estimate", async () => {

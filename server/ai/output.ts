@@ -11,7 +11,12 @@ import { MAX_EXPLANATION_LENGTH } from "../../shared/ai-explanation";
 import type { Locale } from "../../shared/locales";
 import { MAX_RESULT_COUNT } from "../../shared/quiz-settings";
 
-export const MIN_EXPLANATION_LENGTH = 40;
+/**
+ * Lowered from 40 after evaluation (docs/DECISIONS.md ADR-026 "Evaluation
+ * round 2"): models answer sparse destinations briefly instead of inventing
+ * details, and a short honest note is acceptable.
+ */
+export const MIN_EXPLANATION_LENGTH = 10;
 
 const DIGIT = /\p{Nd}/u;
 const LINK = /https?:|www\.|\.(com|net|org|jp|es)\b/i;

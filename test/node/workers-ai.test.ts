@@ -50,7 +50,8 @@ describe("buildModelRequest", () => {
     expect(request.max_tokens).toBe(MAX_OUTPUT_TOKENS);
     expect(request).not.toHaveProperty("max_completion_tokens");
     expect(request).not.toHaveProperty("chat_template_kwargs");
-    expect(request.response_format).toMatchObject({ type: "json_schema" });
+    // llama-3.1-8b-instruct-fp8 rejects JSON Schema (403, code 5025); the prompt carries the format.
+    expect(request).not.toHaveProperty("response_format");
     expect(request.messages).toHaveLength(2);
   });
 
@@ -59,6 +60,7 @@ describe("buildModelRequest", () => {
     expect(request.max_completion_tokens).toBe(MAX_OUTPUT_TOKENS);
     expect(request).not.toHaveProperty("max_tokens");
     expect(request.chat_template_kwargs).toEqual({ enable_thinking: false });
+    expect(request.response_format).toMatchObject({ type: "json_schema" });
   });
 });
 
@@ -79,6 +81,8 @@ describe("createWorkersAiProvider", () => {
     expect(calls).toHaveLength(1);
     expect(calls[0]?.model).toBe("@cf/qwen/qwen3-30b-a3b-fp8");
     expect(calls[0]?.signal).toBe(signal);
-    expect(calls[0]?.inputs.chat_template_kwargs).toEqual({ enable_thinking: false });
+    // Qwen keeps its default reasoning: with enable_thinking false it answered only in reasoning fields.
+    expect(calls[0]?.inputs).not.toHaveProperty("chat_template_kwargs");
+    expect(calls[0]?.inputs.response_format).toMatchObject({ type: "json_schema" });
   });
 });

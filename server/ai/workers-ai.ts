@@ -19,18 +19,23 @@ interface ModelProfile {
   tokenLimitParameter: "max_tokens" | "max_completion_tokens";
   /** Asks reasoning models to skip reasoning (`chat_template_kwargs.enable_thinking`). */
   disableThinking: boolean;
+  /** Sends `response_format: json_schema`; models that reject it get the schema only through the prompt. */
+  jsonSchema: boolean;
 }
 
 /**
- * Shortlist from the Phase 4 verification log. Parameter names follow
- * @cloudflare/workers-types and the model pages; their effect is unverified
- * until a real call (ADR-026 Stage 5).
+ * Shortlist from the Phase 4 verification log. Observed in evaluation probes
+ * (2026-10-18, docs/DECISIONS.md ADR-026 "Evaluation round 1"):
+ * `llama-3.1-8b-instruct-fp8` rejects JSON Schema (403, code 5025), and
+ * `qwen3-30b-a3b-fp8` with `enable_thinking: false` returns its answer only in
+ * reasoning fields, so it keeps its default reasoning. `llama-3.3-70b` is not
+ * evaluated; its settings are unverified.
  */
 export const MODEL_PROFILES: Readonly<Record<string, ModelProfile>> = {
-  "@cf/meta/llama-3.1-8b-instruct-fp8": { tokenLimitParameter: "max_tokens", disableThinking: false },
-  "@cf/meta/llama-3.3-70b-instruct-fp8-fast": { tokenLimitParameter: "max_tokens", disableThinking: false },
-  "@cf/google/gemma-4-26b-a4b-it": { tokenLimitParameter: "max_completion_tokens", disableThinking: true },
-  "@cf/qwen/qwen3-30b-a3b-fp8": { tokenLimitParameter: "max_tokens", disableThinking: true },
+  "@cf/meta/llama-3.1-8b-instruct-fp8": { tokenLimitParameter: "max_tokens", disableThinking: false, jsonSchema: false },
+  "@cf/meta/llama-3.3-70b-instruct-fp8-fast": { tokenLimitParameter: "max_tokens", disableThinking: false, jsonSchema: true },
+  "@cf/google/gemma-4-26b-a4b-it": { tokenLimitParameter: "max_completion_tokens", disableThinking: true, jsonSchema: true },
+  "@cf/qwen/qwen3-30b-a3b-fp8": { tokenLimitParameter: "max_tokens", disableThinking: false, jsonSchema: true },
 };
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -75,7 +80,7 @@ export function buildModelRequest(profile: ModelProfile, input: ExplanationInput
   const ids = input.destinations.map((item) => item.id);
   return {
     messages: buildMessages(input),
-    response_format: { type: "json_schema", json_schema: responseJsonSchema(ids) },
+    ...(profile.jsonSchema ? { response_format: { type: "json_schema", json_schema: responseJsonSchema(ids) } } : {}),
     temperature: 0.3,
     [profile.tokenLimitParameter]: MAX_OUTPUT_TOKENS,
     ...(profile.disableThinking ? { chat_template_kwargs: { enable_thinking: false } } : {}),

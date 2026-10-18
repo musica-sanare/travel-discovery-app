@@ -1,11 +1,13 @@
 # AI Model Evaluation Plan (Phase 4, Stage 5)
 
-Plan for a small comparison of Workers AI models for the optional AI explanations (`docs/DECISIONS.md` ADR-026). **Nothing in this document has been run.** Running it requires the owner's explicit approval because it needs a Cloudflare login or API token and consumes Neurons.
+Plan for a small comparison of Workers AI models for the optional AI explanations (`docs/DECISIONS.md` ADR-026). Running it requires the owner's explicit approval because it needs an API token and consumes Neurons.
+
+**Status (2026-10-18):** two rounds were run by the owner (`2026-10-20-r1`, `2026-10-20-r3`, plus a Qwen re-run and manual probes). Results and the resulting choice of `gemma-4-26b-a4b-it` are recorded in ADR-026 "Evaluation round 1", "Evaluation round 2", and "Model decision". Raw records stay in the git-ignored `.ai-eval/`.
 
 ## 1. Scope
 
 - Candidates: `@cf/google/gemma-4-26b-a4b-it`, `@cf/qwen/qwen3-30b-a3b-fp8`, `@cf/meta/llama-3.1-8b-instruct-fp8` (request options per model in `server/ai/workers-ai.ts`).
-- Same prompt, request options, and validation as production: the run uses `buildModelRequest`, `extractModelAnswer`, and `parseModelOutput` from `server/ai/` unchanged. The digit rule stays as implemented (ADR-026 F).
+- Same prompt, request options, and validation as production: the run uses `buildModelRequest`, `extractModelAnswer`, and `parseModelOutput` from `server/ai/` unchanged. The digit rule stays as implemented (ADR-026 F). Request options differ per model where a model requires it (Llama 3.1 8B without JSON Schema; Qwen with its default reasoning; see ADR-026 "Evaluation round 1").
 - Inputs: the ten fixed cases in [`ai-evaluation/cases.json`](ai-evaluation/cases.json), already in the model-facing shape. Most destinations are fictional, so any concrete fact in an answer that is not in the input is detectable as invented. C06 uses well-known real cities with deliberately generic data. No personal data.
 - Out of scope: changing the prompt, guards, or limits during the run. Findings that suggest such changes are recorded and decided afterwards.
 
@@ -66,7 +68,7 @@ Request settings are the production ones (temperature 0.3, output cap 1,500 toke
 
 ## 6. Records
 
-Raw results stay out of Git (`.ai-eval/` is git-ignored); only the summary is committed. The runner writes the record below for every call; API error messages are not stored, only HTTP status and error codes. `resultShape` lists the keys, value types, and string lengths of the API result (no content), to diagnose answers that cannot be extracted.
+Raw results stay out of Git (`.ai-eval/` is git-ignored); only the summary is committed. The runner writes the record below for every call; API error messages are not stored, only HTTP status and error codes. `resultShape` lists the keys, value types, and string lengths of the API result (no content), to diagnose answers that cannot be extracted. `reportedNeurons` is `usage.neurons` from the response when present; `estimatedNeurons` is that value, otherwise the token-based estimate, otherwise the conservative pre-call estimate, and is what the budget counts.
 
 One JSON line per call:
 
@@ -86,8 +88,11 @@ One JSON line per call:
   "acceptedWithoutDigitRule": true,
   "promptTokens": 812,
   "completionTokens": 344,
-  "estimatedNeurons": 17.6,
+  "reportedNeurons": 17.2,
+  "estimatedNeurons": 17.2,
   "resultShape": { "response": "string(412)", "usage": { "prompt_tokens": "number", "completion_tokens": "number" } },
+  "finishReason": "stop",
+  "reasoningChars": null,
   "rawAnswer": "<model answer as returned>"
 }
 ```

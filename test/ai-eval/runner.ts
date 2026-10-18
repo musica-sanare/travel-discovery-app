@@ -206,6 +206,29 @@ export function describeShape(value: unknown, depth = 0): unknown {
   return Object.fromEntries(Object.entries(value).map(([key, item]) => [key, describeShape(item, depth + 1)]));
 }
 
+/**
+ * `finish_reason` (for example "stop" or "length", which means the output cap
+ * was hit) and the length of any reasoning output; no content.
+ */
+export function completionDetails(result: unknown): { finishReason: string | null; reasoningChars: number | null } {
+  if (typeof result !== "object" || result === null || !("choices" in result) || !Array.isArray(result.choices)) {
+    return { finishReason: null, reasoningChars: null };
+  }
+  const choices: unknown[] = result.choices;
+  const first = choices[0];
+  if (typeof first !== "object" || first === null) {
+    return { finishReason: null, reasoningChars: null };
+  }
+  const reason = (first as { finish_reason?: unknown }).finish_reason;
+  const message = (first as { message?: unknown }).message;
+  const reasoning =
+    typeof message === "object" && message !== null ? (message as { reasoning_content?: unknown }).reasoning_content : undefined;
+  return {
+    finishReason: typeof reason === "string" && /^[a-z_]{1,20}$/.test(reason) ? reason : null,
+    reasoningChars: typeof reasoning === "string" ? reasoning.length : null,
+  };
+}
+
 export interface EvalRecord {
   runId: string;
   timestamp: string;
@@ -222,9 +245,13 @@ export interface EvalRecord {
   usageReported: boolean;
   promptTokens: number | null;
   completionTokens: number | null;
+  /** Neurons reported in the response (`usage.neurons`), when present. */
+  reportedNeurons: number | null;
   estimatedNeurons: number;
   /** Structure of the API `result` (keys, types, string lengths only); null on transport errors. */
   resultShape: unknown;
+  finishReason: string | null;
+  reasoningChars: number | null;
   rawAnswer: unknown;
 }
 
@@ -234,12 +261,19 @@ interface Envelope {
   errors?: unknown;
 }
 
-function usageOf(result: unknown): { prompt: number; completion: number } | null {
+interface Usage {
+  prompt: number;
+  completion: number;
+  /** `usage.neurons` as reported by Workers AI, when present. */
+  neurons: number | null;
+}
+
+function usageOf(result: unknown): Usage | null {
   if (typeof result !== "object" || result === null || !("usage" in result)) return null;
-  const usage = result.usage as { prompt_tokens?: unknown; completion_tokens?: unknown } | null;
-  return typeof usage?.prompt_tokens === "number" && typeof usage.completion_tokens === "number"
-    ? { prompt: usage.prompt_tokens, completion: usage.completion_tokens }
-    : null;
+  const usage = result.usage as { prompt_tokens?: unknown; completion_tokens?: unknown; neurons?: unknown } | null;
+  if (typeof usage?.prompt_tokens !== "number" || typeof usage.completion_tokens !== "number") return null;
+  const neurons = typeof usage.neurons === "number" && Number.isFinite(usage.neurons) && usage.neurons >= 0 ? usage.neurons : null;
+  return { prompt: usage.prompt_tokens, completion: usage.completion_tokens, neurons };
 }
 
 function errorCodes(errors: unknown): string {
@@ -309,7 +343,9 @@ export async function runEvaluation(config: EvalConfig, jobs: readonly Job[], de
       ? { accepted: false, rejection: null, acceptedWithoutDigitRule: false }
       : analyzeAnswer(answer, ids, job.input.locale);
     const usage = transportError ? null : usageOf(envelope?.result);
-    const estimatedNeurons = usage ? estimateNeurons(job.model, usage.prompt, usage.completion) : worstCaseNeurons(job.model, body);
+    // Prefer the Neurons Workers AI reports, then the token-based estimate, then the conservative pre-call estimate.
+    const estimatedNeurons =
+      usage?.neurons ?? (usage ? estimateNeurons(job.model, usage.prompt, usage.completion) : worstCaseNeurons(job.model, body));
     spent += estimatedNeurons;
     completed += 1;
     deps.write({
@@ -326,8 +362,10 @@ export async function runEvaluation(config: EvalConfig, jobs: readonly Job[], de
       usageReported: usage !== null,
       promptTokens: usage?.prompt ?? null,
       completionTokens: usage?.completion ?? null,
+      reportedNeurons: usage?.neurons ?? null,
       estimatedNeurons: Math.round(estimatedNeurons * 10) / 10,
       resultShape: transportError ? null : describeShape(envelope?.result),
+      ...(transportError ? { finishReason: null, reasoningChars: null } : completionDetails(envelope?.result)),
       rawAnswer: answer ?? null,
     });
   }

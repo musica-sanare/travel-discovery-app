@@ -396,7 +396,7 @@ describe("POST /api/ai/explanations: wiring from Worker bindings", () => {
     const client = limiter(true);
     const response = await sendDefault({
       AI_ASSIST_ENABLED: "true",
-      AI_MODEL: "@cf/meta/llama-3.1-8b-instruct-fp8",
+      AI_MODEL: "@cf/google/gemma-4-26b-a4b-it",
       AI: binding,
       AI_CLIENT_RATE_LIMITER: client.limiter,
     });
@@ -404,7 +404,7 @@ describe("POST /api/ai/explanations: wiring from Worker bindings", () => {
     const result = (await json(response)) as { explanations: { slug: string; text: string }[] };
     expect(result.explanations.map((item) => item.slug)).toEqual(validBody.expected);
     expect(calls).toHaveLength(1);
-    expect(calls[0]?.model).toBe("@cf/meta/llama-3.1-8b-instruct-fp8");
+    expect(calls[0]?.model).toBe("@cf/google/gemma-4-26b-a4b-it");
     expect((calls[0]?.options as { signal?: unknown }).signal).toBeInstanceOf(AbortSignal);
     expect(client.keys).toEqual(["ip4:198.51.100.9"]);
   });

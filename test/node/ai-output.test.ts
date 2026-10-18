@@ -17,12 +17,14 @@ describe("checkExplanationText", () => {
     [ES, "es"],
     [`${EN} Lisboa`, "es"],
     [`${JA}Lisboa`, "ja"],
+    ["ミレトは小さな港町です。", "ja"],
   ] as const)("accepts %s (%s)", (text, locale) => {
     expect(checkExplanationText(text, locale)).toBeNull();
   });
 
   it.each([
     ["短すぎる説明です。", "ja", "too_short"],
+    ["Too short", "en", "too_short"],
     [`${JA}三泊なら一泊１万円ほどです。`, "ja", "digit"],
     [`${EN} Rooms start at 120 euros.`, "en", "digit"],
     [`${EN} See https://example.com for more.`, "en", "link"],
