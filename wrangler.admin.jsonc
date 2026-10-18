@@ -24,5 +24,23 @@
       "database_id": "local-travel-discovery",
       "migrations_dir": "migrations"
     }
-  ]
+  ],
+  "env": {
+    // Local end-to-end tests only (playwright.config.ts): selected with
+    // CLOUDFLARE_ENV=e2e for the admin dev server, so the allowed path does not
+    // depend on a developer's .dev.vars. The identity is honoured only by dev
+    // builds; production builds do not contain that code (ADR-004,
+    // scripts/verify-bundles.mjs). Never deploy this environment.
+    "e2e": {
+      "vars": { "ADMIN_DEV_IDENTITY_EMAIL": "e2e-admin@example.test" },
+      "d1_databases": [
+        {
+          "binding": "ADMIN_DB",
+          "database_name": "travel-discovery",
+          "database_id": "local-travel-discovery",
+          "migrations_dir": "migrations"
+        }
+      ]
+    }
+  }
 }

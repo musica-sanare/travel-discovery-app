@@ -1,5 +1,9 @@
 /** Shared helpers for E2E specs. */
+import { readFileSync } from "node:fs";
+import path from "node:path";
 import { expect, type Page, type Request } from "@playwright/test";
+
+const axeSource = readFileSync(path.join(import.meta.dirname, "../node_modules/axe-core/axe.min.js"), "utf8");
 
 /** Collects console errors, page errors, and every request URL made by the page. */
 export function watchPage(page: Page) {
@@ -59,4 +63,19 @@ export function unexpectedRequests(requests: readonly string[], baseURL: string)
  */
 export async function waitForAnimations(page: Page) {
   await page.evaluate(() => Promise.all(document.getAnimations().map((animation) => animation.finished)));
+}
+
+/**
+ * Runs axe-core on the current page after animations finish and returns one
+ * line per violation. The calling test must use `bypassCSP: true`, because axe
+ * is injected as an inline script.
+ */
+export async function axeViolations(page: Page): Promise<string[]> {
+  await waitForAnimations(page);
+  await page.addScriptTag({ content: axeSource });
+  return page.evaluate(async () => {
+    const axe = (window as unknown as { axe: { run: (context: Document) => Promise<{ violations: { id: string; nodes: { target: string[] }[] }[] }> } }).axe;
+    const result = await axe.run(document);
+    return result.violations.map((violation) => `${violation.id}: ${violation.nodes.map((node) => node.target.join(" ")).join(", ")}`);
+  });
 }

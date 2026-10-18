@@ -1,9 +1,5 @@
-import { readFileSync } from "node:fs";
-import path from "node:path";
-import { expect, test, type Page } from "@playwright/test";
-import { answerAllQuestions, startQuiz, waitForAnimations, watchPage } from "./fixtures";
-
-const axeSource = readFileSync(path.join(import.meta.dirname, "../node_modules/axe-core/axe.min.js"), "utf8");
+import { expect, test } from "@playwright/test";
+import { answerAllQuestions, axeViolations, startQuiz, watchPage } from "./fixtures";
 
 test("serves the security headers and renders without CSP errors", async ({ page }) => {
   const { errors } = watchPage(page);
@@ -59,17 +55,6 @@ test("completes the quiz with the keyboard only", async ({ page, isMobile }) => 
 test.describe("accessibility in a real browser (axe-core)", () => {
   // axe is injected as an inline script, which the strict CSP would block.
   test.use({ bypassCSP: true });
-
-  async function axeViolations(page: Page): Promise<string[]> {
-    // Contrast is measured on the final rendering, not mid-animation.
-    await waitForAnimations(page);
-    await page.addScriptTag({ content: axeSource });
-    return page.evaluate(async () => {
-      const axe = (window as unknown as { axe: { run: (context: Document) => Promise<{ violations: { id: string; nodes: { target: string[] }[] }[] }> } }).axe;
-      const result = await axe.run(document);
-      return result.violations.map((violation) => `${violation.id}: ${violation.nodes.map((node) => node.target.join(" ")).join(", ")}`);
-    });
-  }
 
   for (const colorScheme of ["light", "dark"] as const) {
     test(`all pages pass in ${colorScheme} mode`, async ({ page }) => {
