@@ -134,6 +134,10 @@ Browsers: by default the tests use the locally installed Google Chrome (`channel
 
 The admin spec covers authorization on the production build (403 for every request without a token, also with only a cookie, and the localized error in the UI), the content workflow on the dev server (draft → published → archived, checked through the public API and the diagnosis snapshot, plus a rejected invalid slug), admin language switching with document metadata and the stored choice after a reload, and axe-core on every admin page. The public specs cover the core journey without AI, optional AI notes (off: no request; on: one request to the real preview server, which has no AI configured and answers 503, and a mocked success; no model is ever called), back/edit/restart, reload behavior and storage, language detection and switching, API errors and empty content, security headers and CSP errors, horizontal overflow, a keyboard-only run (desktop), and axe-core checks in light and dark mode. The axe test disables CSP for its own context only, because axe is injected as an inline script.
 
+## Continuous integration
+
+`.github/workflows/ci.yml` runs `npm ci` and `npm run check` on pushes to `main` and `dev` and on pull requests (docs/DECISIONS.md ADR-027). It needs no secrets. E2E tests are not part of CI yet; run `npm run test:e2e` locally before merging changes that affect the UI or Workers.
+
 ## Environment variables
 - Local: `.dev.vars` (see "Admin locally"). `.env.example` lists all variables.
 - Deployed admin Worker (set only after the owner approves the Access setup): `ACCESS_TEAM_DOMAIN`, `ACCESS_POLICY_AUD`. Without them every admin API request is rejected with 403. Optional Rate Limiting binding `ADMIN_RATE_LIMITER` (keyed by the Access email; not configured yet, docs/DECISIONS.md ADR-020).

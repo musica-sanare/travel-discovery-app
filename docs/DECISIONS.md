@@ -451,7 +451,7 @@ Official documentation only; no login, account setting, or model call.
 - Status: **Accepted** (Phase 3d, 2026-10-17; owner approved Playwright and asked to confirm before any browser download)
 - Decision: `@playwright/test` 1.64.1 (dev dependency; no install scripts, so it installs under `strict-allow-scripts`, ADR-016). Local runs use the installed Google Chrome through `channel: "chrome"`, so no browser binary is downloaded. Tests run against a production build in `vite preview` with an isolated, freshly seeded D1 state (`E2E_STATE_DIR`, `.wrangler/e2e/state`). Desktop and mobile (Pixel 7) projects. Details: `docs/DEVELOPMENT.md` "End-to-end tests".
   - *Verified* (https://playwright.dev/docs/browsers, 2026-10-17): installing the npm package does not install browsers; `npx playwright install` downloads them from Microsoft's CDN (a few hundred MB); `channel: "chrome"` uses an installed branded Chrome.
-- Not yet decided: which browser CI uses (Phase 5). Bundled Chromium needs a download in CI; this requires the owner's approval at that time.
+- Not yet decided: which browser CI uses (Phase 5). Bundled Chromium needs a download in CI; this requires the owner's approval at that time. *Update (2026-10-18)*: E2E is not part of CI for now (ADR-027).
 - *Flaky tests fixed (2026-10-18, Phase 4 Stage 4)*: in `e2e/platform.spec.ts`, (1) the keyboard-only test checked for the results heading and then waited for a question input; if the last answer's navigation happened between the two, it waited 30 s for an input that no longer existed. It now waits for the next page after each answer, like `answerAllQuestions`. (2) The axe test ran while the 180 ms enter animation still had reduced opacity, so `color-contrast` could fail; `axeViolations` now waits for running animations to finish (`waitForAnimations` in `e2e/fixtures.ts`). Both were test timing races, not application faults (before the fix they failed in 0 of 3 runs on `96a5426`, 1 of 3 on `6b3d6a4`, and 3 of 4 during Stage 3; after it, 4 of 4 full runs passed).
 - Admin authorization E2E is part of Phase 5 (`prompts/05-polish-and-e2e.md`). *Implemented 2026-10-18 (Phase 5b)*: `e2e/admin.spec.ts` with an admin dev server (`CLOUDFLARE_ENV=e2e`, local identity from `env.e2e` in `wrangler.admin.jsonc`) for allowed paths and the admin production build for denied paths; both share the E2E database with the public server. Details: `docs/DEVELOPMENT.md` "End-to-end tests". Allowed paths cannot use a real Access JWT locally, so token acceptance on a deployed Worker remains a deploy-only check ("Admin authentication status").
 
@@ -704,6 +704,16 @@ Updated 2026-10-18. Decided: see the status lines of "Stage 5 preparation decisi
 5. Whether a dashboard variable edit is an acceptable fast kill switch, or the redeploy procedure is the only one.
 6. ~~Minimum explanation length~~: lowered to 10 characters ("Model decision").
 7. Gemma terms of use and prohibited-use policy: the owner reviews them before AI is enabled.
+
+
+## ADR-027: Continuous integration (GitHub Actions)
+- Status: **Accepted** (Phase 5e, 2026-10-18; owner chose CI without E2E for now)
+- Decision: `.github/workflows/ci.yml` runs on pushes to `main` and `dev` and on pull requests: `npm ci` with Node from `.nvmrc`, then `npm run check` (lint, type-check, unit and Workers-runtime tests, production build with bundle checks). It uses no secrets, never deploys, and never calls Workers AI (the evaluation runner exists only under `npm run ai:eval`).
+- Hardening: `permissions: contents: read`; `actions/checkout` and `actions/setup-node` pinned to full commit SHAs with the version in a comment (v7.0.1 → `3d3c42e5…`, v7.1.0 → `949feb24…`, resolved from the official repositories on 2026-10-18; both were the latest releases); `persist-credentials: false`; one run per ref with cancellation.
+  - *Verified* (GitHub docs "Security hardening for GitHub Actions"): pinning to a full-length commit SHA is the recommended way to use third-party actions immutably; set `GITHUB_TOKEN` to read-only by default.
+- E2E is not run in CI: it needs a browser download (bundled Chromium, a few hundred MB from Microsoft's CDN, ADR-025), which requires the owner's approval. Revisit when deployments start, so that pull requests also exercise the admin and public journeys.
+- Verified locally: a fresh `git clone` of the repository passes `npm ci` and `npm run check` on macOS (2026-10-18). *Not verified*: a run on GitHub's Linux runners (needs a push, which requires the owner's approval). The lockfile contains the Linux platform packages for `workerd` and `esbuild` (ADR-016), so `npm ci` is expected to work there.
+- Updating actions: replace the SHA and the version comment together after checking the release notes.
 
 ---
 
