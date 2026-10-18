@@ -2,7 +2,7 @@
 
 Travel Discovery is a responsive web app that recommends overseas city/region-level destinations from a short, varied quiz and optional trip constraints (length, months, budget). It explains why each destination fits, shows indicative cost ranges with their source and date, and links to flight and hotel searches. The UI supports Japanese, English, and Spanish; Japanese is the default.
 
-Status: Phases 0–4 are complete and Phase 5 (quality, end-to-end tests, CI) is in progress. Nothing is deployed yet. See [`docs/IMPLEMENTATION_PLAN.md`](docs/IMPLEMENTATION_PLAN.md).
+Status: Phases 0–5 are complete; Phase 6 (release preparation) is in progress. Nothing is deployed yet. See [`docs/IMPLEMENTATION_PLAN.md`](docs/IMPLEMENTATION_PLAN.md).
 
 ## How it works
 
@@ -46,7 +46,7 @@ CI: [`.github/workflows/ci.yml`](.github/workflows/ci.yml) runs `npm ci` and `np
 
 - Local variables live in the git-ignored `.dev.vars`; `.env.example` lists every variable with placeholders only.
 - Deployed values are set with `wrangler secret put` or the Cloudflare dashboard, never in files. AI and rate-limit bindings exist only in named deployment environments, never in the configuration used for local development and tests.
-- Deployment is not set up yet; the draft runbook is [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md). Do not deploy without the owner's approval.
+- Deployment is not set up yet. [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) is the runbook: preview and production environments, D1 creation and migrations, Cloudflare Access for the admin Worker, build and deploy commands, rollback, and free-tier assumptions. Do not deploy without the owner's approval.
 
 ## Repository layout
 
@@ -71,7 +71,8 @@ prompts/        Per-phase prompts for Claude Code
 | [`docs/DIAGNOSTIC_ALGORITHM.md`](docs/DIAGNOSTIC_ALGORITHM.md) | Scoring and ranking specification |
 | [`docs/DECISIONS.md`](docs/DECISIONS.md) | Architecture decisions and verification logs |
 | [`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md) | Local development, tests, E2E, CI |
-| [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) | Draft deployment runbook and pre-deployment checklist |
+| [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) | Deployment runbook and pre-deployment checklist |
+| [`docs/PUBLIC_RELEASE.md`](docs/PUBLIC_RELEASE.md) | Checklist before making the repository public |
 | [`docs/AI_EVALUATION.md`](docs/AI_EVALUATION.md) | Workers AI model evaluation |
 
 ## Working with Claude Code
@@ -95,4 +96,4 @@ prompts/        Per-phase prompts for Claude Code
 
 ## License
 
-No license has been chosen yet; the owner decides before any public release.
+No license has been chosen yet; the owner decides before any public release ([`docs/PUBLIC_RELEASE.md`](docs/PUBLIC_RELEASE.md)).

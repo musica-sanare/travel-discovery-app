@@ -164,6 +164,48 @@ Official documentation only; no login, account setting, or model call.
   Source: https://developers.cloudflare.com/ai-gateway/features/rate-limiting/
 - *Partially verified*: the Workers AI pricing page points to the Workers AI dashboard for Neuron usage; a GraphQL dataset `aiInferenceAdaptive` exists, but its fields were not found.
 - *Not found*: any hard spend cap for Workers AI on Workers Paid; any documented way to check Rate Limiting binding availability for an account without deploying.
+
+## Phase 6 verification log (checked 2026-10-18)
+
+Official documentation and local inspection only; no login, account setting, remote command, or deployment. Used by `docs/DEPLOYMENT.md`.
+
+### Wrangler commands
+- *Verified* (page updated 2026-04-21): `wrangler d1 create <NAME>` (options include `--location`, `--jurisdiction`). `wrangler d1 migrations apply <DATABASE>` accepts the database name or binding, with `--local` or `--remote`; on a remote apply Wrangler asks for confirmation and captures a backup (the prompt is skipped in non-interactive shells, the backup is not). `--env` and `--config` are global flags. `wrangler d1 export <NAME> --remote --output <file>` (also `--table`, `--no-schema`, `--no-data`). `wrangler d1 time-travel info <DATABASE> [--timestamp]` and `wrangler d1 time-travel restore <DATABASE> --timestamp <unix|RFC3339>` or `--bookmark <id>`.
+  Source: https://developers.cloudflare.com/d1/wrangler-commands/
+- *Verified* (page updated 2026-04-21): a Time Travel restore is **destructive**: it overwrites the database in place, cancels in-flight queries, and prints a bookmark that undoes the restore. Retention is 7 days on Workers Free and 30 days on Paid; only databases on the production backend support it (`wrangler d1 info` shows `version: production`).
+  Source: https://developers.cloudflare.com/d1/reference/time-travel/
+- *Verified* (page updated 2026-10-09): `wrangler deploy [<PATH>]` with `--dry-run` (compile without deploying) and `--outdir`; with the Vite plugin, `CLOUDFLARE_ENV` replaces `--env`. `--keep-vars` keeps variables changed in the dashboard; secrets are never deleted by a deployment. `wrangler rollback [<VERSION_ID>] [--name] [--message]` takes effect immediately on all routes and domains and defaults to the version before the latest. `wrangler versions list [--name] [--json]` shows the 10 most recent versions.
+  Source: https://developers.cloudflare.com/workers/wrangler/commands/workers/
+- *Verified* (page updated 2026-07-15): rollback is possible to the 100 most recent versions, in Wrangler or in the dashboard (Deployments → Rollback). Bound resources (such as D1) are not changed by a rollback, so old code must still work with the current schema. Whether static assets roll back with the version is **not stated**.
+  Source: https://developers.cloudflare.com/workers/configuration/versions-and-deployments/rollbacks/
+
+### Environments and the build output
+- *Verified* (page updated 2026-10-18): the Worker of a named environment is called `<top-level name>-<environment name>` (for example `travel-discovery-preview`).
+  Source: https://developers.cloudflare.com/workers/wrangler/environments/
+- *Verified* (page updated 2026-10-17): `name`, `main`, `compatibility_date`, `assets`, `workers_dev`, `preview_urls`, and `observability` are inheritable; `vars` and `d1_databases` are not; `keep_vars` is top-level only. `ai`, `ratelimits`, and `upload_source_maps` are not listed in either group (treat the bindings as non-inheritable and declare all three per environment). Variables changed in the dashboard are overwritten by the next `wrangler deploy` unless `keep_vars` is set. Wrangler looks up the directory tree for `.wrangler/deploy/config.json`, whose `configPath` redirects `wrangler deploy` to the generated configuration; how `--config` interacts with the redirect is **not stated**.
+  Source: https://developers.cloudflare.com/workers/wrangler/configuration/
+- *Verified locally* (2026-10-18, `@cloudflare/vite-plugin` 1.64.0, Wrangler 4.151.1): `vite build` writes the redirect to `.wrangler/deploy/config.json` (→ `dist/worker/wrangler.json`), while `vite build --config vite.admin.config.ts`, whose Vite root is `admin/`, writes it to `admin/.wrangler/deploy/config.json` (→ `dist-admin/admin_worker/wrangler.json`). **A plain `wrangler deploy` from the repository root therefore deploys only the public Worker.** The flattened top-level outputs contain no `ai`, `ratelimits`, `vars`, or `observability`, and keep `"preview_urls": false`.
+- *Not documented*: the deploy command for an app built with the Vite plugin beyond `npm run build && wrangler deploy` in the getting-started guide (page updated 2026-10-12, https://developers.cloudflare.com/workers/vite-plugin/get-started/). Confirm which configuration each command picks with `wrangler deploy --dry-run` before the first deployment.
+
+### Cloudflare Access for a Worker
+- *Verified* (page updated 2026-10-12): dashboard path Workers & Pages → the Worker → Access → "Protect this Worker behind Access" → scope "All traffic" → authentication policy → Apply. Zero Trust must be enabled first. The setting is per Worker, so the preview and production admin Workers each need it (account-wide `all_workers` would also protect the public Worker and is not used). The quick setup offers "Cloudflare account" and "Email domain" policies; other rules are configured in Zero Trust.
+  Source: https://developers.cloudflare.com/workers/configuration/cloudflare-access/
+- *Verified* (page updated 2026-10-01): an Allow policy with an Include rule using the **Emails** selector and the full address admits exactly that address. Using the "Login Methods" selector with One-time PIN in an Include rule admits everyone who can receive a PIN and is a documented misconfiguration.
+  Source: https://developers.cloudflare.com/cloudflare-one/access-controls/policies/
+- *Verified* (page updated 2026-05-06): the AUD tag is under Zero Trust → Access controls → Applications → Configure → Additional settings ("Application Audience (AUD) Tag"). The team domain has the form `https://<team-name>.cloudflareaccess.com`. The manual verification steps and key examples use RS256, which matches the verifier's RS256-only rule (ADR-004); still confirm with a real token.
+  Source: https://developers.cloudflare.com/cloudflare-one/identity/authorization-cookie/validating-json/
+- *Not found*: Zero Trust Free plan seat limit, price, payment-method requirement, and One-time PIN availability. The plans page (https://www.cloudflare.com/plans/zero-trust-services/) only mentions a free plan; the One-time PIN page (updated 2026-08-31) does not name plans. Confirm in the dashboard.
+
+### Free-tier pages re-checked
+- Workers limits (updated 2026-10-12): 100,000 requests/day, 10 ms CPU per request, Error 1027 when exceeded. https://developers.cloudflare.com/workers/platform/limits/
+- D1 pricing (updated 2026-04-21): 5 million rows read/day, 100,000 rows written/day, 5 GB storage; queries fail until 00:00 UTC when exceeded. https://developers.cloudflare.com/d1/platform/pricing/
+- Workers AI pricing (updated 2026-10-15): 10,000 Neurons/day free; on Workers Free, operations fail after that; `gemma-4-26b-a4b-it` 9,091 / 27,273 Neurons per million input / output tokens. https://developers.cloudflare.com/workers-ai/platform/pricing/
+- Workers Logs (updated 2026-10-12): 200,000 events/day and 3-day retention on Free; **from 2026-12-01 Workers Logs moves to Cloudflare Observability pricing** (re-check the Free allowance before then). https://developers.cloudflare.com/workers/observability/logs/workers-logs/
+- Rate Limiting binding (updated 2026-10-12): still no statement about plan availability or price. https://developers.cloudflare.com/workers/runtime-apis/bindings/rate-limit/
+
+### Dependency and secret checks (2026-10-18)
+- `npm audit`: 4 moderate findings, all the known development-only esbuild advisory through `drizzle-kit` (ADR-003, unchanged). `npm audit --omit=dev`: 0 vulnerabilities. `npm audit signatures`: 307 packages with verified registry signatures, 144 with verified attestations.
+- Pattern scan of tracked files and of every added or removed line in the reachable history (cloud and GitHub tokens, private keys, JWTs, 32-hex IDs, `secret`/`password`/`api_key` assignments): one hit, the fake account ID `0123456789abcdef0123456789abcdef` in `test/node/ai-eval-runner.test.ts`. No `.env`, `.dev.vars`, `.wrangler/`, `dist/`, or `.ai-eval/` file was ever committed. Email addresses in the history: `*@example.test` test identities and `noreply@anthropic.com` (co-author lines); all 22 commits use the author and committer identity `ms <ms@macbook>`. A regular-expression scan cannot prove the absence of secrets; a dedicated scanner is part of the pre-public checklist (`docs/PUBLIC_RELEASE.md`).
 ---
 
 ## ADR-001: SPA and hosting
@@ -701,7 +743,7 @@ Updated 2026-10-18. Decided: see the status lines of "Stage 5 preparation decisi
 2. Confirm in the dashboard that the account is on Workers Free and whether a payment method is attached (budget alert eligibility).
 3. ~~Model choice~~: Gemma 4 26B ("Model decision"); JSON Schema and disabled reasoning confirmed to work for it in both rounds.
 4. Approval of the evaluation run itself (API token creation, Neuron use) and of C5 with a deployment plan.
-5. Whether a dashboard variable edit is an acceptable fast kill switch, or the redeploy procedure is the only one.
+5. Whether a dashboard variable edit is an acceptable fast kill switch, or the redeploy procedure is the only one. *Update (2026-10-18, "Phase 6 verification log")*: a dashboard edit is overwritten by the next `wrangler deploy` unless `keep_vars` is set, so after an emergency dashboard edit the same value must also be committed to the configuration before the next deployment.
 6. ~~Minimum explanation length~~: lowered to 10 characters ("Model decision").
 7. Gemma terms of use and prohibited-use policy: the owner reviews them before AI is enabled.
 
