@@ -47,7 +47,7 @@ export default tseslint.config(
     rules: { "no-restricted-imports": ["error", { patterns: SERVER_ONLY_IMPORTS }] },
   },
   {
-    files: ["worker/**/*.ts", "server/public/**/*.ts", "server/http/**/*.ts", "server/db/**/*.ts"],
+    files: ["worker/**/*.ts", "server/public/**/*.ts", "server/ai/**/*.ts", "server/http/**/*.ts", "server/db/**/*.ts"],
     rules: { "no-restricted-imports": ["error", { patterns: ADMIN_ONLY_IMPORTS }] },
   },
   {

@@ -1,9 +1,11 @@
 /**
- * Maps the API snapshot to the engine's input. The endpoint returns only
- * published/active content, so statuses are set accordingly.
+ * Maps the diagnosis content snapshot to the engine's input. The snapshot
+ * contains only published/active content, so statuses are set accordingly.
+ * Used by the browser and by the AI explanation endpoint, so both rank the
+ * same content the same way (docs/DECISIONS.md ADR-026).
  */
-import type { DiagnosisContentResponse } from "../../shared/diagnosis-content";
-import type { DiagnosisContent, QuizLimits } from "../../domain/diagnosis";
+import type { DiagnosisContent, QuizLimits } from "../domain/diagnosis";
+import type { DiagnosisContentResponse } from "./diagnosis-content";
 
 export function toEngineContent(content: DiagnosisContentResponse): DiagnosisContent {
   return {

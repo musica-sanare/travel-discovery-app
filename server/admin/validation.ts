@@ -7,6 +7,7 @@ import { z } from "zod";
 import { COST_PERIODS, COST_SCOPES, SUPPORTED_CURRENCIES } from "../../shared/costs";
 import { PUBLISHABLE_BASE_LOCALES, SUPPORTED_LOCALES, type Locale } from "../../shared/locales";
 import { MONTHS } from "../../shared/months";
+import { MAX_OPTIONS_PER_QUESTION } from "../../shared/quiz-settings";
 import { MAX_SLUG_LENGTH, SLUG_PATTERN } from "../../shared/slug";
 import {
   CONTENT_STATUSES,
@@ -209,7 +210,7 @@ export const questionInput = z
     ),
     options: z
       .array(optionInput)
-      .max(20)
+      .max(MAX_OPTIONS_PER_QUESTION)
       .refine((items) => uniqueBy(items, (item) => item.value), { message: "duplicate_value" }),
   })
   .superRefine((value, ctx) => {

@@ -15,3 +15,4 @@ export {
 } from "./ranking";
 export type { AttributeContribution } from "./scoring";
 export { nextQuestion, plannedQuestionCount, type NextStep, type StopReason } from "./selection";
+export { topPreferences } from "./summary";

@@ -51,7 +51,8 @@ worker/                 Public Worker: read-only API under /api/*
 admin-worker/           Admin Worker: admin API under /api/admin/*
 server/db/              Drizzle schema and client (shared)
 server/http/            Error contract and request parsing (shared)
-server/public/          Published-content reads (public Worker only)
+server/public/          Published-content reads and the AI explanation use case (public Worker only)
+server/ai/              AI provider interface and model-output validation (public Worker only)
 server/admin/           Admin validation, reads, writes, Access auth (admin only)
 shared/                 Locale, currency, month, and API error constants (browser and Workers)
 domain/diagnosis/       Pure diagnostic engine (docs/DIAGNOSTIC_ALGORITHM.md)

@@ -1,4 +1,4 @@
-import type { z } from "zod";
+import { z } from "zod";
 import { DEFAULT_LOCALE, isLocale, type Locale } from "../../shared/locales";
 import { ApiError, type ValidationIssue } from "./errors";
 
@@ -28,7 +28,7 @@ export function parseIdParam(value: string | undefined): number {
  * Converts Zod issues to `{ path, code }`. Custom rules use stable message
  * codes (e.g. `base_locale_required`), which are returned as the code.
  */
-export function toValidationIssues(error: z.ZodError): ValidationIssue[] {
+export function toValidationIssues(error: z.core.$ZodError): ValidationIssue[] {
   return error.issues.map((issue) => ({
     path: issue.path.map(String).join("."),
     code: issue.code === "custom" ? issue.message : issue.code,
@@ -36,11 +36,11 @@ export function toValidationIssues(error: z.ZodError): ValidationIssue[] {
 }
 
 /**
- * Reads a JSON request body with a size limit and validates it. Only
- * `application/json` is accepted, which (together with the Origin check in the
- * admin Worker) prevents cross-site form submissions.
+ * Reads a JSON request body with a size limit and validates it against a
+ * regular or `zod/mini` schema. Only `application/json` is accepted, which
+ * (together with an Origin check) prevents cross-site form submissions.
  */
-export async function readJsonBody<T>(request: Request, schema: z.ZodType<T>): Promise<T> {
+export async function readJsonBody<T>(request: Request, schema: z.core.$ZodType<T>): Promise<T> {
   const contentType = request.headers.get("Content-Type") ?? "";
   if (!/^application\/json(\s*;|$)/i.test(contentType)) {
     throw new ApiError("unsupported_media_type");
@@ -63,9 +63,14 @@ export async function readJsonBody<T>(request: Request, schema: z.ZodType<T>): P
     throw new ApiError("invalid_request", [{ path: "", code: "invalid_json" }]);
   }
 
-  const result = schema.safeParse(data);
+  const result = z.safeParse(schema, data);
   if (!result.success) {
     throw new ApiError("invalid_request", toValidationIssues(result.error));
   }
   return result.data;
+}
+
+/** True when the request carries an `Origin` header equal to its own origin. */
+export function hasSameOrigin(request: Request): boolean {
+  return request.headers.get("Origin") === new URL(request.url).origin;
 }

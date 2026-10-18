@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import type { DiagnosisContentResponse } from "../../shared/diagnosis-content";
-import { toEngineContent } from "./engineContent";
+import { toEngineContent } from "../../shared/engine-content";
 import { useQuizSession } from "./quizSessionContext";
 import { currentStep } from "./session";
 

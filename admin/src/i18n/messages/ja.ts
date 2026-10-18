@@ -56,6 +56,7 @@ export const ja = {
     unsupported_media_type: "送信形式が正しくありません。",
     rate_limited: "リクエストが多すぎます。しばらくしてから再度お試しください。",
     service_unavailable: "一時的に利用できません。しばらくしてから再度お試しください。",
+    ai_unavailable: "AI アシストは現在利用できません。",
     internal_error: "予期しないエラーが発生しました。",
     network: "通信エラーが発生しました。接続を確認してください。",
     unknown: "予期しないエラーが発生しました。",

@@ -8,12 +8,19 @@ import * as z from "zod/mini";
 
 const count = (min: number, max: number) => z.number().check(z.int(), z.gte(min), z.lte(max));
 
+/** Upper bound for every question-count setting, and so for answers per quiz. */
+export const MAX_QUIZ_QUESTIONS = 30;
+export const MIN_RESULT_COUNT = 3;
+export const MAX_RESULT_COUNT = 5;
+/** Options per question accepted by the admin API, and so per answer. */
+export const MAX_OPTIONS_PER_QUESTION = 20;
+
 export const quizSettingsSchema = z
   .object({
-    minQuestions: count(1, 30),
-    targetQuestions: count(1, 30),
-    maxQuestions: count(1, 30),
-    resultCount: count(3, 5),
+    minQuestions: count(1, MAX_QUIZ_QUESTIONS),
+    targetQuestions: count(1, MAX_QUIZ_QUESTIONS),
+    maxQuestions: count(1, MAX_QUIZ_QUESTIONS),
+    resultCount: count(MIN_RESULT_COUNT, MAX_RESULT_COUNT),
   })
   .check(
     z.refine((value) => value.minQuestions <= value.targetQuestions, {

@@ -1,5 +1,6 @@
 /** Parses the optional trip-constraints form into validated engine input. */
 import type { Currency } from "../../shared/costs";
+import { MAX_BUDGET, MAX_TRIP_DAYS } from "../../shared/trip-constraints";
 import type { TripConstraints } from "../../domain/diagnosis";
 
 export interface ConstraintsDraft {
@@ -8,9 +9,6 @@ export interface ConstraintsDraft {
   budgetAmount: string;
   budgetCurrency: Currency;
 }
-
-export const MAX_TRIP_DAYS = 365;
-export const MAX_BUDGET = 100_000_000;
 
 function parsePositiveInt(value: string, max: number): number | null | undefined {
   const trimmed = value.trim();

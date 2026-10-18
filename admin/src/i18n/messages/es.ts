@@ -55,6 +55,7 @@ export const es: AdminMessages = {
     unsupported_media_type: "El formato enviado no es compatible.",
     rate_limited: "Demasiadas solicitudes. Inténtalo de nuevo más tarde.",
     service_unavailable: "No disponible temporalmente. Inténtalo de nuevo más tarde.",
+    ai_unavailable: "La asistencia de IA no está disponible en este momento.",
     internal_error: "Se produjo un error inesperado.",
     network: "Se produjo un error de red. Comprueba tu conexión.",
     unknown: "Se produjo un error inesperado.",

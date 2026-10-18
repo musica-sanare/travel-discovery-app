@@ -276,7 +276,7 @@ Read from official documentation only; no Cloudflare login, account setting, or 
   | 503 | Dependency unavailable: D1 errors including daily limits, AI unavailable/over quota/timeout | `service_unavailable`, `ai_unavailable` |
   | 500 | Unexpected bug (caught by a top-level handler) | `internal_error` |
 
-  Implemented in Phase 1 (`server/http/errors.ts`, tested in `test/workers/`): 400, 403, 404, 405, 409, 413, 415, 503 (D1/SQLite errors), 500. Not yet used: 429 (no rate limiting yet), `ai_unavailable` (Phase 4). `ai_unavailable` is listed above but not yet defined in `shared/api-errors.ts`; ADR-026 Stage 2 adds it.
+  Implemented in Phase 1 (`server/http/errors.ts`, tested in `test/workers/`): 400, 403, 404, 405, 409, 413, 415, 503 (D1/SQLite errors), 500. Phase 4 Stage 2 (ADR-026) adds `ai_unavailable` to `shared/api-errors.ts` and uses 403, 409, 429, and 503 `ai_unavailable` on `POST /api/ai/explanations` (tested in `test/workers/ai-explanations.test.ts`). 429 is used only there; admin rate limiting is still deferred (ADR-020).
   - *Not verified*: the exact error text D1 returns when a Free-plan daily limit is exceeded. The mapper treats any error whose message chain contains `D1_` or `SQLITE_` as 503 and everything else as 500; confirm against a real limit error if possible.
 - Required application behavior:
   - Public API: map D1 errors (including daily-limit errors) to `503 service_unavailable`. The UI shows a localized "temporarily unavailable, please try again later" state with retry.
@@ -529,6 +529,17 @@ Defined once in `shared/ai-explanation.ts` (Stage 2); objects are strict (unknow
 3. Workers AI adapter, prompt, output validation, timeout, logging, `ai` binding and configuration (after checking local-development impact).
 4. Client UI, disclosure text, notices, translations, accessibility and E2E tests (mocked).
 5. Optional, owner-approved: real-model evaluation and Neuron measurement; choose the model; finalize docs (how to disable AI, how limits work).
+
+### Implementation status (Stage 2, 2026-10-18)
+Implemented locally and tested with a fake provider and fake limiters; nothing calls a real model yet.
+- Shared: `shared/ai-explanation.ts` (request/response contract), `shared/engine-content.ts` (moved from `src/diagnosis/engineContent.ts`), `shared/trip-constraints.ts` (`MAX_TRIP_DAYS`, `MAX_BUDGET` moved from the constraints form), and `MAX_QUIZ_QUESTIONS`, `MAX_RESULT_COUNT`, `MAX_OPTIONS_PER_QUESTION` in `shared/quiz-settings.ts` (the admin option limit now uses the same constant).
+- Domain: `topPreferences()` in `domain/diagnosis/summary.ts`.
+- Boundaries: `server/ai/` is under the same ESLint admin-import restriction as `server/public/`; the existing boundary test covers everything the public Worker reaches.
+- Server: `server/ai/provider.ts` (interface), `server/ai/output.ts` (structural output validation: exact shape and ID set), `server/public/ai-explanations.ts` (use case), `createPublicApp()` in `worker/index.ts` with injectable provider and limiters. `readJsonBody` accepts `zod/mini` schemas.
+- Moved forward from Stage 3 because they belong to the use case and are testable without a model: the 8 s timeout with an `AbortSignal` for the provider, structural output validation, and the outcome-only log line.
+- Not wired yet: no provider (the default app always answers `503 ai_unavailable`), no rate-limit bindings, and no `AI_ASSIST_ENABLED` in `wrangler.jsonc` (unset means disabled). `wrangler.jsonc` is unchanged.
+- Request order in the handler: method (`405`, `Allow: POST`) → same `Origin` (`403`) → kill switch and provider (`503`) → rate limiters (`429`, before the body is read) → body (`415`/`413`/`400`) → `answers ≤ settings.maxQuestions` (`400`) → recomputation (`409`) → provider → output validation (`503`).
+- Remaining for Stage 3: Workers AI adapter, prompt, text guards (minimum length, digits, URLs, markup, script), `ai` and rate-limit bindings, configuration, and the client-bundle check for prompt text.
 
 ### Open decisions (要確認)
 1. Rate Limiting binding on Workers Free: availability and terms are not documented. If unavailable: ship with the kill switch and the Neuron ceiling only, or add a counter store (separate approval).

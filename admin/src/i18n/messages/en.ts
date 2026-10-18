@@ -55,6 +55,7 @@ export const en: AdminMessages = {
     unsupported_media_type: "The submitted format is not supported.",
     rate_limited: "Too many requests. Please try again later.",
     service_unavailable: "Temporarily unavailable. Please try again later.",
+    ai_unavailable: "AI assistance is currently unavailable.",
     internal_error: "An unexpected error occurred.",
     network: "A network error occurred. Please check your connection.",
     unknown: "An unexpected error occurred.",

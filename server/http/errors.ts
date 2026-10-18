@@ -22,6 +22,7 @@ const STATUS_BY_CODE: Record<ApiErrorCode, number> = {
   unsupported_media_type: 415,
   rate_limited: 429,
   service_unavailable: 503,
+  ai_unavailable: 503,
   internal_error: 500,
 };
 
