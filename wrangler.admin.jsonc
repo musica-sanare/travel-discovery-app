@@ -72,12 +72,11 @@
       }
     },
     // Same rules as preview. Owner decision (2026-10-18): production keeps the
-    // top-level Worker name. workers_dev stays false until Worker-level Access
-    // ("All traffic") protects this Worker; its own ACCESS_POLICY_AUD and
-    // ACCESS_TEAM_DOMAIN are added then.
+    // top-level Worker name. Enable workers_dev only while Worker-level Access
+    // ("All traffic") protects this Worker.
     "production": {
       "name": "travel-discovery-admin",
-      "workers_dev": false,
+      "workers_dev": true,
       "preview_urls": false,
       "upload_source_maps": true,
       "observability": { "enabled": true },
@@ -92,7 +91,13 @@
       ],
       "ratelimits": [
         { "name": "ADMIN_RATE_LIMITER", "namespace_id": "2002", "simple": { "limit": 120, "period": 60 } }
-      ]
+      ],
+      "vars": {
+        // Not secrets (ADR-004). The AUD tag differs from preview: each admin
+        // Worker has its own Access application.
+        "ACCESS_TEAM_DOMAIN": "https://spring-dew-55d0.cloudflareaccess.com",
+        "ACCESS_POLICY_AUD": "7a068c1afbcbf628060ec8cbc0def82f5218fef5225fcd037dcff88c4bcf5995"
+      }
     }
   }
 }
