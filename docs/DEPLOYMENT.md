@@ -58,7 +58,7 @@ Record the printed `database_id` in the matching environment of **both** configs
 
 ### 3.3 Configuration (C5, ADR-026 "Stage 5 preparation decisions" C)
 `env.preview` and `env.production` exist in both Wrangler configs (Phase 6, 2026-10-18), each with its own database and `namespace_id` values (`1001`/`1002` preview, `2001`/`2002` production); `env.production` also sets `name` to keep the top-level Worker names. `vars` and bindings are not inherited by named environments, so each environment declares everything it uses:
-- Both Workers: `d1_databases` with that environment's `database_name` and `database_id` (the admin config also keeps `migrations_dir`); `"observability": { "enabled": true }` (Workers Logs); `"workers_dev": true` and `"preview_urls": false`, set explicitly so the dashboard cannot silently diverge; `upload_source_maps`.
+- Both Workers: `d1_databases` with that environment's `database_name` and `database_id` (the admin config also keeps `migrations_dir`); `"observability": { "enabled": true, "logs": { "enabled": true, "invocation_logs": false } }` (Workers Logs with the app's own lines only: invocation logs would store each request's IP address, headers, and geolocation, "Phase 7 verification log" in `docs/DECISIONS.md`); `"workers_dev": true` and `"preview_urls": false`, set explicitly so the dashboard cannot silently diverge; `upload_source_maps`.
 - Public Worker: `ai` binding; `vars` `AI_ASSIST_ENABLED: "false"` and `AI_MODEL: "@cf/google/gemma-4-26b-a4b-it"`; `ratelimits` binding `AI_CLIENT_RATE_LIMITER` (`simple: { limit: 5, period: 60 }`).
 - Admin Worker: `ratelimits` binding `ADMIN_RATE_LIMITER` (suggested `limit: 120, period: 60`); `vars` `ACCESS_TEAM_DOMAIN` and `ACCESS_POLICY_AUD` (not secrets; known after 3.4, different for each admin Worker).
 - Every `ratelimits` entry needs its own `namespace_id` (a positive integer as a string, unique in the account); bindings sharing an ID share counters, so preview and production must not share one.
@@ -140,10 +140,10 @@ Preconditions (ADR-026 A): the account stays on Workers Free while AI is enabled
 
 ## 9. Free-tier assumptions (re-check before deploying)
 Checked 2026-10-18 ("Phase 6 verification log" in `docs/DECISIONS.md`); free tiers and limits change.
-- Workers Free: 100,000 requests/day (Error 1027 when exceeded, reset 00:00 UTC), 10 ms CPU per request. Static asset requests do not invoke the Worker (`docs/DECISIONS.md` Phase 0 log). https://developers.cloudflare.com/workers/platform/limits/
-- D1 Free: 5 million rows read and 100,000 rows written per day (queries fail until 00:00 UTC), 500 MB per database, 7-day Time Travel. https://developers.cloudflare.com/d1/platform/pricing/
+- Workers Free: 100,000 requests/day per account (Error 1027 when exceeded, reset 00:00 UTC), 10 ms CPU per request. Static asset requests do not invoke the Worker (`docs/DECISIONS.md` Phase 0 log). https://developers.cloudflare.com/workers/platform/limits/
+- D1 Free: 5 million rows read and 100,000 rows written per day for the whole account (queries fail with a `D1_ERROR` until 00:00 UTC), 500 MB per database, 7-day Time Travel. https://developers.cloudflare.com/d1/platform/pricing/
 - Workers AI: 10,000 Neurons/day free; on Workers Free, usage fails after that without charge. https://developers.cloudflare.com/workers-ai/platform/pricing/
-- Workers Logs: 200,000 events/day, 3-day retention on Free. **From 2026-12-01 Workers Logs moves to Cloudflare Observability pricing; re-check the Free allowance before that date.** https://developers.cloudflare.com/workers/observability/logs/workers-logs/
+- Workers Logs: 200,000 events/day, 3-day retention on Free. **From 2026-12-01 Workers Logs moves to Cloudflare Observability pricing**: on Free 0.5 GB ingestion per day and 7-day retention, ingestion stops at the limit without charge (checked 2026-10-19, "Phase 7 verification log" in `docs/DECISIONS.md`). https://developers.cloudflare.com/workers/observability/logs/workers-logs/, https://developers.cloudflare.com/observability/pricing/
 - Rate Limiting binding: availability and price on Workers Free are not documented; confirmed only by an approved preview deployment. https://developers.cloudflare.com/workers/runtime-apis/bindings/rate-limit/
 - Cloudflare Zero Trust Free: seat limit, price, and login methods are not stated on the plans page; confirm in the dashboard. https://www.cloudflare.com/plans/zero-trust-services/
 

@@ -137,7 +137,7 @@ Phase 4 design (ADR-026, proposed):
 
 ## 8. Observability and privacy
 
-MVP does not require analytics. Log only operational errors and coarse AI usage/failure counters if useful. Do not log complete answers or sensitive user text. Document log retention and provider data flow.
+MVP does not require analytics. Log only operational errors and coarse AI usage/failure counters if useful. Do not log complete answers or sensitive user text. Document log retention and provider data flow. Deployed Workers use Workers Logs with invocation logs disabled, because those would store each request's IP address, headers, and geolocation; only the app's own lines are kept (3 days on Workers Free, 7 days from 2026-12-01; `docs/DECISIONS.md` "Phase 7 verification log").
 
 External images: a destination may reference an `https` image URL entered in the admin console. Browsers load it directly from that host, which therefore sees the visitor's IP address and user agent; the app sends no referrer (`referrerPolicy="no-referrer"`, ADR-017) and no cookies to it. Prefer images hosted on our own origin or a provider whose privacy terms are acceptable, and record the provider when adding one.
 

@@ -50,7 +50,10 @@
       "workers_dev": true,
       "preview_urls": false,
       "upload_source_maps": true,
-      "observability": { "enabled": true },
+      // Invocation logs would store each request with its IP address, headers,
+      // and geolocation; only the app's own console lines are kept
+      // (docs/DECISIONS.md "Phase 7 verification log").
+      "observability": { "enabled": true, "logs": { "enabled": true, "invocation_logs": false } },
       "d1_databases": [
         {
           // Same database as the public preview Worker (ADR-018).
@@ -79,7 +82,7 @@
       "workers_dev": true,
       "preview_urls": false,
       "upload_source_maps": true,
-      "observability": { "enabled": true },
+      "observability": { "enabled": true, "logs": { "enabled": true, "invocation_logs": false } },
       "d1_databases": [
         {
           // Same database as the public production Worker (ADR-018).
