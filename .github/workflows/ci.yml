@@ -1,8 +1,8 @@
 # Lint, type-check, unit and Workers-runtime tests, and production build
-# (with bundle checks) from a clean checkout. E2E tests are not run here yet:
-# they need a browser download, which requires the owner's approval
-# (docs/DECISIONS.md ADR-025, ADR-027). Nothing here deploys, uses secrets, or
-# calls Workers AI.
+# (with bundle checks) from a clean checkout, plus the Playwright E2E tests
+# against local builds. E2E uses the Google Chrome preinstalled on the runner
+# image, so no browser is downloaded (docs/DECISIONS.md ADR-025, ADR-027).
+# Nothing here deploys, uses secrets, or calls Workers AI.
 name: CI
 
 on:
@@ -40,3 +40,41 @@ jobs:
 
       - name: Lint, type-check, test, build
         run: npm run check
+
+  e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      # Wrangler runs locally here (D1 migrations and seed); send no usage data.
+      WRANGLER_SEND_METRICS: "false"
+    steps:
+      - name: Check out
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js from .nvmrc
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Show the preinstalled Chrome
+        run: google-chrome --version
+
+      - name: End-to-end tests
+        run: npm run test:e2e
+
+      # Traces of failed tests (retain-on-failure); they contain only local
+      # test data from db/seed/dev.sql.
+      - name: Upload Playwright results
+        if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: playwright-results
+          path: test-results/
+          retention-days: 7
+          if-no-files-found: ignore

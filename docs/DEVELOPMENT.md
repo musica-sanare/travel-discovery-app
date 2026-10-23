@@ -136,7 +136,7 @@ The admin spec covers authorization on the production build (403 for every reque
 
 ## Continuous integration
 
-`.github/workflows/ci.yml` runs `npm ci` and `npm run check` on pushes to `main` and `dev` and on pull requests (docs/DECISIONS.md ADR-027). It needs no secrets. E2E tests are not part of CI yet; run `npm run test:e2e` locally before merging changes that affect the UI or Workers.
+`.github/workflows/ci.yml` runs two jobs on pushes to `main` and `dev` and on pull requests (docs/DECISIONS.md ADR-027): `check` (`npm ci`, `npm run check`) and `e2e` (`npm ci`, `npm run test:e2e` with the Google Chrome preinstalled on the runner image, so nothing is downloaded). Failed E2E runs upload `test-results/` (traces with local seed data only) as an artifact kept for 7 days. Neither job needs secrets. A full local E2E run took about 1 minute on 2026-10-24.
 
 ## Environment variables
 - Local: `.dev.vars` (see "Admin locally"). `.env.example` lists all variables.
