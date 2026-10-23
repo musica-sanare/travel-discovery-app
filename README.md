@@ -72,6 +72,7 @@ prompts/        Per-phase prompts for Claude Code
 | [`docs/DECISIONS.md`](docs/DECISIONS.md) | Architecture decisions and verification logs |
 | [`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md) | Local development, tests, E2E, CI |
 | [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) | Deployment runbook and pre-deployment checklist |
+| [`docs/OPERATIONS.md`](docs/OPERATIONS.md) | Monitoring, routine checks, and incident response for the deployed app |
 | [`docs/PUBLIC_RELEASE.md`](docs/PUBLIC_RELEASE.md) | Checklist before making the repository public |
 | [`docs/AI_EVALUATION.md`](docs/AI_EVALUATION.md) | Workers AI model evaluation |
 

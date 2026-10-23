@@ -118,6 +118,8 @@ npx wrangler d1 migrations apply travel-discovery-preview --remote --env preview
 6. Run section 6, then repeat with `production` after its approval.
 
 ## 6. Checks after each deployment
+Ongoing monitoring, routine checks, and incident response after these checks: `docs/OPERATIONS.md`.
+
 From "Admin authentication status" and the verification logs in `docs/DECISIONS.md`, these can only be checked on a deployed Worker:
 - Every admin URL (`workers.dev`, routes, custom domains) redirects to the Access login when not signed in; the admin static assets are not reachable without login.
 - After login, the admin API accepts the request: the `Cf-Access-Jwt-Assertion` header reaches the Worker through the static-assets router and the token validates (RS256, issuer, audience).
