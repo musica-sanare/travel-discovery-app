@@ -41,7 +41,7 @@ Do not install with `--omit=optional`: the `workerd` and `esbuild` binaries come
 | `npm run db:seed:local` | Load `db/seed/dev.sql` into the local database (expects an empty, migrated database). |
 | `npm run db:reset:local` | Delete local D1 state, then migrate and seed. |
 
-There is intentionally no deploy script and no remote database command. Do not run `wrangler deploy` or any `--remote` command without the owner's approval.
+There is intentionally no deploy script and no remote database command. Do not run `wrangler deploy` or any `--remote` command without the owner's approval. `scripts/check-deployment.mjs` only sends anonymous requests to the deployed Workers (`docs/OPERATIONS.md` "3. Routine checks").
 
 ## Project layout
 

@@ -118,7 +118,7 @@ npx wrangler d1 migrations apply travel-discovery-preview --remote --env preview
 6. Run section 6, then repeat with `production` after its approval.
 
 ## 6. Checks after each deployment
-Ongoing monitoring, routine checks, and incident response after these checks: `docs/OPERATIONS.md`.
+The unauthenticated checks below are automated in `node scripts/check-deployment.mjs <account subdomain> <preview|production>` (add `--watch-admin 120` after an admin deployment). Ongoing monitoring, routine checks, and incident response: `docs/OPERATIONS.md`.
 
 From "Admin authentication status" and the verification logs in `docs/DECISIONS.md`, these can only be checked on a deployed Worker:
 - Every admin URL (`workers.dev`, routes, custom domains) redirects to the Access login when not signed in; the admin static assets are not reachable without login.
@@ -133,7 +133,14 @@ From "Admin authentication status" and the verification logs in `docs/DECISIONS.
 Preconditions (ADR-026 A): the account stays on Workers Free while AI is enabled; the per-client limiter is active; Workers Logs is enabled; the owner has reviewed the Gemma terms of use and prohibited-use policy.
 1. In the environment's `vars`, set `AI_ASSIST_ENABLED: "true"`, commit, rebuild, and redeploy.
 2. Check the AI notes in all three languages and the Workers AI usage in the dashboard.
-3. Monitoring and stopping: ADR-026 E. To stop, set `AI_ASSIST_ENABLED` back to `"false"`, rebuild, and redeploy; the diagnosis keeps working. A dashboard edit of the variable is faster but is overwritten by the next `wrangler deploy`, so commit the same value before deploying again.
+3. Monitoring and stopping: ADR-026 E and `docs/OPERATIONS.md` 4.4.
+
+### 7.1 Preview trial (separate approval)
+Verifies the per-client limiter (ADR-026 A, precondition 2) and the AI notes before any production decision. Preconditions: the owner has reviewed the Gemma terms of use and prohibited-use policy, and approves the trial.
+1. Set `AI_ASSIST_ENABLED: "true"` in `env.preview` only, commit, run `CLOUDFLARE_ENV=preview npm run build`, and deploy only the public preview Worker.
+2. Complete one diagnosis per locale (`ja`, `en`, `es`) with the AI toggle on: three model calls, at most about 105 Neurons each (ADR-026 A), out of the account's 10,000 per day. Check the notes and the `ai_explanation` lines with `outcome: "ok"` in Observability.
+3. Limiter: send same-origin `POST /api/ai/explanations` with the body `{}` repeatedly from one address. The limiter runs before body validation, so the first requests answer 400 without a model call and later ones 429 (`rate_limited` lines). Counters are per location and eventually consistent, so more than six requests may be needed.
+4. Set the value back to `"false"`, commit, rebuild, redeploy, and confirm 503 `ai_unavailable` with `scripts/check-deployment.mjs` (during the trial its AI check fails by design). To stop, set `AI_ASSIST_ENABLED` back to `"false"`, rebuild, and redeploy; the diagnosis keeps working. A dashboard edit of the variable is faster but is overwritten by the next `wrangler deploy`, so commit the same value before deploying again.
 
 ## 8. Rollback
 - Code: `npx wrangler rollback <VERSION_ID> --name <worker>` or the dashboard (Workers & Pages → the Worker → Deployments → Rollback). It takes effect immediately, works for the 100 most recent versions, and does not change bound resources: the database stays at its current schema and data. Whether static assets roll back with the version is not documented *(要確認 on the first preview rollback test)*; redeploying the build of the previous good commit is the alternative.

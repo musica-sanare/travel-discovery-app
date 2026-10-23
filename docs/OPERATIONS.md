@@ -28,13 +28,17 @@ App log lines (JSON, one per line):
 ## 3. Routine checks
 
 Weekly, and after any change on the Access tab, a Zero Trust policy, or the account subdomain:
-- Unauthenticated requests to both admin Workers must redirect (302) to `https://<team>.cloudflareaccess.com/...`:
+- Run the unauthenticated checks for both environments. They cover the public API in all locales, the security headers, the AI endpoint while AI is disabled, and the Access redirect (302 to `https://<team>.cloudflareaccess.com/...`) of `/`, `/destinations`, and `/api/admin/me` on the admin Worker; the script exits 1 on any failure:
 
   ```bash
-  curl -s -o /dev/null -w "%{http_code} %{redirect_url}\n" https://travel-discovery-admin.<account subdomain>.workers.dev/api/admin/me
+  node scripts/check-deployment.mjs <account subdomain> production
   ```
 
-  Repeat for `/` and for `travel-discovery-admin-preview`. A 200 is an incident (section 4.2).
+  ```bash
+  node scripts/check-deployment.mjs <account subdomain> preview
+  ```
+
+  A 200 from an admin URL is an incident (section 4.2). Right after deploying an admin Worker, add `--watch-admin 120` to repeat the Access checks every 10 s for two minutes.
 - Access tab of each admin Worker: scope **All traffic**; Zero Trust policy: an **Emails** Include rule with the owner's address only; no hostname or path Access application with a Bypass policy for an admin hostname (ADR-004).
 - Observability of both public Workers: no unusual number of `api_error` lines.
 
@@ -82,6 +86,36 @@ Stop AI with the kill switch (`docs/DEPLOYMENT.md` section 7, ADR-026 E); the di
 ## 7. Workers Logs pricing from 2026-12-01
 Checked 2026-10-19 (https://developers.cloudflare.com/observability/pricing/): on Free, 0.5 GB of ingestion per day and 7-day retention; at the limit ingestion stops until 00:00 UTC and nothing is charged. With invocation logs disabled, only `api_error` and `ai_explanation` lines are ingested, which is expected to stay far below the limit *(要確認: daily volume in the dashboard)*. If the volume approaches the limit, lower `head_sampling_rate` in the environment's `observability` block. Re-check the page before 2026-12-01 and update this section.
 
-## 8. Open items
+## 8. Publishing production content
+Content is entered only through the production admin console; `db/seed/dev.sql` is never loaded into production. The rules below come from `docs/SPEC.md`, `docs/DIAGNOSTIC_ALGORITHM.md`, and the admin validation (`server/admin/validation.ts`).
+
+Before:
+- Record a Time Travel bookmark (section 5).
+
+Order (later items reference earlier ones):
+1. Countries.
+2. Attributes (`active`), the dimensions destinations are scored on (0–5).
+3. Question categories (`active`).
+4. Destinations, with a score for each attribute.
+5. Questions, whose options have non-zero effects (−5 to 5) on active attributes.
+6. Quiz settings (defaults: 6 minimum, 10 target, 12 maximum questions; 5 results).
+
+Minimum for a useful diagnosis:
+- At least as many published destinations as the result count (5 by default). With fewer, results show fewer destinations with a notice.
+- At least the target number of published questions (10 by default), each with two or more active options and at least one effect on an active attribute (otherwise it is skipped). With fewer, the quiz ends early and shows a notice. More questions than the target give variation between sessions.
+- Questions spread over several categories (selection balances categories).
+
+Each published item:
+- Translations: the admin console requires `ja` or `en` to publish. Publish with `ja`, `en`, and `es` where possible, and at least `ja` and `en` (`docs/DEPLOYMENT.md` section 10); missing locales fall back as described in ADR-012.
+- Costs: indicative ranges only, with currency, period, basis in every translated locale, source, and the date checked; never wording that suggests live prices (ADR-008).
+- Images: `https` URL, attribution, and alt text in every translated locale; check the provider's license (`docs/PUBLIC_RELEASE.md` section 4).
+- Best months, recommended days, and cautions where known; leave unknown values empty rather than guessing.
+- A human-authored summary and highlights, which also serve as the explanation when AI is off.
+
+After:
+- Run the checks of section 3 for production, then go through the public site in `ja`, `en`, and `es` on a phone-sized and a desktop window: quiz to results, back/edit/restart, cost basis and date, the AI-unavailable notice, and the outbound search links.
+- Record a new Time Travel bookmark.
+
+## 9. Open items
 - Rejection of an address outside the Access policy: not checked; it needs a second Cloudflare account, which the owner postponed (2026-10-24).
 - The 429 response of `AI_CLIENT_RATE_LIMITER`: observable only with AI enabled (ADR-026 "Open decisions").

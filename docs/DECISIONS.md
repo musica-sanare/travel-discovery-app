@@ -233,7 +233,7 @@ Official documentation, local tests, unauthenticated `curl` requests, and observ
   Source: https://developers.cloudflare.com/workers/observability/logs/workers-logs/
 - *Observed* (owner's audit log of 2026-10-18, reviewed 2026-10-24): every "Update Worker Script Subdomain" entry has the actor context OAuth and directly follows a Wrangler upload or deployment; there is no subdomain change from the dashboard, and the two "Update an Access application" entries are not followed by a subdomain change until the next deployment. The disabled admin preview URL was therefore most probably set by a deployment, not by saving Access settings; this was not reproduced, and an internal change that the audit log does not record cannot be ruled out. The post-deployment check in `docs/DEPLOYMENT.md` 3.4 step 5 stays.
 - *Owner change* (before 2026-10-24): the account's `workers.dev` subdomain was changed because the previous one contained part of the owner's email address. Checked 2026-10-24 with unauthenticated `curl` on the new subdomain: `/`, `/destinations`, and `/api/admin/me` of both admin Workers redirect (302) to the Access login; `/` and `/api/health` of both public Workers return 200; the previous subdomain no longer resolves.
-- *Observed* (owner, reported 2026-10-24): the only identity provider in Zero Trust is "Cloudflare" (Cloudflare account login); no One-time PIN. Checking that an address outside the Emails policy is refused therefore needs a second Cloudflare account; the owner postponed this check on 2026-10-24 (要確認, `docs/OPERATIONS.md` "8. Open items").
+- *Observed* (owner, reported 2026-10-24): the only identity provider in Zero Trust is "Cloudflare" (Cloudflare account login); no One-time PIN. Checking that an address outside the Emails policy is refused therefore needs a second Cloudflare account; the owner postponed this check on 2026-10-24 (要確認, `docs/OPERATIONS.md` "9. Open items").
 - *Verified* (2026-10-24, owner-approved redeployments of commit `2cbbdb3` with invocation logs disabled): preview public `travel-discovery-preview` (version `def4b576`) and admin `travel-discovery-admin-preview` (`e45a9449`), then production public `travel-discovery` (`f73d57c0`) and admin `travel-discovery-admin` (`07a234a3`). After each public deployment the unauthenticated `curl` checks of the Phase 6 log passed (health, `ja`/`en`/`es` content, AI 503 same-origin and 403 cross-origin, `/api/admin/*` 404, `DELETE` 405, security headers); production content is still empty. After each admin deployment, `/`, `/destinations`, `/api/admin/me`, and a JS asset path redirected (302) to the Access login immediately and every 10 s for two minutes. On preview the owner then confirmed in the dashboard that the app's `disabled` line is still recorded, that no new invocation event (`cf-worker-event`) with request details appears, that the Worker metrics still show the requests, and that the signed-in admin UI works.
 - *Reported by the owner* (2026-10-19): the CI runs on GitHub for the commits pushed up to `e0bf86c` passed (ADR-027).
 
@@ -775,6 +775,20 @@ Updated 2026-10-18. Decided: see the status lines of "Stage 5 preparation decisi
 5. Whether a dashboard variable edit is an acceptable fast kill switch, or the redeploy procedure is the only one. *Update (2026-10-18, "Phase 6 verification log")*: a dashboard edit is overwritten by the next `wrangler deploy` unless `keep_vars` is set, so after an emergency dashboard edit the same value must also be committed to the configuration before the next deployment.
 6. ~~Minimum explanation length~~: lowered to 10 characters ("Model decision").
 7. Gemma terms of use and prohibited-use policy: the owner reviews them before AI is enabled.
+
+#### Readiness for enabling AI (2026-10-24)
+| Item | Status |
+|---|---|
+| A.1 Workers Free while AI is enabled | Met (owner, 2026-10-18). A payment method is attached, so the plan must never be upgraded silently (ADR-015). |
+| A.2 Per-client limiter | Binding accepted on every deployment; refusing requests (429) not yet observed, because it is only consulted with AI enabled. Planned: `docs/DEPLOYMENT.md` 7.1. `ADMIN_RATE_LIMITER` did refuse requests on preview ("Phase 7 verification log"), which shows the binding works on this account. |
+| A.3 Workers Logs and runbook | Met: Workers Logs on with invocation logs off, app lines confirmed on preview; runbook `docs/OPERATIONS.md`. From 2026-12-01 the Free allowance is 0.5 GB/day without charges. |
+| A.4 `AI_ASSIST_ENABLED: "false"` by default | Met in all deployment environments. |
+| Gemma terms of use (owner) | Open. |
+| Owner scoring of naturalness and factuality ("Model decision") | Open; it can reverse the model decision. |
+| Evaluation API token deleted (`docs/DEPLOYMENT.md` section 10) | Not confirmed. |
+| Production content | None yet; AI explanations need published destinations. |
+
+Order proposed: owner items → preview trial (`docs/DEPLOYMENT.md` 7.1) → separate owner decision for production. Whether the 10,000 Neurons/day are per account (shared by preview and production) is not stated on the pricing page (要確認); plan as if they are shared.
 
 
 ## ADR-027: Continuous integration (GitHub Actions)
