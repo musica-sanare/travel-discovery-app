@@ -68,6 +68,18 @@ beforeEach(() => {
             sourceUrl: null,
             updatedAt: "2026-09-01",
           },
+          {
+            currency: "USD" as const,
+            period: "per_day" as const,
+            scope: "per_person_excluding_international_flights" as const,
+            min: 238,
+            max: 238,
+            basis: "Survey average",
+            basisLocale: locale,
+            sourceName: "Single",
+            sourceUrl: "https://single.example.test/",
+            updatedAt: "2026-10-24",
+          },
         ],
       };
       return Promise.resolve(new Response(JSON.stringify({ ...content, destinations: [detailed, ...rest] })));
@@ -175,6 +187,14 @@ describe("accessibility (axe-core)", () => {
 
     // Third-party images get no referrer; external source links announce the new tab.
     const t = createI18n(locale).t;
+    // A single published average is shown as one amount, a range as min–max.
+    const money = (currency: string, value: number) =>
+      new Intl.NumberFormat(locale, { style: "currency", currency, maximumFractionDigits: 0 }).format(value);
+    const perDay = t("costPeriods.per_day");
+    expect(container.textContent).toContain(t("results.costSingle", { period: perDay, amount: money("USD", 238) }));
+    expect(container.textContent).toContain(
+      t("results.cost", { period: perDay, min: money("JPY", 10000), max: money("JPY", 20000) }),
+    );
     for (const image of container.querySelectorAll("img")) {
       expect(image.getAttribute("referrerpolicy")).toBe("no-referrer");
     }

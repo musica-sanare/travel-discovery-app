@@ -44,11 +44,13 @@ function CostLine({ cost, locale }: { cost: Cost; locale: Locale }) {
   return (
     <>
       <p className="font-semibold">
-        {t("results.cost", {
-          period: t(`costPeriods.${cost.period}`),
-          min: money.format(cost.min),
-          max: money.format(cost.max),
-        })}
+        {cost.min === cost.max
+          ? t("results.costSingle", { period: t(`costPeriods.${cost.period}`), amount: money.format(cost.min) })
+          : t("results.cost", {
+              period: t(`costPeriods.${cost.period}`),
+              min: money.format(cost.min),
+              max: money.format(cost.max),
+            })}
       </p>
       <p className="text-sm text-muted">{t(`costScopes.${cost.scope}`)}</p>
       {cost.basis && (

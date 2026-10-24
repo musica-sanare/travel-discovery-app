@@ -82,6 +82,7 @@ export const en: Messages = {
     matches: "Why it fits: {{list}}",
     days: "Suggested stay: {{min}}–{{max}} days",
     cost: "Indicative cost ({{period}}): {{min}}–{{max}}",
+    costSingle: "Indicative cost ({{period}}): about {{amount}}",
     costNote: "An estimate, not a current price. Source: {{source}} (as of {{date}})",
     edit: "Review answers",
     restart: "Start over",

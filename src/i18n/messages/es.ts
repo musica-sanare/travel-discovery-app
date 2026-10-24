@@ -82,6 +82,7 @@ export const es: Messages = {
     matches: "Por qué encaja: {{list}}",
     days: "Estancia sugerida: {{min}}–{{max}} días",
     cost: "Coste orientativo ({{period}}): {{min}}–{{max}}",
+    costSingle: "Coste orientativo ({{period}}): unos {{amount}}",
     costNote: "Es una estimación, no un precio actual. Fuente: {{source}} (a {{date}})",
     edit: "Revisar respuestas",
     restart: "Empezar de nuevo",

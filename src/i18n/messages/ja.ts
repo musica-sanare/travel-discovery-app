@@ -81,6 +81,7 @@ export const ja = {
     matches: "合っている点: {{list}}",
     days: "おすすめの日数: {{min}}〜{{max}} 日",
     cost: "参考費用（{{period}}）: {{min}}〜{{max}}",
+    costSingle: "参考費用（{{period}}）: 約 {{amount}}",
     costNote: "参考値であり、現在の価格ではありません。出典: {{source}}（{{date}} 時点）",
     edit: "回答を見直す",
     restart: "最初からやり直す",
