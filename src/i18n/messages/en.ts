@@ -22,7 +22,10 @@ export const en: Messages = {
     step1: "Add trip details (optional)",
     step2: "Answer a few questions",
     step3: "See destinations that fit you",
+  },
+  footer: {
     privacy: "Your answers stay in this browser; they are not sent to or stored on our server.",
+    costs: "All costs shown are indicative estimates with a source, not current prices.",
   },
   common: {
     skipToContent: "Skip to main content",

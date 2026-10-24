@@ -22,7 +22,10 @@ export const es: Messages = {
     step1: "Indica los datos del viaje (opcional)",
     step2: "Responde algunas preguntas",
     step3: "Descubre destinos que encajan contigo",
+  },
+  footer: {
     privacy: "Tus respuestas se quedan en este navegador; no se envían ni se guardan en nuestro servidor.",
+    costs: "Todos los costes mostrados son estimaciones orientativas con fuente, no precios actuales.",
   },
   common: {
     skipToContent: "Ir al contenido principal",

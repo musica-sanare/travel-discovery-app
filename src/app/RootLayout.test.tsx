@@ -45,6 +45,14 @@ describe("RootLayout", () => {
     expect(document.documentElement.lang).toBe(locale);
   });
 
+  it("shows the privacy and indicative-cost notes in the footer", () => {
+    renderAt("/");
+
+    const footer = screen.getByRole("contentinfo");
+    expect(footer.textContent).toContain("回答はこのブラウザの中だけで使われ");
+    expect(footer.textContent).toContain("現在の価格ではありません");
+  });
+
   it("renders a localized not-found page for unknown routes", () => {
     renderAt("/does-not-exist");
 

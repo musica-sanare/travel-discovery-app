@@ -24,7 +24,6 @@ export function HomePage() {
           {t("home.start")}
         </Link>
       </p>
-      <p className="text-sm text-muted">{t("home.privacy")}</p>
     </section>
   );
 }
