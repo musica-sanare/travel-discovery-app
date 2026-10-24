@@ -6,7 +6,7 @@
  *   (`env.e2e` in wrangler.admin.jsonc), sharing the E2E database with the
  *   public server, so publication can be checked through the public API.
  */
-import { expect, test, type APIRequestContext, type APIResponse } from "@playwright/test";
+import { expect, test, type APIRequestContext, type APIResponse, type Page, type Request } from "@playwright/test";
 import { ADMIN_PREVIEW_PORT } from "../playwright.config";
 import { answerAllQuestions, axeViolations, waitForAnimations } from "./fixtures";
 
@@ -14,24 +14,39 @@ const ADMIN_PREVIEW = `http://localhost:${String(ADMIN_PREVIEW_PORT)}`;
 const PUBLIC = "http://localhost:4180";
 
 /**
- * Reads the public API until it answers `status`. The admin dev server and the
- * public server are separate workerd processes sharing one local SQLite file,
- * so a read right after an admin write can briefly fail with SQLITE_BUSY (503,
- * seen in CI on 2026-10-24). Deployed D1 has no shared local file. The expected
- * status is unchanged: anything else after the timeout still fails the test.
+ * The admin dev server and the public server are separate workerd processes
+ * sharing one local SQLite file, and workerd does not wait for another
+ * process's lock: two overlapping requests fail with SQLITE_BUSY (503 in either
+ * server; seen in CI on 2026-10-24). Deployed D1 has no shared local file.
+ * `settled()` resolves once the admin page has had no API request in flight for
+ * 300 ms, so a following public request never overlaps an admin one. Nothing is
+ * retried and expected statuses are unchanged.
  */
-async function publicGet(request: APIRequestContext, path: string, status: number): Promise<APIResponse> {
-  let response: APIResponse | undefined;
-  await expect
-    .poll(
-      async () => {
-        response = await request.get(`${PUBLIC}${path}`);
-        return response.status();
-      },
-      { message: `GET ${path}`, timeout: 10_000 },
-    )
-    .toBe(status);
-  if (!response) throw new Error(`no response for ${path}`);
+function trackAdminRequests(page: Page): () => Promise<void> {
+  const pending = new Set<Request>();
+  page.on("request", (request) => {
+    if (new URL(request.url()).pathname.startsWith("/api/")) pending.add(request);
+  });
+  const done = (request: Request) => pending.delete(request);
+  page.on("requestfinished", done);
+  page.on("requestfailed", done);
+  return async () => {
+    for (let quiet = 0; quiet < 3; ) {
+      await page.waitForTimeout(100);
+      quiet = pending.size === 0 ? quiet + 1 : 0;
+    }
+  };
+}
+
+async function publicGet(
+  settled: () => Promise<void>,
+  request: APIRequestContext,
+  path: string,
+  status: number,
+): Promise<APIResponse> {
+  await settled();
+  const response = await request.get(`${PUBLIC}${path}`);
+  expect(response.status(), `GET ${path}`).toBe(status);
   return response;
 }
 
@@ -64,7 +79,8 @@ test.describe("admin content workflow on the dev server", () => {
   test("draft → published → archived, and the public API follows the status", async ({ page, request }) => {
     const slug = `e2e-dest-${String(Date.now())}`;
     const name = "E2Eテスト港";
-    const publicItem = (status: number) => publicGet(request, `/api/destinations/${slug}?locale=ja`, status);
+    const settled = trackAdminRequests(page);
+    const publicItem = (status: number) => publicGet(settled, request, `/api/destinations/${slug}?locale=ja`, status);
 
     await page.goto("/destinations");
     await expect(page.getByText("ログイン中: e2e-admin@example.test")).toBeVisible();
@@ -86,13 +102,14 @@ test.describe("admin content workflow on the dev server", () => {
     await expect(page.getByRole("status").filter({ hasText: "保存しました。" })).toBeVisible();
     const published = await publicItem(200);
     expect(((await published.json()) as { item: { name: string } }).item.name).toBe(name);
-    const snapshot = (await (await publicGet(request, "/api/diagnosis-content?locale=ja", 200)).json()) as {
+    const snapshot = (await (await publicGet(settled, request, "/api/diagnosis-content?locale=ja", 200)).json()) as {
       destinations: { slug: string }[];
     };
     expect(snapshot.destinations.map((item) => item.slug)).toContain(slug);
 
     // It has only a Japanese translation: the Spanish public UI shows it in
     // Japanese, marked with lang="ja" and a visible hint (ADR-012).
+    await settled();
     const publicPage = await page.context().newPage();
     await publicPage.goto(`${PUBLIC}/`);
     await publicPage.getByLabel("言語").selectOption("es");
@@ -132,6 +149,7 @@ test.describe("admin content workflow on the dev server", () => {
 
 test.describe("admin content import on the dev server", () => {
   test("checks a bundle, imports new items as drafts, and skips them on a rerun", async ({ page, request }) => {
+    const settled = trackAdminRequests(page);
     const suffix = String(Date.now());
     const country = `e2e-land-${suffix}`;
     const destination = `e2e-import-${suffix}`;
@@ -198,7 +216,7 @@ test.describe("admin content import on the dev server", () => {
       items: { slug: string }[];
     };
     expect(questions.items.map((item) => item.slug)).toEqual([question]);
-    await publicGet(request, `/api/destinations/${destination}?locale=ja`, 404);
+    await publicGet(settled, request, `/api/destinations/${destination}?locale=ja`, 404);
 
     await checkButton.click();
     await expect(page.getByRole("status").filter({ hasText: "新しく作成する項目はありません。" })).toBeVisible();
