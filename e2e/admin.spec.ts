@@ -6,12 +6,34 @@
  *   (`env.e2e` in wrangler.admin.jsonc), sharing the E2E database with the
  *   public server, so publication can be checked through the public API.
  */
-import { expect, test } from "@playwright/test";
+import { expect, test, type APIRequestContext, type APIResponse } from "@playwright/test";
 import { ADMIN_PREVIEW_PORT } from "../playwright.config";
 import { answerAllQuestions, axeViolations, waitForAnimations } from "./fixtures";
 
 const ADMIN_PREVIEW = `http://localhost:${String(ADMIN_PREVIEW_PORT)}`;
 const PUBLIC = "http://localhost:4180";
+
+/**
+ * Reads the public API until it answers `status`. The admin dev server and the
+ * public server are separate workerd processes sharing one local SQLite file,
+ * so a read right after an admin write can briefly fail with SQLITE_BUSY (503,
+ * seen in CI on 2026-10-24). Deployed D1 has no shared local file. The expected
+ * status is unchanged: anything else after the timeout still fails the test.
+ */
+async function publicGet(request: APIRequestContext, path: string, status: number): Promise<APIResponse> {
+  let response: APIResponse | undefined;
+  await expect
+    .poll(
+      async () => {
+        response = await request.get(`${PUBLIC}${path}`);
+        return response.status();
+      },
+      { message: `GET ${path}`, timeout: 10_000 },
+    )
+    .toBe(status);
+  if (!response) throw new Error(`no response for ${path}`);
+  return response;
+}
 
 test.describe("admin authorization on the production build", () => {
   test("rejects every kind of admin API request without an Access token", async ({ request }) => {
@@ -42,7 +64,7 @@ test.describe("admin content workflow on the dev server", () => {
   test("draft → published → archived, and the public API follows the status", async ({ page, request }) => {
     const slug = `e2e-dest-${String(Date.now())}`;
     const name = "E2Eテスト港";
-    const publicItem = () => request.get(`${PUBLIC}/api/destinations/${slug}?locale=ja`);
+    const publicItem = (status: number) => publicGet(request, `/api/destinations/${slug}?locale=ja`, status);
 
     await page.goto("/destinations");
     await expect(page.getByText("ログイン中: e2e-admin@example.test")).toBeVisible();
@@ -57,15 +79,14 @@ test.describe("admin content workflow on the dev server", () => {
     await page.getByRole("button", { name: "保存" }).click();
     await expect(page.getByRole("status").filter({ hasText: "保存しました。" })).toBeVisible();
     await expect(page).toHaveURL(/\/destinations\/\d+$/);
-    expect((await publicItem()).status()).toBe(404);
+    await publicItem(404);
 
     await page.getByLabel("状態", { exact: true }).selectOption("published");
     await page.getByRole("button", { name: "保存" }).click();
     await expect(page.getByRole("status").filter({ hasText: "保存しました。" })).toBeVisible();
-    const published = await publicItem();
-    expect(published.status()).toBe(200);
+    const published = await publicItem(200);
     expect(((await published.json()) as { item: { name: string } }).item.name).toBe(name);
-    const snapshot = (await (await request.get(`${PUBLIC}/api/diagnosis-content?locale=ja`)).json()) as {
+    const snapshot = (await (await publicGet(request, "/api/diagnosis-content?locale=ja", 200)).json()) as {
       destinations: { slug: string }[];
     };
     expect(snapshot.destinations.map((item) => item.slug)).toContain(slug);
@@ -88,7 +109,7 @@ test.describe("admin content workflow on the dev server", () => {
     await page.getByLabel("状態", { exact: true }).selectOption("archived");
     await page.getByRole("button", { name: "保存" }).click();
     await expect(page.getByRole("status").filter({ hasText: "保存しました。" })).toBeVisible();
-    expect((await publicItem()).status()).toBe(404);
+    await publicItem(404);
 
     await page.getByRole("link", { name: "一覧に戻る" }).click();
     await page.getByLabel("検索", { exact: true }).fill(slug);
@@ -177,7 +198,7 @@ test.describe("admin content import on the dev server", () => {
       items: { slug: string }[];
     };
     expect(questions.items.map((item) => item.slug)).toEqual([question]);
-    expect((await request.get(`${PUBLIC}/api/destinations/${destination}?locale=ja`)).status()).toBe(404);
+    await publicGet(request, `/api/destinations/${destination}?locale=ja`, 404);
 
     await checkButton.click();
     await expect(page.getByRole("status").filter({ hasText: "新しく作成する項目はありません。" })).toBeVisible();
