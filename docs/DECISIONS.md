@@ -833,7 +833,8 @@ Updated 2026-10-18. Decided: see the status lines of "Stage 5 preparation decisi
 | Gemma terms of use (owner) | Done: the owner reviewed them and found no issue for this use (2026-10-24). |
 | Owner scoring of naturalness and factuality ("Model decision") | Provisionally accepted by the owner (2026-10-24) without row-by-row scores; a less laborious review method is a follow-up. |
 | Evaluation API token deleted (`docs/DEPLOYMENT.md` section 10) | Done: deleted by the owner (2026-10-24). |
-| Production content | None yet; AI explanations need published destinations. |
+| Production content | Met: 18 published destinations and 12 published questions on production since 2026-10-24 ("Phase 7 verification log", "Phase 8 verification log"). |
+| Preview trial plan | Documented in `docs/DEPLOYMENT.md` 7.1 (2026-10-24, Phase 9): budget of at most 10 model calls, limiter check, log and note review, stop conditions, and what blocks a production decision. Not run; AI stays disabled in every environment. |
 
 Order proposed: preview trial (`docs/DEPLOYMENT.md` 7.1) → separate owner decision for production. Whether the 10,000 Neurons/day are per account (shared by preview and production) is not stated on the pricing page (要確認); plan as if they are shared.
 
