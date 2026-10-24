@@ -20,7 +20,17 @@ export const ja = {
     start: "診断をはじめる",
     step1: "旅の条件を入力（任意）",
     step2: "いくつかの質問に回答",
+    boardHeading: "出発までの流れ",
     step3: "おすすめの旅行先を確認",
+  },
+  ticket: {
+    departures: "DEPARTURES",
+    nowBoarding: "NOW BOARDING",
+    stepColumn: "NO.",
+    statusColumn: "STATUS",
+    checkIn: "CHECK-IN",
+    boarding: "BOARDING",
+    departure: "DEPARTURE",
   },
   footer: {
     privacy: "回答はこのブラウザの中だけで使われ、サーバーには送信・保存されません。",

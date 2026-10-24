@@ -21,7 +21,17 @@ export const es: Messages = {
     start: "Empezar el cuestionario",
     step1: "Indica los datos del viaje (opcional)",
     step2: "Responde algunas preguntas",
+    boardHeading: "Cómo funciona",
     step3: "Descubre destinos que encajan contigo",
+  },
+  ticket: {
+    departures: "DEPARTURES",
+    nowBoarding: "NOW BOARDING",
+    stepColumn: "NO.",
+    statusColumn: "STATUS",
+    checkIn: "CHECK-IN",
+    boarding: "BOARDING",
+    departure: "DEPARTURE",
   },
   footer: {
     privacy: "Tus respuestas se quedan en este navegador; no se envían ni se guardan en nuestro servidor.",

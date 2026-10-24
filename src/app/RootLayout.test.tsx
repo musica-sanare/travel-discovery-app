@@ -45,6 +45,18 @@ describe("RootLayout", () => {
     expect(document.documentElement.lang).toBe(locale);
   });
 
+  it("shows the hero call to action and the three-step departure board", () => {
+    renderAt("/");
+
+    expect(screen.getByRole("link", { name: "診断をはじめる" }).getAttribute("href")).toBe("/plan");
+    const board = screen.getByRole("region", { name: "出発までの流れ" });
+    const steps = board.querySelectorAll("ol > li");
+    expect(steps).toHaveLength(3);
+    expect(steps[0]?.textContent).toContain("旅の条件を入力（任意）");
+    // Decorative ticket captions are not exposed to assistive technology.
+    expect(screen.getByText("CHECK-IN").getAttribute("aria-hidden")).toBe("true");
+  });
+
   it("shows the privacy and indicative-cost notes in the footer", () => {
     renderAt("/");
 

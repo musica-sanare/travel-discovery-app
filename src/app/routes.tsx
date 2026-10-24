@@ -13,7 +13,7 @@ export const routes: RouteObject[] = [
     Component: RootLayout,
     ErrorBoundary: RouteErrorPage,
     children: [
-      { index: true, Component: HomePage },
+      { index: true, Component: HomePage, handle: { fullBleed: true } },
       { path: "plan", Component: PlanPage },
       { path: "quiz", Component: QuizPage },
       { path: "results", Component: ResultsPage },

@@ -1,12 +1,18 @@
 import { useTranslation } from "react-i18next";
-import { Link, Outlet } from "react-router";
+import { Link, Outlet, useMatches } from "react-router";
 import { Graticule, PlaneIcon } from "../components/Decorations";
 import { DocumentMetadata } from "../components/DocumentMetadata";
 import { LanguageSwitcher } from "../components/LanguageSwitcher";
 import { QuizSessionProvider } from "../diagnosis/QuizSessionProvider";
 
+/** Routes with `handle: { fullBleed: true }` lay out their own full-width bands. */
+function isFullBleed(handle: unknown) {
+  return typeof handle === "object" && handle !== null && "fullBleed" in handle && handle.fullBleed === true;
+}
+
 export function RootLayout() {
   const { t } = useTranslation();
+  const fullBleed = useMatches().some((match) => isFullBleed(match.handle));
 
   return (
     <QuizSessionProvider>
@@ -19,7 +25,7 @@ export function RootLayout() {
           {t("common.skipToContent")}
         </a>
         <header className="on-sky relative overflow-hidden bg-sky">
-          <Graticule className="pointer-events-none absolute inset-0 size-full text-sky-muted opacity-15" />
+          <Graticule className="pointer-events-none absolute inset-0 size-full text-sky-muted opacity-10" />
           <div className="relative mx-auto flex max-w-5xl items-center justify-between gap-3 px-4 py-3">
             <Link
               to="/"
@@ -31,7 +37,11 @@ export function RootLayout() {
             <LanguageSwitcher />
           </div>
         </header>
-        <main id="main" tabIndex={-1} className="mx-auto w-full max-w-3xl flex-1 px-4 py-8 sm:py-12">
+        <main
+          id="main"
+          tabIndex={-1}
+          className={fullBleed ? "w-full flex-1" : "mx-auto w-full max-w-3xl flex-1 px-4 py-8 sm:py-12"}
+        >
           <Outlet />
         </main>
         <footer className="border-t border-line">

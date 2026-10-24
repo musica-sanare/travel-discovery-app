@@ -403,7 +403,8 @@ Primary documents and official web pages only; no Wrangler remote command, deplo
 - Motion: **not adopted**. Question transitions use a 180 ms CSS animation (`motion-safe:animate-enter`) that never blocks input; all animations and transitions are reduced to near zero under `prefers-reduced-motion`. Revisit only for a concrete need CSS cannot meet.
 - *Update (2026-10-24, UI refresh "Flight Deck", owner approved)*: the public UI follows an air-travel theme: a navy header band, warm paper surfaces (night-flight navy in dark mode), coral for links, focus, and progress, amber for the primary call to action, and teal for positive matches. Tokens stay in `src/styles.css` `@theme`; the `.on-sky` class switches focus rings to amber on the navy band so they keep enough contrast.
   - No new dependencies, web fonts, or external images. Monospaced captions use the system monospace stack; icons and the map-grid texture are inline SVGs drawn for this project (`src/components/Decorations.tsx`), so `docs/PUBLIC_RELEASE.md` §4 is unchanged.
-  - Decorative boarding-pass captions (for example `DEPARTURES`) are the same Latin text in every locale, like airline ticket print, and are hidden from assistive technology; the meaning is always carried by translated text.
+  - Decorative boarding-pass captions (for example `DEPARTURES`) are the same Latin text in every locale, like airline ticket print, and are hidden from assistive technology; the meaning is always carried by translated text. They still live in the locale files (`ticket.*`) so components contain no UI strings.
+  - Routes can set `handle: { fullBleed: true }` to draw their own full-width bands (the home hero); other routes keep the narrow centered column from `RootLayout`.
   - A site footer repeats the privacy note and states that all costs are indicative (ADR-008); it replaces the privacy line on the home page.
 
 ## ADR-015: Start on Workers Free and fail gracefully at limits

@@ -21,7 +21,17 @@ export const en: Messages = {
     start: "Start the quiz",
     step1: "Add trip details (optional)",
     step2: "Answer a few questions",
+    boardHeading: "How it works",
     step3: "See destinations that fit you",
+  },
+  ticket: {
+    departures: "DEPARTURES",
+    nowBoarding: "NOW BOARDING",
+    stepColumn: "NO.",
+    statusColumn: "STATUS",
+    checkIn: "CHECK-IN",
+    boarding: "BOARDING",
+    departure: "DEPARTURE",
   },
   footer: {
     privacy: "Your answers stay in this browser; they are not sent to or stored on our server.",
