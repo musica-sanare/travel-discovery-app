@@ -128,3 +128,14 @@ Acceptance:
 - The owner approved the review copy; the content is imported on both environments with bookmarks recorded.
 - The runbook contains the billing check, and the Workers Logs pricing check is dated.
 - AI stays disabled and the account stays on Workers Free.
+
+## Phase 9 — Source-currency costs, dated operations checks, and an AI trial plan
+- Record the daily Workers Logs volume and re-check the pricing pages in the last week of November 2026 (before 2026-12-01).
+- Add `USD` and `EUR` estimates where the verified source publishes that currency, without conversion; review, then import on preview and production.
+- Search again, time-boxed, for the empty costs with a likely candidate.
+- Document the preview AI trial plan for the owner's decision; AI stays disabled.
+
+Acceptance:
+- The log volume and the pricing re-check are recorded with dates before 2026-12-01.
+- Every added estimate matches its source's currency and figures; quizzes with `USD` and `EUR` budgets compare at least one destination on both environments.
+- The AI trial plan is in `docs/DEPLOYMENT.md` 7.1, AI stays disabled, and the account stays on Workers Free.
