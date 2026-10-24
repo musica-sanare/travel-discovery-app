@@ -38,7 +38,7 @@ Weekly, and after any change on the Access tab, a Zero Trust policy, or the acco
   node scripts/check-deployment.mjs <account subdomain> preview
   ```
 
-  A 200 from an admin URL is an incident (section 4.2). Right after deploying an admin Worker, add `--watch-admin 120` to repeat the Access checks every 10 s for two minutes.
+  A 200 from an admin URL is an incident (section 4.2). Right after deploying an admin Worker, add `--watch-admin 120` to repeat the Access checks every 10 s for two minutes. The script prepares TLS before its first request, which takes a few seconds on macOS; a timeout (15 s per request) still counts as a failure, so look at the failing URL with `curl` before treating it as an incident.
 - Access tab of each admin Worker: scope **All traffic**; Zero Trust policy: an **Emails** Include rule with the owner's address only; no hostname or path Access application with a Bypass policy for an admin hostname (ADR-004).
 - Observability of both public Workers: no unusual number of `api_error` lines.
 

@@ -5,6 +5,8 @@
 // Usage: node scripts/check-deployment.mjs <account subdomain> <preview|production> [--watch-admin <seconds>]
 // --watch-admin repeats the admin Access checks every 10 s for that long (use it
 // right after deploying an admin Worker). Exits 1 if any check fails.
+import { createSecureContext } from "node:tls";
+
 const WORKERS = {
   preview: { public: "travel-discovery-preview", admin: "travel-discovery-admin-preview" },
   production: { public: "travel-discovery", admin: "travel-discovery-admin" },
@@ -20,6 +22,11 @@ if (!subdomain || !workers || (flag !== undefined && (flag !== "--watch-admin" |
 }
 const publicBase = `https://${workers.public}.${subdomain}.workers.dev`;
 const adminBase = `https://${workers.admin}.${subdomain}.workers.dev`;
+
+// The first TLS use in a Node process loads the CA store, which took 4-7 s on
+// macOS (docs/DECISIONS.md "Phase 8 verification log"). Do it before any request
+// so that each request's timeout covers only the network.
+createSecureContext();
 
 let failures = 0;
 function report(ok, name, detail) {
