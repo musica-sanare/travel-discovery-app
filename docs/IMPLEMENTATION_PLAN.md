@@ -139,3 +139,15 @@ Acceptance:
 - The log volume and the pricing re-check are recorded with dates before 2026-12-01.
 - Every added estimate matches its source's currency and figures; quizzes with `USD` and `EUR` budgets compare at least one destination on both environments.
 - The AI trial plan is in `docs/DEPLOYMENT.md` 7.1, AI stays disabled, and the account stays on Workers Free.
+
+## Phase 10 — Preview AI trial, Observability pricing follow-up, and a rollback check
+- After 2026-12-01, re-read the Observability pricing pages, record the account's log ingestion and Billing page, and do the December monthly checks.
+- Run the preview AI trial of `docs/DEPLOYMENT.md` 7.1 if the owner decides to; otherwise record the decision.
+- Check on preview whether a Worker rollback also restores static assets.
+- Re-check the Buenos Aires tourism site for a recommended season.
+
+Acceptance:
+- The post-change pricing check and log ingestion are recorded with dates; the account stays on Workers Free with no new charge.
+- The AI trial is recorded as 7.1 requires, or the owner's decision not to run it is recorded; AI is disabled in every environment at the end.
+- The rollback question in `docs/DEPLOYMENT.md` section 8 is answered or recorded as 要確認 with the reason.
+- Any content change is reviewed, imported on both environments with bookmarks, and `npm run check` and `npm run test:e2e` pass.
