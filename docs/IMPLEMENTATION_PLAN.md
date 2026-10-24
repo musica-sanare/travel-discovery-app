@@ -12,6 +12,7 @@ Each phase is started with the matching prompt file:
 | 5 — Quality, accessibility, and end-to-end coverage | `prompts/05-polish-and-e2e.md` |
 | 6 — Documentation, CI, and release | `prompts/06-release.md` |
 | 7 — Post-launch operations | `prompts/07-operations.md` |
+| 8 — Content enrichment and billing safeguards | `prompts/08-content-enrichment.md` |
 
 `prompts/FIRST_MESSAGE.md` is the kickoff message for a new Claude Code session.
 
@@ -115,3 +116,15 @@ Acceptance:
 - `docs/OPERATIONS.md` exists and covers monitoring, incidents, and the AI kill switch.
 - CI runs E2E tests, or the reason it does not is recorded.
 - AI remains disabled in all environments.
+
+## Phase 8 — Content enrichment and billing safeguards
+- Decide how existing destinations are updated (admin forms or an update mode for the Import page).
+- Add sourced indicative costs, best months, and, if the owner approves, licensed images to the published content.
+- Review, then import on preview and production; answer full quizzes in English and Spanish.
+- Add a monthly billing check and the list of charge-starting dashboard actions to the runbook; re-check Workers Logs pricing before 2026-12-01.
+
+Acceptance:
+- Every added fact has a cited source or license; nothing is guessed.
+- The owner approved the review copy; the content is imported on both environments with bookmarks recorded.
+- The runbook contains the billing check, and the Workers Logs pricing check is dated.
+- AI stays disabled and the account stays on Workers Free.
