@@ -46,9 +46,10 @@ Monthly:
 - `npm audit --omit=dev` (expected: 0 vulnerabilities) and `npm audit` (known development-only advisory, ADR-003).
 - New releases of the pinned GitHub Actions; update the SHA and version comment together (ADR-027).
 - The free-tier pages in `docs/DEPLOYMENT.md` section 9 for changes.
+- Billing (owner, in the dashboard): Manage Account → Billing lists only the domain registration and no other subscription, and the Workers plan is still Free. Anything else is an incident: do not pay or upgrade, and record what was found in `docs/DECISIONS.md` (section 10 lists the actions that start charges).
 
 Dated:
-- **Before 2026-12-01**: Workers Logs moves to Cloudflare Observability pricing (section 7).
+- **Before 2026-12-01**: Workers Logs moves to Cloudflare Observability pricing. Re-check the pages in the last week of November 2026 and compare the daily log volume with the Free allowance (section 7).
 
 ## 4. Incidents
 
@@ -84,7 +85,7 @@ Stop AI with the kill switch (`docs/DEPLOYMENT.md` section 7, ADR-026 E); the di
 - When sharing a log entry, remove the account ID and hostnames first.
 
 ## 7. Workers Logs pricing from 2026-12-01
-Checked 2026-10-19 (https://developers.cloudflare.com/observability/pricing/): on Free, 0.5 GB of ingestion per day and 7-day retention; at the limit ingestion stops until 00:00 UTC and nothing is charged. With invocation logs disabled, only `api_error` and `ai_explanation` lines are ingested, which is expected to stay far below the limit *(要確認: daily volume in the dashboard)*. If the volume approaches the limit, lower `head_sampling_rate` in the environment's `observability` block. Re-check the page before 2026-12-01 and update this section.
+Checked 2026-10-19 and re-checked 2026-10-24, unchanged (https://developers.cloudflare.com/observability/pricing/, updated 2026-10-15; https://developers.cloudflare.com/workers/observability/logs/workers-logs/, updated 2026-10-12): on Free, 0.5 GB of ingestion per day and 7-day retention; at the limit ingestion stops until 00:00 UTC and nothing is charged. Until 2026-12-01 the Free limit is 200,000 events per day with 3-day retention. With invocation logs disabled, only `api_error` and `ai_explanation` lines are ingested, which is expected to stay far below the limit *(要確認: daily volume in the dashboard)*. If the volume approaches the limit, lower `head_sampling_rate` in the environment's `observability` block. Re-check both pages once more in the last week of November 2026 and update this section with the date.
 
 ## 8. Publishing production content
 Content is entered only through the production admin console, either in the forms or on the **Import** page with a reviewed bundle from `content/` (ADR-028); `db/seed/dev.sql` is never loaded into production. The rules below come from `docs/SPEC.md`, `docs/DIAGNOSTIC_ALGORITHM.md`, and the admin validation (`server/admin/validation.ts`).
@@ -124,3 +125,13 @@ After:
 ## 9. Open items
 - Rejection of an address outside the Access policy: not checked; it needs a second Cloudflare account, which the owner postponed (2026-10-24).
 - The 429 response of `AI_CLIENT_RATE_LIMITER`: observable only with AI enabled (ADR-026 "Open decisions").
+- Daily Workers Logs volume compared with the 0.5 GB Free allowance (section 7): to be read by the owner in the dashboard before 2026-12-01.
+
+## 10. Actions that start charges
+The account stays on Workers Free; the only accepted charge is the existing domain registration. None of the dashboard actions below is taken without the owner's decision, recorded in `docs/DECISIONS.md` together with the expected monthly cost. Checked 2026-10-24 on the linked pages.
+- **Upgrading to Workers Paid**: at least USD 5 per month per account; usage above the included allotments (D1, Workers Logs, Queues, and others) is then billed instead of failing (https://developers.cloudflare.com/workers/platform/pricing/, updated 2026-10-02). After 2026-12-01 paid log ingestion also continues automatically above the included amount (https://developers.cloudflare.com/observability/pricing/).
+- **Workers Logpush**: available only on Workers Paid (https://developers.cloudflare.com/workers/observability/logs/logpush/, updated 2026-10-12).
+- **Enabling R2**: free tier of 10 GB-month of Standard storage, 1 million Class A and 10 million Class B operations per month, per-unit prices above it (https://developers.cloudflare.com/r2/pricing/, updated 2026-10-01). Whether enabling R2 requires a payment method is not stated on the page *(要確認)*.
+- **Purchasing Images Paid**: enables image storage (USD 5 per 100,000 stored per month) and delivery (USD 1 per 100,000) and bills transformations above 5,000 per month. On the Free plan, transformations above the limit fail with error 9422 and are not charged (https://developers.cloudflare.com/images/pricing/, updated 2026-10-19).
+- **Log Explorer datasets**: billed separately at USD 1 per GB ingested; the page does not say whether Free accounts can use them (https://developers.cloudflare.com/observability/pricing/).
+- Any other plan upgrade, add-on subscription, or Zero Trust plan other than Free.
