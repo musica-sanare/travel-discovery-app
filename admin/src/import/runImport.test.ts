@@ -1,7 +1,15 @@
 import { describe, expect, it, vi } from "vitest";
 import { AdminApiError } from "../api";
 import { parseBundle, planImport, type ImportBundle } from "./bundle";
-import { loadExisting, runImport, type AdminCall, type StepState } from "./runImport";
+import type { DestinationDetail } from "../types";
+import {
+  ImportConflictError,
+  loadCurrentDestinations,
+  loadExisting,
+  runImport,
+  type AdminCall,
+  type StepState,
+} from "./runImport";
 
 const BUNDLE_TEXT = JSON.stringify({
   format: "travel-discovery-content",
@@ -9,7 +17,16 @@ const BUNDLE_TEXT = JSON.stringify({
   countries: [{ slug: "peru", translations: { ja: { name: "ペルー" } } }],
   attributes: [{ slug: "nature", status: "active", translations: { ja: { name: "自然" } } }],
   destinations: [
-    { slug: "cusco", country: "peru", attributeScores: [{ attribute: "nature", score: 4 }] },
+    {
+      slug: "cusco",
+      country: "peru",
+      type: "city",
+      status: "published",
+      recommendedDays: { min: null, max: null },
+      image: null,
+      translations: {},
+      attributeScores: [{ attribute: "nature", score: 4 }],
+    },
     { slug: "lima", country: "peru", attributeScores: [] },
   ],
 });
@@ -20,7 +37,10 @@ function bundle(): ImportBundle {
   return result.bundle;
 }
 
-/** A fake admin API: list endpoints return `lists`, creates return increasing IDs. */
+/**
+ * A fake admin API: GET returns `lists[path]` (a function is called on each
+ * request), creates return increasing IDs.
+ */
 function fakeApi(lists: Record<string, unknown>, failOn?: string) {
   let nextId = 100;
   const calls: { path: string; method: string; body: unknown }[] = [];
@@ -28,7 +48,8 @@ function fakeApi(lists: Record<string, unknown>, failOn?: string) {
     const method = init.method ?? "GET";
     calls.push({ path, method, body: init.body });
     if (method === "GET") {
-      return Promise.resolve(lists[path] as T);
+      const value = lists[path];
+      return Promise.resolve((typeof value === "function" ? (value as () => unknown)() : value) as T);
     }
     const slug = (init.body as { slug: string }).slug;
     if (slug === failOn) {
@@ -105,5 +126,70 @@ describe("runImport", () => {
     const posts = calls.filter((call) => call.method === "POST");
     expect(posts.map((call) => call.path)).not.toContain("/countries");
     expect(posts[1]?.body).toMatchObject({ countryId: 9 });
+  });
+});
+
+describe("update mode", () => {
+  const STORED: DestinationDetail = {
+    id: 2,
+    slug: "cusco",
+    countryId: 1,
+    type: "city",
+    status: "published",
+    recommendedDays: { min: null, max: null },
+    bestMonths: [],
+    costs: [],
+    image: null,
+    translations: {},
+    attributeScores: [{ attributeId: 4, score: 1 }],
+    updatedAt: "2026-10-24T03:40:00.000Z",
+  };
+
+  const LISTS = {
+    ...EMPTY_LISTS,
+    "/countries": { items: [{ id: 1, slug: "peru", translations: {} }] },
+    "/attributes": { items: [{ id: 4, slug: "nature", translations: {} }] },
+    "/destinations?page=1": { items: [{ id: 2, slug: "cusco" }], hasMore: false },
+  };
+
+  async function plannedRun(stored: () => DestinationDetail) {
+    const { api, calls } = fakeApi({ ...LISTS, "/destinations/2": () => ({ item: stored() }) });
+    const existing = await loadExisting(api);
+    const current = await loadCurrentDestinations(api, bundle(), existing);
+    const { steps } = planImport(bundle(), existing, current);
+    const outcome = await runImport(api, bundle(), steps, existing, () => undefined);
+    return { calls, current, steps, outcome };
+  }
+
+  it("loads only the bundle destinations that already exist", async () => {
+    const { current, calls } = await plannedRun(() => STORED);
+    expect([...current.keys()]).toEqual(["cusco"]);
+    expect(calls.filter((call) => call.path.startsWith("/destinations/"))).toHaveLength(3);
+  });
+
+  it("re-reads the destination and replaces it with PUT when it has not changed since the check", async () => {
+    const { calls, steps, outcome } = await plannedRun(() => STORED);
+    expect(steps.map((step) => step.action)).toEqual(["skip", "skip", "update", "create"]);
+    expect(outcome).toEqual({ states: ["skipped", "skipped", "updated", "created"], error: null });
+    const put = calls.find((call) => call.method === "PUT");
+    expect(put?.path).toBe("/destinations/2");
+    expect(put?.body).toMatchObject({ slug: "cusco", countryId: 1, attributeScores: [{ attributeId: 4, score: 4 }] });
+  });
+
+  it("stops without writing when the destination changed after the check", async () => {
+    let reads = 0;
+    const { calls, outcome } = await plannedRun(() => {
+      reads += 1;
+      return reads === 1 ? STORED : { ...STORED, updatedAt: "2026-10-24T04:00:00.000Z" };
+    });
+    expect(outcome.states).toEqual(["skipped", "skipped", "failed", "pending"]);
+    expect(outcome.error).toBeInstanceOf(ImportConflictError);
+    expect(calls.filter((call) => call.method !== "GET")).toEqual([]);
+  });
+
+  it("sends nothing for a destination that matches the file", async () => {
+    const { calls, outcome } = await plannedRun(() => ({ ...STORED, attributeScores: [{ attributeId: 4, score: 4 }] }));
+    expect(outcome.states).toEqual(["skipped", "skipped", "unchanged", "created"]);
+    expect(calls.filter((call) => call.method === "PUT")).toEqual([]);
   });
 });

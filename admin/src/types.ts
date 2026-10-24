@@ -72,6 +72,7 @@ export interface DestinationDetail {
   image: { url: string; attribution: string } | null;
   translations: Translated<DestinationTranslation>;
   attributeScores: { attributeId: number; score: number }[];
+  updatedAt: string;
 }
 
 export interface QuestionListItem {

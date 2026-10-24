@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import type { DestinationDetail } from "../types";
 import { IMPORT_KINDS, parseBundle, planImport, toPayload, type ExistingIds, type ImportBundle } from "./bundle";
 
 function noneExisting(): ExistingIds {
@@ -136,6 +137,65 @@ describe("planImport", () => {
     delete withoutCountry.country;
     const { issues } = planImport(parsed({ ...VALID, destinations: [withoutCountry] }), noneExisting());
     expect(issues).toEqual([{ code: "unknown_reference", path: "destinations[0].country" }]);
+  });
+});
+
+describe("planImport in update mode", () => {
+  function existingContent(): ExistingIds {
+    const existing = noneExisting();
+    existing.countries.set("thailand", 3);
+    existing.attributes.set("food", 11);
+    existing.categories.set("style", 5);
+    existing.destinations.set("bangkok", 20);
+    existing.questions.set("focus", 30);
+    return existing;
+  }
+
+  const STORED: DestinationDetail = {
+    id: 20,
+    slug: "bangkok",
+    countryId: 3,
+    type: "city",
+    status: "published",
+    recommendedDays: { min: null, max: null },
+    bestMonths: [],
+    costs: [],
+    image: null,
+    translations: {
+      ja: { name: "バンコク", summary: "屋台の街。", highlights: [], cautions: null, bestSeason: null, imageAlt: null },
+    },
+    attributeScores: [{ attributeId: 11, score: 5 }],
+    updatedAt: "2026-10-24T03:40:00.000Z",
+  };
+
+  it("plans an update with the changes and the stored updatedAt, and still skips other kinds", () => {
+    const current = new Map([["bangkok", { ...STORED, bestMonths: [1, 2] }]]);
+    const { steps, issues } = planImport(parsed(), existingContent(), current);
+    expect(issues).toEqual([]);
+    expect(steps.map((step) => `${step.kind}:${step.action}`)).toEqual([
+      "countries:skip",
+      "attributes:skip",
+      "categories:skip",
+      "destinations:update",
+      "questions:skip",
+    ]);
+    expect(steps[3]).toEqual({
+      kind: "destinations",
+      slug: "bangkok",
+      action: "update",
+      changes: [{ path: "bestMonths", before: [1, 2], after: [] }],
+      updatedAt: "2026-10-24T03:40:00.000Z",
+    });
+  });
+
+  it("plans an existing destination that matches the file as unchanged", () => {
+    const { steps } = planImport(parsed(), existingContent(), new Map([["bangkok", STORED]]));
+    expect(steps[3]).toEqual({ kind: "destinations", slug: "bangkok", action: "unchanged" });
+  });
+
+  it("skips existing destinations without update mode", () => {
+    const { steps } = planImport(parsed(), existingContent());
+    expect(steps[3]).toEqual({ kind: "destinations", slug: "bangkok", action: "skip" });
   });
 });
 

@@ -118,7 +118,7 @@ Acceptance:
 - AI remains disabled in all environments.
 
 ## Phase 8 — Content enrichment and billing safeguards
-- Decide how existing destinations are updated (admin forms or an update mode for the Import page).
+- Decide how existing destinations are updated (admin forms or an update mode for the Import page). *Decided 2026-10-24: an opt-in update mode for destinations (`docs/DECISIONS.md` ADR-028 "Update mode").*
 - Add sourced indicative costs, best months, and, if the owner approves, licensed images to the published content.
 - Review, then import on preview and production; answer full quizzes in English and Spanish.
 - Add a monthly billing check and the list of charge-starting dashboard actions to the runbook; re-check Workers Logs pricing before 2026-12-01.

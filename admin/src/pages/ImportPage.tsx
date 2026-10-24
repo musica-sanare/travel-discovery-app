@@ -11,7 +11,13 @@ import {
   type ImportBundle,
   type PlanStep,
 } from "../import/bundle";
-import { loadExisting, runImport, type StepState } from "../import/runImport";
+import {
+  ImportConflictError,
+  loadCurrentDestinations,
+  loadExisting,
+  runImport,
+  type StepState,
+} from "../import/runImport";
 
 interface Plan {
   bundle: ImportBundle;
@@ -19,14 +25,25 @@ interface Plan {
   steps: PlanStep[];
 }
 
+const MAX_VALUE_LENGTH = 200;
+
+function formatValue(value: unknown, empty: string): string {
+  if (value === undefined) return empty;
+  const text = typeof value === "string" ? value : JSON.stringify(value);
+  return text.length > MAX_VALUE_LENGTH ? `${text.slice(0, MAX_VALUE_LENGTH)}…` : text;
+}
+
 /**
  * Imports a content bundle through the regular admin API (ADR-028): check
- * first (nothing is written), then create the new items one by one.
+ * first (nothing is written), then create the new items one by one. In the
+ * opt-in update mode, existing destinations that differ from the file are
+ * shown field by field and replaced with `PUT`.
  */
 export function ImportPage() {
   const { t } = useTranslation();
   const id = useId();
   const [text, setText] = useState("");
+  const [updateExisting, setUpdateExisting] = useState(false);
   const [issues, setIssues] = useState<BundleIssue[]>([]);
   const [plan, setPlan] = useState<Plan | null>(null);
   const [busy, setBusy] = useState<"checking" | "importing" | null>(null);
@@ -53,7 +70,8 @@ export function ImportPage() {
     setBusy("checking");
     try {
       const existing = await loadExisting(adminApi);
-      const planned = planImport(parsed.bundle, existing);
+      const current = updateExisting ? await loadCurrentDestinations(adminApi, parsed.bundle, existing) : undefined;
+      const planned = planImport(parsed.bundle, existing, current);
       if (planned.issues.length > 0) {
         setIssues(planned.issues);
       } else {
@@ -76,7 +94,8 @@ export function ImportPage() {
   };
 
   const label = (step: PlanStep) => `${t(`pages.${step.kind}`)}: ${step.slug}`;
-  const toCreate = plan?.steps.filter((step) => step.action === "create").length ?? 0;
+  const toWrite = plan?.steps.filter((step) => step.action === "create" || step.action === "update").length ?? 0;
+  const updates = plan?.steps.flatMap((step) => (step.action === "update" ? [step] : [])) ?? [];
   const processed = states?.filter((state) => state !== "pending").length ?? 0;
   const failedIndex = states?.indexOf("failed") ?? -1;
   const failedStep = plan && failedIndex >= 0 ? plan.steps[failedIndex] : undefined;
@@ -119,6 +138,20 @@ export function ImportPage() {
             }}
           />
         </div>
+        <div className="field">
+          <label>
+            <input
+              type="checkbox"
+              checked={updateExisting}
+              disabled={busy !== null}
+              onChange={(event) => {
+                reset();
+                setUpdateExisting(event.target.checked);
+              }}
+            />{" "}
+            {t("import.updateExisting")}
+          </label>
+        </div>
         <div className="actions">
           <button type="submit" disabled={busy !== null || text.trim() === ""}>
             {busy === "checking" ? t("import.checking") : t("import.check")}
@@ -150,24 +183,68 @@ export function ImportPage() {
               <tr>
                 <th scope="col">{t("import.kind")}</th>
                 <th scope="col">{t("import.create")}</th>
+                <th scope="col">{t("import.update")}</th>
+                <th scope="col">{t("import.unchanged")}</th>
                 <th scope="col">{t("import.skip")}</th>
               </tr>
             </thead>
             <tbody>
               {IMPORT_KINDS.map((kind) => {
                 const steps = plan.steps.filter((step) => step.kind === kind);
+                const slugs = (action: PlanStep["action"]) =>
+                  steps.filter((step) => step.action === action).map((step) => step.slug).join(", ") || "0";
                 return (
                   <tr key={kind}>
                     <th scope="row">{t(`pages.${kind}`)}</th>
                     <td>{steps.filter((step) => step.action === "create").length}</td>
-                    <td>{steps.filter((step) => step.action === "skip").map((step) => step.slug).join(", ") || "0"}</td>
+                    <td>{slugs("update")}</td>
+                    <td>{slugs("unchanged")}</td>
+                    <td>{slugs("skip")}</td>
                   </tr>
                 );
               })}
             </tbody>
           </table>
-          {toCreate === 0 ? (
-            <p role="status">{t("import.nothingToCreate")}</p>
+          {updates.length > 0 && (
+            <>
+              <h3>{t("import.changes")}</h3>
+              {updates.map((step) => (
+                <details key={step.slug}>
+                  <summary>
+                    {t("import.changesOf", { item: label(step), count: step.changes.length })}
+                    {step.changes.some((change) => change.path === "status") && (
+                      <>
+                        {" "}
+                        <strong>{t("import.statusChange")}</strong>
+                      </>
+                    )}
+                  </summary>
+                  <table>
+                    <thead>
+                      <tr>
+                        <th scope="col">{t("import.field")}</th>
+                        <th scope="col">{t("import.before")}</th>
+                        <th scope="col">{t("import.after")}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {step.changes.map((change) => (
+                        <tr key={change.path}>
+                          <th scope="row">
+                            <code>{change.path}</code>
+                          </th>
+                          <td>{formatValue(change.before, t("import.noValue"))}</td>
+                          <td>{formatValue(change.after, t("import.noValue"))}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </details>
+              ))}
+            </>
+          )}
+          {toWrite === 0 ? (
+            <p role="status">{t("import.nothingToDo")}</p>
           ) : (
             <div className="actions">
               <button type="button" disabled={busy !== null || states !== null} onClick={() => void run()}>
@@ -188,7 +265,11 @@ export function ImportPage() {
           {failedStep && (
             <>
               <p>{t("import.stopped", { item: label(failedStep) })}</p>
-              <ErrorBanner error={runError} />
+              {runError instanceof ImportConflictError ? (
+                <p role="alert">{t("import.changedSinceCheck")}</p>
+              ) : (
+                <ErrorBanner error={runError} />
+              )}
             </>
           )}
           <ol>

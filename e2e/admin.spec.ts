@@ -148,13 +148,13 @@ test.describe("admin content workflow on the dev server", () => {
 });
 
 test.describe("admin content import on the dev server", () => {
-  test("checks a bundle, imports new items as drafts, and skips them on a rerun", async ({ page, request }) => {
+  test("checks a bundle, imports new items as drafts, skips them on a rerun, and updates them on request", async ({ page, request }) => {
     const settled = trackAdminRequests(page);
     const suffix = String(Date.now());
     const country = `e2e-land-${suffix}`;
     const destination = `e2e-import-${suffix}`;
     const question = `e2e-import-q-${suffix}`;
-    const bundle = (destinationCountry: string) =>
+    const bundle = (destinationCountry: string, bestMonths: number[] = []) =>
       JSON.stringify({
         format: "travel-discovery-content",
         version: 1,
@@ -169,6 +169,7 @@ test.describe("admin content import on the dev server", () => {
             type: "city",
             status: "draft",
             recommendedDays: { min: null, max: null },
+            bestMonths,
             image: null,
             attributeScores: [{ attribute: "food", score: 4 }],
             translations: { ja: { name: "E2E取り込み市", summary: "取り込みテスト用の架空の旅行先です。" } },
@@ -219,7 +220,34 @@ test.describe("admin content import on the dev server", () => {
     await publicGet(settled, request, `/api/destinations/${destination}?locale=ja`, 404);
 
     await checkButton.click();
-    await expect(page.getByRole("status").filter({ hasText: "新しく作成する項目はありません。" })).toBeVisible();
+    await expect(page.getByRole("status").filter({ hasText: "作成または更新する項目はありません。" })).toBeVisible();
+
+    // Update mode: only the changed destination is replaced, after a field-level diff.
+    await input.fill(bundle(country, [5, 4]));
+    await checkButton.click();
+    await expect(page.getByRole("status").filter({ hasText: "作成または更新する項目はありません。" })).toBeVisible();
+    await page.getByLabel(/既存の旅行先を更新する/).check();
+    await checkButton.click();
+    await expect(page.getByRole("row", { name: /^旅行先/ })).toContainText(destination);
+    await page.getByText(`旅行先: ${destination} の変更点（1 件）`).click();
+    await expect(page.getByRole("row", { name: /bestMonths/ })).toContainText("[4,5]");
+    await waitForAnimations(page);
+    expect(await axeViolations(page)).toEqual([]);
+    await page.getByRole("button", { name: "取り込む" }).click();
+    await expect(page.getByRole("status").filter({ hasText: "取り込みが完了しました。" })).toBeVisible();
+
+    const [updated] = (
+      (await (await request.get(`/api/admin/destinations?q=${destination}`)).json()) as { items: { id: number }[] }
+    ).items;
+    const detail = (await (await request.get(`/api/admin/destinations/${String(updated?.id)}`)).json()) as {
+      item: { bestMonths: number[]; status: string };
+    };
+    expect(detail.item).toMatchObject({ bestMonths: [4, 5], status: "draft" });
+
+    // The stored destination now matches the file, including the API defaults.
+    await checkButton.click();
+    await expect(page.getByRole("row", { name: /^旅行先/ })).toContainText(destination);
+    await expect(page.getByRole("status").filter({ hasText: "作成または更新する項目はありません。" })).toBeVisible();
   });
 });
 

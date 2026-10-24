@@ -5,6 +5,8 @@
  * the server when it is created.
  */
 import { isSlug } from "../../../shared/slug";
+import type { DestinationDetail } from "../types";
+import { comparableFromBundle, comparableFromStored, diffComparable, type FieldChange } from "./diff";
 
 export const BUNDLE_FORMAT = "travel-discovery-content";
 export const BUNDLE_VERSION = 1;
@@ -38,11 +40,14 @@ export interface BundleIssue {
 /** Slug → ID of the content that already exists, per kind. */
 export type ExistingIds = Record<ImportKind, Map<string, number>>;
 
-export interface PlanStep {
-  kind: ImportKind;
-  slug: string;
-  action: "create" | "skip";
-}
+/**
+ * `update` is planned only in update mode, and only for existing destinations
+ * whose stored content differs from the file; `updatedAt` is the stored value
+ * at check time, re-checked just before the update is sent.
+ */
+export type PlanStep =
+  | { kind: ImportKind; slug: string; action: "create" | "skip" | "unchanged" }
+  | { kind: "destinations"; slug: string; action: "update"; changes: FieldChange[]; updatedAt: string };
 
 function isObject(value: unknown): value is Json {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -129,15 +134,26 @@ function referencesOf(kind: ImportKind, entry: BundleEntry, index: number): Refe
   return [];
 }
 
+function invert(map: ReadonlyMap<string, number>): Map<number, string> {
+  return new Map([...map].map(([slug, id]) => [id, slug]));
+}
+
 /**
- * Plans the import against existing content: entries whose slug exists are
- * skipped (never updated); every reference must resolve to the bundle or to
- * existing content.
+ * Plans the import against existing content; every reference must resolve to
+ * the bundle or to existing content. Entries whose slug exists are skipped,
+ * except that destinations found in `current` (given only in update mode) are
+ * compared with the file and planned as `update` or `unchanged`.
  */
-export function planImport(bundle: ImportBundle, existing: ExistingIds): { steps: PlanStep[]; issues: BundleIssue[] } {
+export function planImport(
+  bundle: ImportBundle,
+  existing: ExistingIds,
+  current?: ReadonlyMap<string, DestinationDetail>,
+): { steps: PlanStep[]; issues: BundleIssue[] } {
   const issues: BundleIssue[] = [];
   const known = (kind: ImportKind, slug: string) =>
     existing[kind].has(slug) || bundle[kind].some((entry) => entry.slug === slug);
+
+  const slugs = { countries: invert(existing.countries), attributes: invert(existing.attributes) };
 
   const steps = IMPORT_KINDS.flatMap((kind) =>
     bundle[kind].map((entry, index): PlanStep => {
@@ -146,7 +162,17 @@ export function planImport(bundle: ImportBundle, existing: ExistingIds): { steps
           issues.push({ code: "unknown_reference", path: reference.path });
         }
       }
-      return { kind, slug: entry.slug, action: existing[kind].has(entry.slug) ? "skip" : "create" };
+      if (!existing[kind].has(entry.slug)) {
+        return { kind, slug: entry.slug, action: "create" };
+      }
+      const stored = kind === "destinations" ? current?.get(entry.slug) : undefined;
+      if (!stored) {
+        return { kind, slug: entry.slug, action: "skip" };
+      }
+      const changes = diffComparable(comparableFromStored(stored, slugs), comparableFromBundle(entry.data));
+      return changes.length === 0
+        ? { kind, slug: entry.slug, action: "unchanged" }
+        : { kind: "destinations", slug: entry.slug, action: "update", changes, updatedAt: stored.updatedAt };
     }),
   );
   return { steps, issues };

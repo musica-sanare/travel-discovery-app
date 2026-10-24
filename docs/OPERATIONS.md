@@ -98,6 +98,11 @@ Importing a bundle (ADR-028):
 2. Select "Check": the summary lists what will be created and what is skipped because the slug exists. Fix any reported problem in the file first.
 3. Select "Import" and wait for "The import is complete". If it stops, the message names the item and the reason; fix the file, check again, and import again (created items are skipped).
 
+Updating existing destinations (ADR-028 "Update mode"):
+1. Record a Time Travel bookmark, open Import, load the file, and select **Update existing destinations** before "Check".
+2. Read the "Changes" of every destination to update. Each destination is replaced entirely by the file, so a value changed in the forms since the file was written is overwritten; fix the file first if that change must stay. Treat a highlighted change of the publication status as a mistake unless it is intended.
+3. Select "Import". If it stops with "changed after the check", check again and review the new changes. Countries, attributes, categories, and questions are never updated this way; change them in the forms.
+
 Order (later items reference earlier ones):
 1. Countries.
 2. Attributes (`active`), the dimensions destinations are scored on (0–5).
