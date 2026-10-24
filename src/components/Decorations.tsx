@@ -1,19 +1,19 @@
-import { useId } from "react";
+import { useId, type CSSProperties } from "react";
 
 /*
  * Decorative inline SVGs drawn for this project (no third-party icon sets).
  * They are hidden from assistive technology and inherit `currentColor`.
  */
 
-type SvgProps = { className?: string };
+type SvgProps = { className?: string; style?: CSSProperties };
 
 const PLANE_POINTS =
   "12,2 13.2,3.5 13.2,9 21,13.5 21,15.5 13.2,13 13.2,18.5 15.5,20.3 15.5,21.8 12,20.8 8.5,21.8 8.5,20.3 10.8,18.5 10.8,13 3,15.5 3,13.5 10.8,9 10.8,3.5";
 
 /** Top-down airliner pointing up; rotate with a class to change heading. */
-export function PlaneIcon({ className }: SvgProps) {
+export function PlaneIcon({ className, style }: SvgProps) {
   return (
-    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" className={className}>
+    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" className={className} style={style}>
       <polygon fill="currentColor" points={PLANE_POINTS} />
     </svg>
   );

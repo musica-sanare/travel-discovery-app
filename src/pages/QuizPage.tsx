@@ -3,18 +3,21 @@ import { useTranslation } from "react-i18next";
 import { Navigate } from "react-router";
 import type { DiagnosisContentQuestion } from "../../shared/diagnosis-content";
 import { plannedQuestionCount } from "../../domain/diagnosis";
-import { buttonClass, cardClass, choiceClass } from "../components/classes";
+import { buttonClass, cardClass, choiceClass, ticketLabelClass } from "../components/classes";
 import { ContentStatus } from "../components/ContentStatus";
+import { FlightRoute } from "../components/FlightRoute";
 import { LocalizedText } from "../components/LocalizedText";
 import { drawSeed } from "../diagnosis/session";
 import { useDiagnosis } from "../diagnosis/useDiagnosis";
 
 function QuestionForm({
   question,
+  number,
   initial,
   onAnswer,
 }: {
   question: DiagnosisContentQuestion;
+  number: number;
   initial: readonly string[];
   onAnswer: (options: string[]) => void;
 }) {
@@ -30,8 +33,12 @@ function QuestionForm({
 
   return (
     <form onSubmit={submit} className={`${cardClass} motion-safe:animate-enter`}>
+      <p aria-hidden="true" className={`${ticketLabelClass} mb-2 text-accent`}>
+        {t("ticket.question")}
+        {String(number).padStart(2, "0")}
+      </p>
       <fieldset aria-describedby={multiple ? `${id}-hint` : undefined}>
-        <LocalizedText as="legend" locale={question.locale} className="text-xl font-bold">
+        <LocalizedText as="legend" locale={question.locale} className="text-xl font-bold sm:text-2xl">
           {question.prompt}
         </LocalizedText>
         {question.description && <p className="mt-2 text-muted">{question.description}</p>}
@@ -40,7 +47,7 @@ function QuestionForm({
             {t("quiz.multipleHint")}
           </p>
         )}
-        <div className="mt-4 flex flex-col gap-2">
+        <div className="mt-5 grid gap-2 sm:grid-cols-2">
           {question.options.map((option) => (
             <label key={option.value} htmlFor={`${id}-${option.value}`} className={choiceClass}>
               <input
@@ -67,9 +74,10 @@ function QuestionForm({
           ))}
         </div>
       </fieldset>
-      <div className="mt-5 flex flex-wrap gap-3">
+      <div className="mt-6 flex flex-wrap items-center gap-3 border-t border-dashed border-line pt-5">
         <button type="submit" disabled={selected.length === 0} className={buttonClass.primary}>
           {t("quiz.next")}
+          <span aria-hidden="true">→</span>
         </button>
         <button
           type="button"
@@ -108,20 +116,21 @@ export function QuizPage() {
 
   return (
     <section aria-labelledby="quiz-progress" className="flex flex-col gap-5">
-      <div>
-        <h1 id="quiz-progress" className="text-sm font-semibold text-muted">
-          {t("quiz.progress", { current, total })}
-        </h1>
-        <div className="mt-2 h-2 overflow-hidden rounded-full bg-line" aria-hidden="true">
-          <div
-            className="h-full rounded-full bg-accent transition-[width] duration-300"
-            style={{ width: `${String(Math.round(((current - 1) / total) * 100))}%` }}
-          />
+      <div className="on-sky overflow-hidden rounded-2xl bg-sky px-5 py-4 shadow-md sm:px-6">
+        <div className="flex flex-wrap items-baseline justify-between gap-2">
+          <h1 id="quiz-progress" className="text-lg font-bold">
+            {t("quiz.progress", { current, total })}
+          </h1>
+          <span aria-hidden="true" className={`${ticketLabelClass} text-sun`}>
+            {t("ticket.inFlight")}
+          </span>
         </div>
+        <FlightRoute percent={Math.round(((current - 1) / total) * 100)} />
       </div>
       <QuestionForm
         key={question.slug}
         question={question}
+        number={current}
         initial={previous}
         onAnswer={(options) => {
           dispatch({ type: "answer", answer: { question: question.slug, options } });
@@ -136,6 +145,7 @@ export function QuizPage() {
             dispatch({ type: "back" });
           }}
         >
+          <span aria-hidden="true">←</span>
           {t("quiz.back")}
         </button>
         <button

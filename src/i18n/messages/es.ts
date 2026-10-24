@@ -37,6 +37,10 @@ export const es: Messages = {
     fieldMonths: "MONTHS",
     fieldBudget: "BUDGET",
     fieldAssist: "ASSIST",
+    inFlight: "IN FLIGHT",
+    routeFrom: "DEP",
+    routeTo: "ARR",
+    question: "Q",
   },
   footer: {
     privacy: "Tus respuestas se quedan en este navegador; no se envían ni se guardan en nuestro servidor.",
