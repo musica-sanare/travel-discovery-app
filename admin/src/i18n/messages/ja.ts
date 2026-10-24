@@ -15,6 +15,7 @@ export const ja = {
     attributes: "属性",
     categories: "質問カテゴリー",
     settings: "設定",
+    import: "インポート",
   },
   common: {
     signedInAs: "ログイン中: {{email}}",
@@ -145,6 +146,7 @@ export const ja = {
     attributes: "属性",
     categories: "質問カテゴリー",
     settings: "設定",
+    import: "コンテンツのインポート",
     notFound: "ページが見つかりません",
   },
   settings: {
@@ -153,6 +155,34 @@ export const ja = {
     targetQuestions: "目標質問数",
     maxQuestions: "最大質問数",
     resultCount: "表示する旅行先の数（3〜5）",
+  },
+  import: {
+    intro:
+      "コンテンツの JSON（format: travel-discovery-content、version 1）を取り込みます。既存と同じスラッグの項目は飛ばし、上書きしません。取り込む前に、データベースの復元ポイントを記録してください。",
+    text: "JSON",
+    file: "ファイルから読み込む",
+    check: "内容を確認",
+    checking: "確認中…",
+    run: "取り込む",
+    running: "取り込み中…",
+    summary: "確認結果",
+    kind: "種類",
+    create: "新規作成",
+    skip: "既存のため飛ばす",
+    nothingToCreate: "新しく作成する項目はありません。",
+    progress: "{{done}} / {{total}} 件を処理しました",
+    done: "取り込みが完了しました。",
+    stopped: "「{{item}}」で停止しました。それより前の項目は作成済みです。修正して再度確認すると、続きから取り込めます。",
+    issuesTitle: "ファイルに問題があります",
+    states: { pending: "未処理", created: "作成", skipped: "飛ばした", failed: "失敗" },
+    issues: {
+      invalid_json: "JSON を解析できません。",
+      invalid_format: "形式またはバージョンが正しくありません。",
+      invalid_entry: "項目がオブジェクトではありません。",
+      invalid_slug: "スラッグが正しくありません。",
+      duplicate_slug: "ファイル内でスラッグが重複しています。",
+      unknown_reference: "参照先のスラッグが見つかりません。",
+    },
   },
 };
 

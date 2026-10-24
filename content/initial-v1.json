@@ -1,0 +1,3055 @@
+{
+  "format": "travel-discovery-content",
+  "version": 1,
+  "countries": [
+    {
+      "slug": "taiwan",
+      "translations": {
+        "ja": {
+          "name": "台湾"
+        },
+        "en": {
+          "name": "Taiwan"
+        },
+        "es": {
+          "name": "Taiwán"
+        }
+      }
+    },
+    {
+      "slug": "south-korea",
+      "translations": {
+        "ja": {
+          "name": "韓国"
+        },
+        "en": {
+          "name": "South Korea"
+        },
+        "es": {
+          "name": "Corea del Sur"
+        }
+      }
+    },
+    {
+      "slug": "thailand",
+      "translations": {
+        "ja": {
+          "name": "タイ"
+        },
+        "en": {
+          "name": "Thailand"
+        },
+        "es": {
+          "name": "Tailandia"
+        }
+      }
+    },
+    {
+      "slug": "singapore",
+      "translations": {
+        "ja": {
+          "name": "シンガポール"
+        },
+        "en": {
+          "name": "Singapore"
+        },
+        "es": {
+          "name": "Singapur"
+        }
+      }
+    },
+    {
+      "slug": "indonesia",
+      "translations": {
+        "ja": {
+          "name": "インドネシア"
+        },
+        "en": {
+          "name": "Indonesia"
+        },
+        "es": {
+          "name": "Indonesia"
+        }
+      }
+    },
+    {
+      "slug": "france",
+      "translations": {
+        "ja": {
+          "name": "フランス"
+        },
+        "en": {
+          "name": "France"
+        },
+        "es": {
+          "name": "Francia"
+        }
+      }
+    },
+    {
+      "slug": "spain",
+      "translations": {
+        "ja": {
+          "name": "スペイン"
+        },
+        "en": {
+          "name": "Spain"
+        },
+        "es": {
+          "name": "España"
+        }
+      }
+    },
+    {
+      "slug": "italy",
+      "translations": {
+        "ja": {
+          "name": "イタリア"
+        },
+        "en": {
+          "name": "Italy"
+        },
+        "es": {
+          "name": "Italia"
+        }
+      }
+    },
+    {
+      "slug": "greece",
+      "translations": {
+        "ja": {
+          "name": "ギリシャ"
+        },
+        "en": {
+          "name": "Greece"
+        },
+        "es": {
+          "name": "Grecia"
+        }
+      }
+    },
+    {
+      "slug": "united-states",
+      "translations": {
+        "ja": {
+          "name": "アメリカ合衆国"
+        },
+        "en": {
+          "name": "United States"
+        },
+        "es": {
+          "name": "Estados Unidos"
+        }
+      }
+    },
+    {
+      "slug": "australia",
+      "translations": {
+        "ja": {
+          "name": "オーストラリア"
+        },
+        "en": {
+          "name": "Australia"
+        },
+        "es": {
+          "name": "Australia"
+        }
+      }
+    },
+    {
+      "slug": "peru",
+      "translations": {
+        "ja": {
+          "name": "ペルー"
+        },
+        "en": {
+          "name": "Peru"
+        },
+        "es": {
+          "name": "Perú"
+        }
+      }
+    },
+    {
+      "slug": "argentina",
+      "translations": {
+        "ja": {
+          "name": "アルゼンチン"
+        },
+        "en": {
+          "name": "Argentina"
+        },
+        "es": {
+          "name": "Argentina"
+        }
+      }
+    },
+    {
+      "slug": "brazil",
+      "translations": {
+        "ja": {
+          "name": "ブラジル"
+        },
+        "en": {
+          "name": "Brazil"
+        },
+        "es": {
+          "name": "Brasil"
+        }
+      }
+    },
+    {
+      "slug": "bolivia",
+      "translations": {
+        "ja": {
+          "name": "ボリビア"
+        },
+        "en": {
+          "name": "Bolivia"
+        },
+        "es": {
+          "name": "Bolivia"
+        }
+      }
+    }
+  ],
+  "attributes": [
+    {
+      "slug": "beach",
+      "status": "active",
+      "translations": {
+        "ja": {
+          "name": "ビーチ",
+          "description": "海辺で泳いだり、のんびりしたりできる"
+        },
+        "en": {
+          "name": "Beaches",
+          "description": "Swimming and relaxing by the sea"
+        },
+        "es": {
+          "name": "Playas",
+          "description": "Nadar y descansar junto al mar"
+        }
+      }
+    },
+    {
+      "slug": "history-culture",
+      "status": "active",
+      "translations": {
+        "ja": {
+          "name": "歴史・文化",
+          "description": "遺跡、歴史ある街並み、美術館や伝統文化"
+        },
+        "en": {
+          "name": "History and culture",
+          "description": "Historic sites, old towns, museums, and traditions"
+        },
+        "es": {
+          "name": "Historia y cultura",
+          "description": "Sitios históricos, cascos antiguos, museos y tradiciones"
+        }
+      }
+    },
+    {
+      "slug": "food",
+      "status": "active",
+      "translations": {
+        "ja": {
+          "name": "食",
+          "description": "ご当地料理、市場、屋台やレストラン"
+        },
+        "en": {
+          "name": "Food",
+          "description": "Local dishes, markets, street food, and restaurants"
+        },
+        "es": {
+          "name": "Gastronomía",
+          "description": "Platos locales, mercados, comida callejera y restaurantes"
+        }
+      }
+    },
+    {
+      "slug": "nature",
+      "status": "active",
+      "translations": {
+        "ja": {
+          "name": "自然・絶景",
+          "description": "山、湖、大地などの自然の景色"
+        },
+        "en": {
+          "name": "Nature and scenery",
+          "description": "Mountains, lakes, and wide landscapes"
+        },
+        "es": {
+          "name": "Naturaleza y paisajes",
+          "description": "Montañas, lagos y grandes paisajes"
+        }
+      }
+    },
+    {
+      "slug": "city-life",
+      "status": "active",
+      "translations": {
+        "ja": {
+          "name": "都市の楽しみ",
+          "description": "買い物、ナイトライフ、にぎやかな街歩き"
+        },
+        "en": {
+          "name": "City life",
+          "description": "Shopping, nightlife, and lively streets"
+        },
+        "es": {
+          "name": "Vida urbana",
+          "description": "Compras, vida nocturna y calles animadas"
+        }
+      }
+    },
+    {
+      "slug": "relaxation",
+      "status": "active",
+      "translations": {
+        "ja": {
+          "name": "のんびり",
+          "description": "予定を詰め込まず、ゆったり過ごせる"
+        },
+        "en": {
+          "name": "Relaxation",
+          "description": "A slow pace without a packed schedule"
+        },
+        "es": {
+          "name": "Descanso",
+          "description": "Un ritmo tranquilo, sin agenda apretada"
+        }
+      }
+    },
+    {
+      "slug": "adventure",
+      "status": "active",
+      "translations": {
+        "ja": {
+          "name": "アクティビティ",
+          "description": "ハイキングや体を動かす体験"
+        },
+        "en": {
+          "name": "Adventure",
+          "description": "Hiking and active experiences"
+        },
+        "es": {
+          "name": "Aventura",
+          "description": "Senderismo y experiencias activas"
+        }
+      }
+    }
+  ],
+  "categories": [
+    {
+      "slug": "interests",
+      "status": "active",
+      "translations": {
+        "ja": {
+          "name": "興味"
+        },
+        "en": {
+          "name": "Interests"
+        },
+        "es": {
+          "name": "Intereses"
+        }
+      }
+    },
+    {
+      "slug": "travel-style",
+      "status": "active",
+      "translations": {
+        "ja": {
+          "name": "旅のスタイル"
+        },
+        "en": {
+          "name": "Travel style"
+        },
+        "es": {
+          "name": "Estilo de viaje"
+        }
+      }
+    },
+    {
+      "slug": "pace",
+      "status": "active",
+      "translations": {
+        "ja": {
+          "name": "旅のペース"
+        },
+        "en": {
+          "name": "Pace"
+        },
+        "es": {
+          "name": "Ritmo"
+        }
+      }
+    },
+    {
+      "slug": "scenery",
+      "status": "active",
+      "translations": {
+        "ja": {
+          "name": "景色と環境"
+        },
+        "en": {
+          "name": "Scenery and setting"
+        },
+        "es": {
+          "name": "Paisaje y entorno"
+        }
+      }
+    }
+  ],
+  "destinations": [
+    {
+      "slug": "taipei",
+      "country": "taiwan",
+      "type": "city",
+      "status": "published",
+      "recommendedDays": {
+        "min": 3,
+        "max": 5
+      },
+      "bestMonths": [],
+      "costs": [],
+      "image": null,
+      "attributeScores": [
+        {
+          "attribute": "beach",
+          "score": 0
+        },
+        {
+          "attribute": "history-culture",
+          "score": 3
+        },
+        {
+          "attribute": "food",
+          "score": 5
+        },
+        {
+          "attribute": "nature",
+          "score": 2
+        },
+        {
+          "attribute": "city-life",
+          "score": 4
+        },
+        {
+          "attribute": "relaxation",
+          "score": 2
+        },
+        {
+          "attribute": "adventure",
+          "score": 2
+        }
+      ],
+      "translations": {
+        "ja": {
+          "name": "台北",
+          "summary": "夜市の屋台めぐりと、中国の美術工芸品を集めた故宮博物院が楽しめる街。郊外の山あいの町へも日帰りで出かけられます。",
+          "highlights": [
+            "夜市の屋台グルメ",
+            "故宮博物院",
+            "九份など郊外への日帰り"
+          ],
+          "cautions": null,
+          "bestSeason": null,
+          "imageAlt": null
+        },
+        "en": {
+          "name": "Taipei",
+          "summary": "A city of night-market food stalls and the National Palace Museum's collection of Chinese art. Mountain towns nearby make easy day trips.",
+          "highlights": [
+            "Night-market street food",
+            "National Palace Museum",
+            "Day trips to towns such as Jiufen"
+          ],
+          "cautions": null,
+          "bestSeason": null,
+          "imageAlt": null
+        },
+        "es": {
+          "name": "Taipéi",
+          "summary": "Una ciudad de mercados nocturnos y del Museo Nacional del Palacio, con su colección de arte chino. Los pueblos de montaña cercanos permiten excursiones de un día.",
+          "highlights": [
+            "Comida callejera en los mercados nocturnos",
+            "Museo Nacional del Palacio",
+            "Excursiones a pueblos como Jiufen"
+          ],
+          "cautions": null,
+          "bestSeason": null,
+          "imageAlt": null
+        }
+      }
+    },
+    {
+      "slug": "seoul",
+      "country": "south-korea",
+      "type": "city",
+      "status": "published",
+      "recommendedDays": {
+        "min": 3,
+        "max": 4
+      },
+      "bestMonths": [],
+      "costs": [],
+      "image": null,
+      "attributeScores": [
+        {
+          "attribute": "beach",
+          "score": 0
+        },
+        {
+          "attribute": "history-culture",
+          "score": 3
+        },
+        {
+          "attribute": "food",
+          "score": 4
+        },
+        {
+          "attribute": "nature",
+          "score": 1
+        },
+        {
+          "attribute": "city-life",
+          "score": 5
+        },
+        {
+          "attribute": "relaxation",
+          "score": 1
+        },
+        {
+          "attribute": "adventure",
+          "score": 1
+        }
+      ],
+      "translations": {
+        "ja": {
+          "name": "ソウル",
+          "summary": "王宮と最新の街並みが並ぶ大都市。韓国料理、買い物、深夜まで続く街のにぎわいが魅力です。",
+          "highlights": [
+            "景福宮などの王宮",
+            "市場と韓国料理",
+            "明洞や弘大での買い物と夜の街歩き"
+          ],
+          "cautions": null,
+          "bestSeason": null,
+          "imageAlt": null
+        },
+        "en": {
+          "name": "Seoul",
+          "summary": "A large city where royal palaces stand beside modern districts. Korean food, shopping, and streets that stay busy late into the night.",
+          "highlights": [
+            "Royal palaces such as Gyeongbokgung",
+            "Markets and Korean food",
+            "Shopping and evenings in Myeongdong and Hongdae"
+          ],
+          "cautions": null,
+          "bestSeason": null,
+          "imageAlt": null
+        },
+        "es": {
+          "name": "Seúl",
+          "summary": "Una gran ciudad donde los palacios reales conviven con barrios modernos. Comida coreana, compras y calles animadas hasta tarde.",
+          "highlights": [
+            "Palacios reales como Gyeongbokgung",
+            "Mercados y comida coreana",
+            "Compras y noches en Myeongdong y Hongdae"
+          ],
+          "cautions": null,
+          "bestSeason": null,
+          "imageAlt": null
+        }
+      }
+    },
+    {
+      "slug": "bangkok",
+      "country": "thailand",
+      "type": "city",
+      "status": "published",
+      "recommendedDays": {
+        "min": 3,
+        "max": 5
+      },
+      "bestMonths": [],
+      "costs": [],
+      "image": null,
+      "attributeScores": [
+        {
+          "attribute": "beach",
+          "score": 1
+        },
+        {
+          "attribute": "history-culture",
+          "score": 4
+        },
+        {
+          "attribute": "food",
+          "score": 5
+        },
+        {
+          "attribute": "nature",
+          "score": 1
+        },
+        {
+          "attribute": "city-life",
+          "score": 5
+        },
+        {
+          "attribute": "relaxation",
+          "score": 2
+        },
+        {
+          "attribute": "adventure",
+          "score": 2
+        }
+      ],
+      "translations": {
+        "ja": {
+          "name": "バンコク",
+          "summary": "きらびやかな寺院と屋台の食文化、川沿いの暮らしが交差する活気ある首都です。",
+          "highlights": [
+            "王宮やワット・ポーなどの寺院",
+            "屋台と市場の食べ歩き",
+            "チャオプラヤー川の船旅"
+          ],
+          "cautions": "暑さが厳しいため、こまめな水分補給と日中の休憩を計画してください。",
+          "bestSeason": null,
+          "imageAlt": null
+        },
+        "en": {
+          "name": "Bangkok",
+          "summary": "A lively capital where glittering temples, street-food culture, and life along the river meet.",
+          "highlights": [
+            "Temples such as the Grand Palace and Wat Pho",
+            "Street food and markets",
+            "Boats on the Chao Phraya River"
+          ],
+          "cautions": "It is hot; plan regular drinks and midday breaks.",
+          "bestSeason": null,
+          "imageAlt": null
+        },
+        "es": {
+          "name": "Bangkok",
+          "summary": "Una capital llena de vida donde se cruzan templos resplandecientes, la comida callejera y la vida junto al río.",
+          "highlights": [
+            "Templos como el Gran Palacio y Wat Pho",
+            "Comida callejera y mercados",
+            "Paseos en barco por el río Chao Phraya"
+          ],
+          "cautions": "Hace calor: prevé beber a menudo y descansar al mediodía.",
+          "bestSeason": null,
+          "imageAlt": null
+        }
+      }
+    },
+    {
+      "slug": "singapore",
+      "country": "singapore",
+      "type": "city",
+      "status": "published",
+      "recommendedDays": {
+        "min": 2,
+        "max": 4
+      },
+      "bestMonths": [],
+      "costs": [],
+      "image": null,
+      "attributeScores": [
+        {
+          "attribute": "beach",
+          "score": 1
+        },
+        {
+          "attribute": "history-culture",
+          "score": 2
+        },
+        {
+          "attribute": "food",
+          "score": 4
+        },
+        {
+          "attribute": "nature",
+          "score": 2
+        },
+        {
+          "attribute": "city-life",
+          "score": 5
+        },
+        {
+          "attribute": "relaxation",
+          "score": 3
+        },
+        {
+          "attribute": "adventure",
+          "score": 1
+        }
+      ],
+      "translations": {
+        "ja": {
+          "name": "シンガポール",
+          "summary": "清潔で移動しやすい都市国家。多民族の食文化を味わえるホーカーセンターと、未来的な景観が楽しめます。",
+          "highlights": [
+            "ホーカーセンターの多国籍な料理",
+            "マリーナベイの夜景",
+            "ガーデンズ・バイ・ザ・ベイ"
+          ],
+          "cautions": null,
+          "bestSeason": null,
+          "imageAlt": null
+        },
+        "en": {
+          "name": "Singapore",
+          "summary": "A clean, easy-to-navigate city-state with hawker centres serving its many food cultures and a futuristic skyline.",
+          "highlights": [
+            "Hawker centres with many cuisines",
+            "Marina Bay at night",
+            "Gardens by the Bay"
+          ],
+          "cautions": null,
+          "bestSeason": null,
+          "imageAlt": null
+        },
+        "es": {
+          "name": "Singapur",
+          "summary": "Una ciudad-estado limpia y fácil de recorrer, con centros de comida (hawker centres) de muchas culturas y un horizonte futurista.",
+          "highlights": [
+            "Hawker centres con cocinas de muchos países",
+            "Marina Bay de noche",
+            "Gardens by the Bay"
+          ],
+          "cautions": null,
+          "bestSeason": null,
+          "imageAlt": null
+        }
+      }
+    },
+    {
+      "slug": "bali",
+      "country": "indonesia",
+      "type": "island",
+      "status": "published",
+      "recommendedDays": {
+        "min": 4,
+        "max": 7
+      },
+      "bestMonths": [],
+      "costs": [],
+      "image": null,
+      "attributeScores": [
+        {
+          "attribute": "beach",
+          "score": 4
+        },
+        {
+          "attribute": "history-culture",
+          "score": 3
+        },
+        {
+          "attribute": "food",
+          "score": 3
+        },
+        {
+          "attribute": "nature",
+          "score": 4
+        },
+        {
+          "attribute": "city-life",
+          "score": 1
+        },
+        {
+          "attribute": "relaxation",
+          "score": 5
+        },
+        {
+          "attribute": "adventure",
+          "score": 2
+        }
+      ],
+      "translations": {
+        "ja": {
+          "name": "バリ島",
+          "summary": "ビーチリゾートと、棚田や寺院が残る内陸の村の両方を楽しめる島。ゆったり過ごしたい旅に向いています。",
+          "highlights": [
+            "海辺のリゾートとサーフィン",
+            "ウブド周辺の棚田",
+            "ヒンドゥー寺院と伝統舞踊"
+          ],
+          "cautions": null,
+          "bestSeason": null,
+          "imageAlt": null
+        },
+        "en": {
+          "name": "Bali",
+          "summary": "An island with beach resorts on the coast and rice terraces and temples in the villages inland; well suited to a slow trip.",
+          "highlights": [
+            "Beach resorts and surfing",
+            "Rice terraces around Ubud",
+            "Hindu temples and traditional dance"
+          ],
+          "cautions": null,
+          "bestSeason": null,
+          "imageAlt": null
+        },
+        "es": {
+          "name": "Bali",
+          "summary": "Una isla con complejos de playa en la costa y terrazas de arroz y templos en los pueblos del interior; ideal para un viaje sin prisas.",
+          "highlights": [
+            "Complejos de playa y surf",
+            "Terrazas de arroz cerca de Ubud",
+            "Templos hindúes y danza tradicional"
+          ],
+          "cautions": null,
+          "bestSeason": null,
+          "imageAlt": null
+        }
+      }
+    },
+    {
+      "slug": "paris",
+      "country": "france",
+      "type": "city",
+      "status": "published",
+      "recommendedDays": {
+        "min": 4,
+        "max": 6
+      },
+      "bestMonths": [],
+      "costs": [],
+      "image": null,
+      "attributeScores": [
+        {
+          "attribute": "beach",
+          "score": 0
+        },
+        {
+          "attribute": "history-culture",
+          "score": 4
+        },
+        {
+          "attribute": "food",
+          "score": 4
+        },
+        {
+          "attribute": "nature",
+          "score": 1
+        },
+        {
+          "attribute": "city-life",
+          "score": 5
+        },
+        {
+          "attribute": "relaxation",
+          "score": 2
+        },
+        {
+          "attribute": "adventure",
+          "score": 1
+        }
+      ],
+      "translations": {
+        "ja": {
+          "name": "パリ",
+          "summary": "世界有数の美術館と街並み、カフェやビストロの食文化を歩いて楽しめる街です。",
+          "highlights": [
+            "ルーヴル美術館などの美術館",
+            "エッフェル塔とセーヌ河岸",
+            "カフェ、ビストロ、パン屋"
+          ],
+          "cautions": null,
+          "bestSeason": null,
+          "imageAlt": null
+        },
+        "en": {
+          "name": "Paris",
+          "summary": "A city to explore on foot, with world-famous museums, historic streets, and its café and bistro culture.",
+          "highlights": [
+            "Museums such as the Louvre",
+            "The Eiffel Tower and the banks of the Seine",
+            "Cafés, bistros, and bakeries"
+          ],
+          "cautions": null,
+          "bestSeason": null,
+          "imageAlt": null
+        },
+        "es": {
+          "name": "París",
+          "summary": "Una ciudad para recorrer a pie, con museos de fama mundial, calles históricas y su cultura de cafés y bistrós.",
+          "highlights": [
+            "Museos como el Louvre",
+            "La torre Eiffel y las orillas del Sena",
+            "Cafés, bistrós y panaderías"
+          ],
+          "cautions": null,
+          "bestSeason": null,
+          "imageAlt": null
+        }
+      }
+    },
+    {
+      "slug": "provence",
+      "country": "france",
+      "type": "region",
+      "status": "published",
+      "recommendedDays": {
+        "min": 4,
+        "max": 7
+      },
+      "bestMonths": [],
+      "costs": [],
+      "image": null,
+      "attributeScores": [
+        {
+          "attribute": "beach",
+          "score": 1
+        },
+        {
+          "attribute": "history-culture",
+          "score": 3
+        },
+        {
+          "attribute": "food",
+          "score": 4
+        },
+        {
+          "attribute": "nature",
+          "score": 4
+        },
+        {
+          "attribute": "city-life",
+          "score": 1
+        },
+        {
+          "attribute": "relaxation",
+          "score": 5
+        },
+        {
+          "attribute": "adventure",
+          "score": 2
+        }
+      ],
+      "translations": {
+        "ja": {
+          "name": "プロヴァンス",
+          "summary": "丘の上の小さな村やラベンダー畑、ローマ時代の遺跡が点在する南フランスの地方。マルシェとワインをゆったり楽しめます。",
+          "highlights": [
+            "丘の上の村めぐり",
+            "アヴィニョンなどの歴史ある町",
+            "マルシェと地元のワイン"
+          ],
+          "cautions": "村どうしの移動は公共交通が少ないため、レンタカーやツアーの利用を検討してください。",
+          "bestSeason": null,
+          "imageAlt": null
+        },
+        "en": {
+          "name": "Provence",
+          "summary": "A region of southern France with hilltop villages, lavender fields, and Roman remains, where markets and local wine set a slow pace.",
+          "highlights": [
+            "Hilltop villages",
+            "Historic towns such as Avignon",
+            "Markets and local wine"
+          ],
+          "cautions": "Public transport between villages is limited; consider a rental car or tours.",
+          "bestSeason": null,
+          "imageAlt": null
+        },
+        "es": {
+          "name": "Provenza",
+          "summary": "Una región del sur de Francia con pueblos en lo alto de colinas, campos de lavanda y restos romanos, donde los mercados y el vino local marcan un ritmo tranquilo.",
+          "highlights": [
+            "Pueblos en lo alto de colinas",
+            "Ciudades históricas como Aviñón",
+            "Mercados y vino local"
+          ],
+          "cautions": "El transporte público entre pueblos es escaso; considera alquilar un coche o hacer excursiones.",
+          "bestSeason": null,
+          "imageAlt": null
+        }
+      }
+    },
+    {
+      "slug": "barcelona",
+      "country": "spain",
+      "type": "city",
+      "status": "published",
+      "recommendedDays": {
+        "min": 3,
+        "max": 5
+      },
+      "bestMonths": [],
+      "costs": [],
+      "image": null,
+      "attributeScores": [
+        {
+          "attribute": "beach",
+          "score": 4
+        },
+        {
+          "attribute": "history-culture",
+          "score": 4
+        },
+        {
+          "attribute": "food",
+          "score": 4
+        },
+        {
+          "attribute": "nature",
+          "score": 1
+        },
+        {
+          "attribute": "city-life",
+          "score": 4
+        },
+        {
+          "attribute": "relaxation",
+          "score": 3
+        },
+        {
+          "attribute": "adventure",
+          "score": 2
+        }
+      ],
+      "translations": {
+        "ja": {
+          "name": "バルセロナ",
+          "summary": "ガウディの建築と旧市街、地中海のビーチ、バルでのタパスを一度に楽しめる街です。",
+          "highlights": [
+            "サグラダ・ファミリアなどのガウディ建築",
+            "ゴシック地区の街歩き",
+            "バルのタパスと市場"
+          ],
+          "cautions": null,
+          "bestSeason": null,
+          "imageAlt": null
+        },
+        "en": {
+          "name": "Barcelona",
+          "summary": "A city that combines Gaudí's architecture, an old quarter, Mediterranean beaches, and tapas bars.",
+          "highlights": [
+            "Gaudí buildings such as the Sagrada Família",
+            "Walks in the Gothic Quarter",
+            "Tapas bars and markets"
+          ],
+          "cautions": null,
+          "bestSeason": null,
+          "imageAlt": null
+        },
+        "es": {
+          "name": "Barcelona",
+          "summary": "Una ciudad que reúne la arquitectura de Gaudí, un casco antiguo, playas mediterráneas y bares de tapas.",
+          "highlights": [
+            "Obras de Gaudí como la Sagrada Familia",
+            "Paseos por el Barrio Gótico",
+            "Bares de tapas y mercados"
+          ],
+          "cautions": null,
+          "bestSeason": null,
+          "imageAlt": null
+        }
+      }
+    },
+    {
+      "slug": "andalusia",
+      "country": "spain",
+      "type": "region",
+      "status": "published",
+      "recommendedDays": {
+        "min": 5,
+        "max": 8
+      },
+      "bestMonths": [],
+      "costs": [],
+      "image": null,
+      "attributeScores": [
+        {
+          "attribute": "beach",
+          "score": 2
+        },
+        {
+          "attribute": "history-culture",
+          "score": 5
+        },
+        {
+          "attribute": "food",
+          "score": 4
+        },
+        {
+          "attribute": "nature",
+          "score": 3
+        },
+        {
+          "attribute": "city-life",
+          "score": 2
+        },
+        {
+          "attribute": "relaxation",
+          "score": 4
+        },
+        {
+          "attribute": "adventure",
+          "score": 2
+        }
+      ],
+      "translations": {
+        "ja": {
+          "name": "アンダルシア",
+          "summary": "イスラムとキリスト教の文化が重なる宮殿や大聖堂、白い村、フラメンコが息づくスペイン南部の地方です。",
+          "highlights": [
+            "グラナダのアルハンブラ宮殿",
+            "セビリアの大聖堂とフラメンコ",
+            "丘に広がる白い村"
+          ],
+          "cautions": "夏の内陸部は非常に暑くなることがあります。日中の観光は無理のない計画にしてください。",
+          "bestSeason": null,
+          "imageAlt": null
+        },
+        "en": {
+          "name": "Andalusia",
+          "summary": "A region of southern Spain where palaces and cathedrals reflect Islamic and Christian heritage, with white villages and flamenco.",
+          "highlights": [
+            "The Alhambra in Granada",
+            "Seville's cathedral and flamenco",
+            "White villages on the hillsides"
+          ],
+          "cautions": "Inland areas can get very hot in summer; keep midday sightseeing light.",
+          "bestSeason": null,
+          "imageAlt": null
+        },
+        "es": {
+          "name": "Andalucía",
+          "summary": "Una región del sur de España donde palacios y catedrales reflejan la herencia islámica y cristiana, con pueblos blancos y flamenco.",
+          "highlights": [
+            "La Alhambra de Granada",
+            "La catedral de Sevilla y el flamenco",
+            "Pueblos blancos en las laderas"
+          ],
+          "cautions": "El interior puede ser muy caluroso en verano; planifica visitas ligeras al mediodía.",
+          "bestSeason": null,
+          "imageAlt": null
+        }
+      }
+    },
+    {
+      "slug": "rome",
+      "country": "italy",
+      "type": "city",
+      "status": "published",
+      "recommendedDays": {
+        "min": 3,
+        "max": 5
+      },
+      "bestMonths": [],
+      "costs": [],
+      "image": null,
+      "attributeScores": [
+        {
+          "attribute": "beach",
+          "score": 0
+        },
+        {
+          "attribute": "history-culture",
+          "score": 5
+        },
+        {
+          "attribute": "food",
+          "score": 5
+        },
+        {
+          "attribute": "nature",
+          "score": 1
+        },
+        {
+          "attribute": "city-life",
+          "score": 3
+        },
+        {
+          "attribute": "relaxation",
+          "score": 2
+        },
+        {
+          "attribute": "adventure",
+          "score": 1
+        }
+      ],
+      "translations": {
+        "ja": {
+          "name": "ローマ",
+          "summary": "古代ローマの遺跡とバチカンの美術、トラットリアのイタリア料理が街じゅうで楽しめます。",
+          "highlights": [
+            "コロッセオとフォロ・ロマーノ",
+            "バチカン美術館とサン・ピエトロ大聖堂",
+            "トラットリアとジェラート"
+          ],
+          "cautions": null,
+          "bestSeason": null,
+          "imageAlt": null
+        },
+        "en": {
+          "name": "Rome",
+          "summary": "Ancient Roman ruins, the art of the Vatican, and trattorias serving Italian food all over the city.",
+          "highlights": [
+            "The Colosseum and the Roman Forum",
+            "The Vatican Museums and St Peter's Basilica",
+            "Trattorias and gelato"
+          ],
+          "cautions": null,
+          "bestSeason": null,
+          "imageAlt": null
+        },
+        "es": {
+          "name": "Roma",
+          "summary": "Ruinas de la antigua Roma, el arte del Vaticano y trattorias con cocina italiana por toda la ciudad.",
+          "highlights": [
+            "El Coliseo y el Foro Romano",
+            "Los Museos Vaticanos y la basílica de San Pedro",
+            "Trattorias y helados"
+          ],
+          "cautions": null,
+          "bestSeason": null,
+          "imageAlt": null
+        }
+      }
+    },
+    {
+      "slug": "sicily",
+      "country": "italy",
+      "type": "island",
+      "status": "published",
+      "recommendedDays": {
+        "min": 5,
+        "max": 8
+      },
+      "bestMonths": [],
+      "costs": [],
+      "image": null,
+      "attributeScores": [
+        {
+          "attribute": "beach",
+          "score": 4
+        },
+        {
+          "attribute": "history-culture",
+          "score": 4
+        },
+        {
+          "attribute": "food",
+          "score": 5
+        },
+        {
+          "attribute": "nature",
+          "score": 3
+        },
+        {
+          "attribute": "city-life",
+          "score": 1
+        },
+        {
+          "attribute": "relaxation",
+          "score": 4
+        },
+        {
+          "attribute": "adventure",
+          "score": 2
+        }
+      ],
+      "translations": {
+        "ja": {
+          "name": "シチリア島",
+          "summary": "ギリシャ神殿の遺跡、活火山のエトナ山、海辺の町が魅力の地中海の島。魚介と菓子の食文化も豊かです。",
+          "highlights": [
+            "アグリジェントの神殿の谷",
+            "エトナ山",
+            "海辺の町と魚介料理、シチリア菓子"
+          ],
+          "cautions": null,
+          "bestSeason": null,
+          "imageAlt": null
+        },
+        "en": {
+          "name": "Sicily",
+          "summary": "A Mediterranean island with Greek temple ruins, the active volcano Mount Etna, and seaside towns, plus a rich tradition of seafood and pastries.",
+          "highlights": [
+            "The Valley of the Temples in Agrigento",
+            "Mount Etna",
+            "Seaside towns, seafood, and Sicilian pastries"
+          ],
+          "cautions": null,
+          "bestSeason": null,
+          "imageAlt": null
+        },
+        "es": {
+          "name": "Sicilia",
+          "summary": "Una isla mediterránea con ruinas de templos griegos, el volcán activo Etna y pueblos costeros, además de una rica tradición de pescado y repostería.",
+          "highlights": [
+            "El Valle de los Templos en Agrigento",
+            "El monte Etna",
+            "Pueblos costeros, pescado y dulces sicilianos"
+          ],
+          "cautions": null,
+          "bestSeason": null,
+          "imageAlt": null
+        }
+      }
+    },
+    {
+      "slug": "santorini",
+      "country": "greece",
+      "type": "island",
+      "status": "published",
+      "recommendedDays": {
+        "min": 3,
+        "max": 5
+      },
+      "bestMonths": [],
+      "costs": [],
+      "image": null,
+      "attributeScores": [
+        {
+          "attribute": "beach",
+          "score": 3
+        },
+        {
+          "attribute": "history-culture",
+          "score": 2
+        },
+        {
+          "attribute": "food",
+          "score": 3
+        },
+        {
+          "attribute": "nature",
+          "score": 4
+        },
+        {
+          "attribute": "city-life",
+          "score": 1
+        },
+        {
+          "attribute": "relaxation",
+          "score": 5
+        },
+        {
+          "attribute": "adventure",
+          "score": 1
+        }
+      ],
+      "translations": {
+        "ja": {
+          "name": "サントリーニ島",
+          "summary": "断崖に白い家並みが続く、エーゲ海に浮かぶ島。カルデラを望む景色と夕日の時間をゆっくり過ごせます。",
+          "highlights": [
+            "カルデラを望む白い家並み",
+            "イアの夕日",
+            "ビーチとワイナリー"
+          ],
+          "cautions": null,
+          "bestSeason": null,
+          "imageAlt": null
+        },
+        "en": {
+          "name": "Santorini",
+          "summary": "An Aegean island where white houses line the cliffs, with views over the caldera and unhurried sunsets.",
+          "highlights": [
+            "White houses above the caldera",
+            "Sunset in Oia",
+            "Beaches and wineries"
+          ],
+          "cautions": null,
+          "bestSeason": null,
+          "imageAlt": null
+        },
+        "es": {
+          "name": "Santorini",
+          "summary": "Una isla del Egeo con casas blancas sobre los acantilados, vistas a la caldera y atardeceres sin prisas.",
+          "highlights": [
+            "Casas blancas sobre la caldera",
+            "El atardecer en Oia",
+            "Playas y bodegas"
+          ],
+          "cautions": null,
+          "bestSeason": null,
+          "imageAlt": null
+        }
+      }
+    },
+    {
+      "slug": "honolulu",
+      "country": "united-states",
+      "type": "city",
+      "status": "published",
+      "recommendedDays": {
+        "min": 4,
+        "max": 6
+      },
+      "bestMonths": [],
+      "costs": [],
+      "image": null,
+      "attributeScores": [
+        {
+          "attribute": "beach",
+          "score": 5
+        },
+        {
+          "attribute": "history-culture",
+          "score": 1
+        },
+        {
+          "attribute": "food",
+          "score": 2
+        },
+        {
+          "attribute": "nature",
+          "score": 3
+        },
+        {
+          "attribute": "city-life",
+          "score": 3
+        },
+        {
+          "attribute": "relaxation",
+          "score": 4
+        },
+        {
+          "attribute": "adventure",
+          "score": 2
+        }
+      ],
+      "translations": {
+        "ja": {
+          "name": "ホノルル",
+          "summary": "ワイキキのビーチを拠点に、ハイキングや買い物も楽しめるオアフ島の街。初めての海外旅行にも過ごしやすい場所です。",
+          "highlights": [
+            "ワイキキ・ビーチ",
+            "ダイヤモンドヘッドのハイキング",
+            "ショッピングと食べ歩き"
+          ],
+          "cautions": null,
+          "bestSeason": null,
+          "imageAlt": null
+        },
+        "en": {
+          "name": "Honolulu",
+          "summary": "A city on Oahu where you can stay by Waikiki Beach and add hiking and shopping; easy for a first trip abroad.",
+          "highlights": [
+            "Waikiki Beach",
+            "Hiking Diamond Head",
+            "Shopping and casual food"
+          ],
+          "cautions": null,
+          "bestSeason": null,
+          "imageAlt": null
+        },
+        "es": {
+          "name": "Honolulu",
+          "summary": "Una ciudad en Oahu donde alojarse junto a la playa de Waikiki y añadir senderismo y compras; cómoda para un primer viaje al extranjero.",
+          "highlights": [
+            "La playa de Waikiki",
+            "Senderismo en Diamond Head",
+            "Compras y comida informal"
+          ],
+          "cautions": null,
+          "bestSeason": null,
+          "imageAlt": null
+        }
+      }
+    },
+    {
+      "slug": "sydney",
+      "country": "australia",
+      "type": "city",
+      "status": "published",
+      "recommendedDays": {
+        "min": 4,
+        "max": 6
+      },
+      "bestMonths": [],
+      "costs": [],
+      "image": null,
+      "attributeScores": [
+        {
+          "attribute": "beach",
+          "score": 4
+        },
+        {
+          "attribute": "history-culture",
+          "score": 1
+        },
+        {
+          "attribute": "food",
+          "score": 3
+        },
+        {
+          "attribute": "nature",
+          "score": 3
+        },
+        {
+          "attribute": "city-life",
+          "score": 4
+        },
+        {
+          "attribute": "relaxation",
+          "score": 3
+        },
+        {
+          "attribute": "adventure",
+          "score": 3
+        }
+      ],
+      "translations": {
+        "ja": {
+          "name": "シドニー",
+          "summary": "港の景観とビーチ、都会の楽しみがそろう街。郊外の国立公園へも日帰りで出かけられます。",
+          "highlights": [
+            "オペラハウスとハーバーの景色",
+            "ボンダイ・ビーチと海沿いの散歩道",
+            "ブルー・マウンテンズへの日帰り"
+          ],
+          "cautions": null,
+          "bestSeason": null,
+          "imageAlt": null
+        },
+        "en": {
+          "name": "Sydney",
+          "summary": "A city with a famous harbour, beaches, and city life, with national parks within a day trip.",
+          "highlights": [
+            "The Opera House and the harbour",
+            "Bondi Beach and the coastal walk",
+            "Day trips to the Blue Mountains"
+          ],
+          "cautions": null,
+          "bestSeason": null,
+          "imageAlt": null
+        },
+        "es": {
+          "name": "Sídney",
+          "summary": "Una ciudad con un puerto famoso, playas y vida urbana, y parques nacionales a una excursión de distancia.",
+          "highlights": [
+            "La Ópera y el puerto",
+            "La playa de Bondi y el paseo costero",
+            "Excursiones a las Montañas Azules"
+          ],
+          "cautions": null,
+          "bestSeason": null,
+          "imageAlt": null
+        }
+      }
+    },
+    {
+      "slug": "cusco",
+      "country": "peru",
+      "type": "region",
+      "status": "published",
+      "recommendedDays": {
+        "min": 5,
+        "max": 8
+      },
+      "bestMonths": [],
+      "costs": [],
+      "image": null,
+      "attributeScores": [
+        {
+          "attribute": "beach",
+          "score": 0
+        },
+        {
+          "attribute": "history-culture",
+          "score": 5
+        },
+        {
+          "attribute": "food",
+          "score": 3
+        },
+        {
+          "attribute": "nature",
+          "score": 5
+        },
+        {
+          "attribute": "city-life",
+          "score": 1
+        },
+        {
+          "attribute": "relaxation",
+          "score": 1
+        },
+        {
+          "attribute": "adventure",
+          "score": 5
+        }
+      ],
+      "translations": {
+        "ja": {
+          "name": "クスコとマチュピチュ",
+          "summary": "インカ帝国の都だったクスコの旧市街を拠点に、マチュピチュ遺跡やアンデスの山々を訪ねる旅です。",
+          "highlights": [
+            "マチュピチュ遺跡",
+            "クスコの石組みの旧市街",
+            "アンデスの山歩き"
+          ],
+          "cautions": "標高が高く高山病のおそれがあります。到着後は無理をせず体を慣らしてください。日本からは乗り継ぎが必要で、移動に時間がかかります。",
+          "bestSeason": null,
+          "imageAlt": null
+        },
+        "en": {
+          "name": "Cusco and Machu Picchu",
+          "summary": "Based in the old town of Cusco, once the Inca capital, visit Machu Picchu and the Andes.",
+          "highlights": [
+            "Machu Picchu",
+            "Cusco's old town with Inca stonework",
+            "Walks in the Andes"
+          ],
+          "cautions": "High altitude can cause altitude sickness; take it easy after arriving. Getting there from Japan needs connections and takes long.",
+          "bestSeason": null,
+          "imageAlt": null
+        },
+        "es": {
+          "name": "Cusco y Machu Picchu",
+          "summary": "Desde el casco antiguo de Cusco, la antigua capital inca, se visitan Machu Picchu y los Andes.",
+          "highlights": [
+            "Machu Picchu",
+            "El casco antiguo de Cusco con muros incas",
+            "Caminatas por los Andes"
+          ],
+          "cautions": "La altitud puede causar mal de altura; tómatelo con calma al llegar. Desde Japón hay que hacer escalas y el viaje es largo.",
+          "bestSeason": null,
+          "imageAlt": null
+        }
+      }
+    },
+    {
+      "slug": "buenos-aires",
+      "country": "argentina",
+      "type": "city",
+      "status": "published",
+      "recommendedDays": {
+        "min": 4,
+        "max": 6
+      },
+      "bestMonths": [],
+      "costs": [],
+      "image": null,
+      "attributeScores": [
+        {
+          "attribute": "beach",
+          "score": 0
+        },
+        {
+          "attribute": "history-culture",
+          "score": 4
+        },
+        {
+          "attribute": "food",
+          "score": 5
+        },
+        {
+          "attribute": "nature",
+          "score": 1
+        },
+        {
+          "attribute": "city-life",
+          "score": 4
+        },
+        {
+          "attribute": "relaxation",
+          "score": 3
+        },
+        {
+          "attribute": "adventure",
+          "score": 1
+        }
+      ],
+      "translations": {
+        "ja": {
+          "name": "ブエノスアイレス",
+          "summary": "ヨーロッパ風の街並みとタンゴ、ステーキとワインの食文化が楽しめる南米の大都市です。",
+          "highlights": [
+            "タンゴのショーと発祥の地ラ・ボカ",
+            "アサード（ステーキ）とワイン",
+            "カフェと街歩き"
+          ],
+          "cautions": "日本からは乗り継ぎが必要で、移動に時間がかかります。治安情報を出発前に確認してください。",
+          "bestSeason": null,
+          "imageAlt": null
+        },
+        "en": {
+          "name": "Buenos Aires",
+          "summary": "A large South American city with European-style streets, tango, and a food culture of steak and wine.",
+          "highlights": [
+            "Tango shows and La Boca",
+            "Asado (grilled beef) and wine",
+            "Cafés and city walks"
+          ],
+          "cautions": "Getting there from Japan needs connections and takes long. Check safety information before you go.",
+          "bestSeason": null,
+          "imageAlt": null
+        },
+        "es": {
+          "name": "Buenos Aires",
+          "summary": "Una gran ciudad sudamericana con calles de estilo europeo, tango y una cultura gastronómica de carne y vino.",
+          "highlights": [
+            "Espectáculos de tango y La Boca",
+            "Asado y vino",
+            "Cafés y paseos por la ciudad"
+          ],
+          "cautions": "Desde Japón hay que hacer escalas y el viaje es largo. Consulta la información de seguridad antes de viajar.",
+          "bestSeason": null,
+          "imageAlt": null
+        }
+      }
+    },
+    {
+      "slug": "rio-de-janeiro",
+      "country": "brazil",
+      "type": "city",
+      "status": "published",
+      "recommendedDays": {
+        "min": 4,
+        "max": 6
+      },
+      "bestMonths": [],
+      "costs": [],
+      "image": null,
+      "attributeScores": [
+        {
+          "attribute": "beach",
+          "score": 5
+        },
+        {
+          "attribute": "history-culture",
+          "score": 2
+        },
+        {
+          "attribute": "food",
+          "score": 3
+        },
+        {
+          "attribute": "nature",
+          "score": 4
+        },
+        {
+          "attribute": "city-life",
+          "score": 4
+        },
+        {
+          "attribute": "relaxation",
+          "score": 2
+        },
+        {
+          "attribute": "adventure",
+          "score": 3
+        }
+      ],
+      "translations": {
+        "ja": {
+          "name": "リオデジャネイロ",
+          "summary": "海と岩山に囲まれた街。ビーチで過ごしながら、展望台からの景色や音楽を楽しめます。",
+          "highlights": [
+            "コパカバーナとイパネマのビーチ",
+            "コルコバードのキリスト像",
+            "ポン・ジ・アスーカルからの眺め"
+          ],
+          "cautions": "日本からは乗り継ぎが必要で、移動に時間がかかります。治安情報を出発前に確認してください。",
+          "bestSeason": null,
+          "imageAlt": null
+        },
+        "en": {
+          "name": "Rio de Janeiro",
+          "summary": "A city between the sea and granite peaks: time on the beach, viewpoints over the bay, and music.",
+          "highlights": [
+            "Copacabana and Ipanema beaches",
+            "Christ the Redeemer on Corcovado",
+            "The view from Sugarloaf Mountain"
+          ],
+          "cautions": "Getting there from Japan needs connections and takes long. Check safety information before you go.",
+          "bestSeason": null,
+          "imageAlt": null
+        },
+        "es": {
+          "name": "Río de Janeiro",
+          "summary": "Una ciudad entre el mar y montañas de granito: playa, miradores sobre la bahía y música.",
+          "highlights": [
+            "Las playas de Copacabana e Ipanema",
+            "El Cristo Redentor en el Corcovado",
+            "La vista desde el Pan de Azúcar"
+          ],
+          "cautions": "Desde Japón hay que hacer escalas y el viaje es largo. Consulta la información de seguridad antes de viajar.",
+          "bestSeason": null,
+          "imageAlt": null
+        }
+      }
+    },
+    {
+      "slug": "uyuni",
+      "country": "bolivia",
+      "type": "region",
+      "status": "published",
+      "recommendedDays": {
+        "min": 3,
+        "max": 5
+      },
+      "bestMonths": [],
+      "costs": [],
+      "image": null,
+      "attributeScores": [
+        {
+          "attribute": "beach",
+          "score": 0
+        },
+        {
+          "attribute": "history-culture",
+          "score": 1
+        },
+        {
+          "attribute": "food",
+          "score": 1
+        },
+        {
+          "attribute": "nature",
+          "score": 5
+        },
+        {
+          "attribute": "city-life",
+          "score": 0
+        },
+        {
+          "attribute": "relaxation",
+          "score": 1
+        },
+        {
+          "attribute": "adventure",
+          "score": 5
+        }
+      ],
+      "translations": {
+        "ja": {
+          "name": "ウユニ塩湖",
+          "summary": "見渡すかぎりの白い塩原が広がる高地。条件がそろうと空を映す景色が見られ、四輪駆動車のツアーで巡ります。",
+          "highlights": [
+            "白い塩原の絶景",
+            "四輪駆動車での周遊ツアー",
+            "高地の星空"
+          ],
+          "cautions": "標高が高く高山病のおそれがあり、朝晩は冷え込みます。景色は天候に左右されます。日本からは乗り継ぎが必要です。",
+          "bestSeason": null,
+          "imageAlt": null
+        },
+        "en": {
+          "name": "Uyuni Salt Flat",
+          "summary": "A high plateau of white salt as far as the eye can see; in the right conditions it mirrors the sky. Visited on 4x4 tours.",
+          "highlights": [
+            "The white salt flat",
+            "4x4 tours",
+            "Starry skies at altitude"
+          ],
+          "cautions": "High altitude can cause altitude sickness, and nights are cold. The views depend on the weather. Getting there from Japan needs connections.",
+          "bestSeason": null,
+          "imageAlt": null
+        },
+        "es": {
+          "name": "Salar de Uyuni",
+          "summary": "Un altiplano de sal blanca hasta donde alcanza la vista; con las condiciones adecuadas refleja el cielo. Se recorre en excursiones en 4x4.",
+          "highlights": [
+            "El salar blanco",
+            "Excursiones en 4x4",
+            "Cielos estrellados en la altura"
+          ],
+          "cautions": "La altitud puede causar mal de altura y las noches son frías. Las vistas dependen del tiempo. Desde Japón hay que hacer escalas.",
+          "bestSeason": null,
+          "imageAlt": null
+        }
+      }
+    }
+  ],
+  "questions": [
+    {
+      "slug": "trip-interests",
+      "category": "interests",
+      "type": "multiple_choice",
+      "status": "published",
+      "priorityWeight": 8,
+      "displayOrder": null,
+      "translations": {
+        "ja": {
+          "prompt": "旅で楽しみにしていることは？（複数選べます）",
+          "description": null
+        },
+        "en": {
+          "prompt": "What are you looking forward to on this trip? (choose any)",
+          "description": null
+        },
+        "es": {
+          "prompt": "¿Qué te hace más ilusión de este viaje? (elige las que quieras)",
+          "description": null
+        }
+      },
+      "options": [
+        {
+          "value": "sights",
+          "displayOrder": 0,
+          "translations": {
+            "ja": {
+              "label": "名所や歴史を巡る"
+            },
+            "en": {
+              "label": "Sights and history"
+            },
+            "es": {
+              "label": "Monumentos e historia"
+            }
+          },
+          "effects": [
+            {
+              "attribute": "history-culture",
+              "weight": 3
+            }
+          ]
+        },
+        {
+          "value": "food",
+          "displayOrder": 1,
+          "translations": {
+            "ja": {
+              "label": "ご当地グルメ"
+            },
+            "en": {
+              "label": "Local food"
+            },
+            "es": {
+              "label": "Comida local"
+            }
+          },
+          "effects": [
+            {
+              "attribute": "food",
+              "weight": 3
+            }
+          ]
+        },
+        {
+          "value": "scenery",
+          "displayOrder": 2,
+          "translations": {
+            "ja": {
+              "label": "自然の絶景"
+            },
+            "en": {
+              "label": "Natural scenery"
+            },
+            "es": {
+              "label": "Paisajes naturales"
+            }
+          },
+          "effects": [
+            {
+              "attribute": "nature",
+              "weight": 3
+            }
+          ]
+        },
+        {
+          "value": "beach",
+          "displayOrder": 3,
+          "translations": {
+            "ja": {
+              "label": "ビーチ"
+            },
+            "en": {
+              "label": "Beaches"
+            },
+            "es": {
+              "label": "Playas"
+            }
+          },
+          "effects": [
+            {
+              "attribute": "beach",
+              "weight": 3
+            }
+          ]
+        },
+        {
+          "value": "city",
+          "displayOrder": 4,
+          "translations": {
+            "ja": {
+              "label": "買い物や街歩き"
+            },
+            "en": {
+              "label": "Shopping and city walks"
+            },
+            "es": {
+              "label": "Compras y paseos urbanos"
+            }
+          },
+          "effects": [
+            {
+              "attribute": "city-life",
+              "weight": 3
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "trip-pace",
+      "category": "pace",
+      "type": "single_choice",
+      "status": "published",
+      "priorityWeight": 7,
+      "displayOrder": null,
+      "translations": {
+        "ja": {
+          "prompt": "旅のペースはどれが好きですか？",
+          "description": null
+        },
+        "en": {
+          "prompt": "What pace do you like when travelling?",
+          "description": null
+        },
+        "es": {
+          "prompt": "¿Qué ritmo prefieres al viajar?",
+          "description": null
+        }
+      },
+      "options": [
+        {
+          "value": "slow",
+          "displayOrder": 0,
+          "translations": {
+            "ja": {
+              "label": "ゆったり、予定は少なめ"
+            },
+            "en": {
+              "label": "Slow, with few plans"
+            },
+            "es": {
+              "label": "Tranquilo, con pocos planes"
+            }
+          },
+          "effects": [
+            {
+              "attribute": "relaxation",
+              "weight": 3
+            },
+            {
+              "attribute": "adventure",
+              "weight": -1
+            }
+          ]
+        },
+        {
+          "value": "balanced",
+          "displayOrder": 1,
+          "translations": {
+            "ja": {
+              "label": "観光も休憩もほどほどに"
+            },
+            "en": {
+              "label": "A balance of sights and rest"
+            },
+            "es": {
+              "label": "Un equilibrio entre visitas y descanso"
+            }
+          },
+          "effects": [
+            {
+              "attribute": "relaxation",
+              "weight": 1
+            }
+          ]
+        },
+        {
+          "value": "packed",
+          "displayOrder": 2,
+          "translations": {
+            "ja": {
+              "label": "朝から晩まで予定いっぱい"
+            },
+            "en": {
+              "label": "Packed from morning to night"
+            },
+            "es": {
+              "label": "Lleno de planes de la mañana a la noche"
+            }
+          },
+          "effects": [
+            {
+              "attribute": "city-life",
+              "weight": 2
+            },
+            {
+              "attribute": "relaxation",
+              "weight": -2
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "activity-level",
+      "category": "pace",
+      "type": "single_choice",
+      "status": "published",
+      "priorityWeight": 6,
+      "displayOrder": null,
+      "translations": {
+        "ja": {
+          "prompt": "ハイキングなど体を動かす体験は？",
+          "description": null
+        },
+        "en": {
+          "prompt": "How do you feel about hiking and other active experiences?",
+          "description": null
+        },
+        "es": {
+          "prompt": "¿Qué te parecen el senderismo y otras actividades físicas?",
+          "description": null
+        }
+      },
+      "options": [
+        {
+          "value": "love",
+          "displayOrder": 0,
+          "translations": {
+            "ja": {
+              "label": "ぜひやりたい"
+            },
+            "en": {
+              "label": "I want to do them"
+            },
+            "es": {
+              "label": "Quiero hacerlas"
+            }
+          },
+          "effects": [
+            {
+              "attribute": "adventure",
+              "weight": 3
+            },
+            {
+              "attribute": "nature",
+              "weight": 1
+            }
+          ]
+        },
+        {
+          "value": "some",
+          "displayOrder": 1,
+          "translations": {
+            "ja": {
+              "label": "少しなら"
+            },
+            "en": {
+              "label": "A little"
+            },
+            "es": {
+              "label": "Un poco"
+            }
+          },
+          "effects": [
+            {
+              "attribute": "adventure",
+              "weight": 1
+            }
+          ]
+        },
+        {
+          "value": "avoid",
+          "displayOrder": 2,
+          "translations": {
+            "ja": {
+              "label": "できれば避けたい"
+            },
+            "en": {
+              "label": "I'd rather avoid them"
+            },
+            "es": {
+              "label": "Prefiero evitarlas"
+            }
+          },
+          "effects": [
+            {
+              "attribute": "adventure",
+              "weight": -2
+            },
+            {
+              "attribute": "relaxation",
+              "weight": 1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "evenings",
+      "category": "travel-style",
+      "type": "single_choice",
+      "status": "published",
+      "priorityWeight": 5,
+      "displayOrder": null,
+      "translations": {
+        "ja": {
+          "prompt": "旅先での夜はどう過ごしたいですか？",
+          "description": null
+        },
+        "en": {
+          "prompt": "How would you like to spend your evenings?",
+          "description": null
+        },
+        "es": {
+          "prompt": "¿Cómo te gustaría pasar las noches?",
+          "description": null
+        }
+      },
+      "options": [
+        {
+          "value": "nightlife",
+          "displayOrder": 0,
+          "translations": {
+            "ja": {
+              "label": "夜の街やナイトライフ"
+            },
+            "en": {
+              "label": "Nightlife and busy streets"
+            },
+            "es": {
+              "label": "Vida nocturna y calles animadas"
+            }
+          },
+          "effects": [
+            {
+              "attribute": "city-life",
+              "weight": 3
+            }
+          ]
+        },
+        {
+          "value": "dinner",
+          "displayOrder": 1,
+          "translations": {
+            "ja": {
+              "label": "ゆっくりディナー"
+            },
+            "en": {
+              "label": "A long dinner"
+            },
+            "es": {
+              "label": "Una cena sin prisas"
+            }
+          },
+          "effects": [
+            {
+              "attribute": "food",
+              "weight": 2
+            },
+            {
+              "attribute": "relaxation",
+              "weight": 1
+            }
+          ]
+        },
+        {
+          "value": "early",
+          "displayOrder": 2,
+          "translations": {
+            "ja": {
+              "label": "早めに休んで朝を楽しむ"
+            },
+            "en": {
+              "label": "Early night, early morning"
+            },
+            "es": {
+              "label": "Acostarme pronto y aprovechar la mañana"
+            }
+          },
+          "effects": [
+            {
+              "attribute": "nature",
+              "weight": 1
+            },
+            {
+              "attribute": "relaxation",
+              "weight": 1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "scenery-type",
+      "category": "scenery",
+      "type": "single_choice",
+      "status": "published",
+      "priorityWeight": 7,
+      "displayOrder": null,
+      "translations": {
+        "ja": {
+          "prompt": "いちばん心ひかれる景色は？",
+          "description": null
+        },
+        "en": {
+          "prompt": "Which view appeals to you most?",
+          "description": null
+        },
+        "es": {
+          "prompt": "¿Qué paisaje te atrae más?",
+          "description": null
+        }
+      },
+      "options": [
+        {
+          "value": "sea",
+          "displayOrder": 0,
+          "translations": {
+            "ja": {
+              "label": "青い海と砂浜"
+            },
+            "en": {
+              "label": "Blue sea and sand"
+            },
+            "es": {
+              "label": "Mar azul y arena"
+            }
+          },
+          "effects": [
+            {
+              "attribute": "beach",
+              "weight": 3
+            }
+          ]
+        },
+        {
+          "value": "land",
+          "displayOrder": 1,
+          "translations": {
+            "ja": {
+              "label": "山や大地の広がり"
+            },
+            "en": {
+              "label": "Mountains and open land"
+            },
+            "es": {
+              "label": "Montañas y grandes espacios"
+            }
+          },
+          "effects": [
+            {
+              "attribute": "nature",
+              "weight": 3
+            },
+            {
+              "attribute": "adventure",
+              "weight": 1
+            }
+          ]
+        },
+        {
+          "value": "old-town",
+          "displayOrder": 2,
+          "translations": {
+            "ja": {
+              "label": "古い街並み"
+            },
+            "en": {
+              "label": "Old streets"
+            },
+            "es": {
+              "label": "Calles antiguas"
+            }
+          },
+          "effects": [
+            {
+              "attribute": "history-culture",
+              "weight": 3
+            }
+          ]
+        },
+        {
+          "value": "skyline",
+          "displayOrder": 3,
+          "translations": {
+            "ja": {
+              "label": "都会の夜景"
+            },
+            "en": {
+              "label": "A city skyline at night"
+            },
+            "es": {
+              "label": "El horizonte urbano de noche"
+            }
+          },
+          "effects": [
+            {
+              "attribute": "city-life",
+              "weight": 3
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "food-style",
+      "category": "interests",
+      "type": "single_choice",
+      "status": "published",
+      "priorityWeight": 6,
+      "displayOrder": null,
+      "translations": {
+        "ja": {
+          "prompt": "食事の楽しみ方に近いのは？",
+          "description": null
+        },
+        "en": {
+          "prompt": "Which is closest to how you enjoy food when travelling?",
+          "description": null
+        },
+        "es": {
+          "prompt": "¿Qué se parece más a cómo disfrutas la comida al viajar?",
+          "description": null
+        }
+      },
+      "options": [
+        {
+          "value": "street",
+          "displayOrder": 0,
+          "translations": {
+            "ja": {
+              "label": "屋台や市場で食べ歩き"
+            },
+            "en": {
+              "label": "Street food and markets"
+            },
+            "es": {
+              "label": "Comida callejera y mercados"
+            }
+          },
+          "effects": [
+            {
+              "attribute": "food",
+              "weight": 3
+            },
+            {
+              "attribute": "city-life",
+              "weight": 1
+            }
+          ]
+        },
+        {
+          "value": "restaurants",
+          "displayOrder": 1,
+          "translations": {
+            "ja": {
+              "label": "評判の店やワインをじっくり"
+            },
+            "en": {
+              "label": "Good restaurants and wine"
+            },
+            "es": {
+              "label": "Buenos restaurantes y vino"
+            }
+          },
+          "effects": [
+            {
+              "attribute": "food",
+              "weight": 2
+            },
+            {
+              "attribute": "relaxation",
+              "weight": 1
+            }
+          ]
+        },
+        {
+          "value": "simple",
+          "displayOrder": 2,
+          "translations": {
+            "ja": {
+              "label": "食事にはあまりこだわらない"
+            },
+            "en": {
+              "label": "Food is not a priority"
+            },
+            "es": {
+              "label": "La comida no es una prioridad"
+            }
+          },
+          "effects": [
+            {
+              "attribute": "food",
+              "weight": -2
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "museums",
+      "category": "interests",
+      "type": "single_choice",
+      "status": "published",
+      "priorityWeight": 5,
+      "displayOrder": null,
+      "translations": {
+        "ja": {
+          "prompt": "美術館や遺跡の見学は？",
+          "description": null
+        },
+        "en": {
+          "prompt": "How much do museums and historic sites interest you?",
+          "description": null
+        },
+        "es": {
+          "prompt": "¿Cuánto te interesan los museos y los sitios históricos?",
+          "description": null
+        }
+      },
+      "options": [
+        {
+          "value": "hours",
+          "displayOrder": 0,
+          "translations": {
+            "ja": {
+              "label": "何時間でも見ていたい"
+            },
+            "en": {
+              "label": "I could spend hours"
+            },
+            "es": {
+              "label": "Podría pasar horas"
+            }
+          },
+          "effects": [
+            {
+              "attribute": "history-culture",
+              "weight": 3
+            }
+          ]
+        },
+        {
+          "value": "highlights",
+          "displayOrder": 1,
+          "translations": {
+            "ja": {
+              "label": "有名なところだけ"
+            },
+            "en": {
+              "label": "Only the famous ones"
+            },
+            "es": {
+              "label": "Solo los más famosos"
+            }
+          },
+          "effects": [
+            {
+              "attribute": "history-culture",
+              "weight": 1
+            }
+          ]
+        },
+        {
+          "value": "skip",
+          "displayOrder": 2,
+          "translations": {
+            "ja": {
+              "label": "あまり興味がない"
+            },
+            "en": {
+              "label": "Not much"
+            },
+            "es": {
+              "label": "No mucho"
+            }
+          },
+          "effects": [
+            {
+              "attribute": "history-culture",
+              "weight": -2
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "shopping",
+      "category": "travel-style",
+      "type": "single_choice",
+      "status": "published",
+      "priorityWeight": 4,
+      "displayOrder": null,
+      "translations": {
+        "ja": {
+          "prompt": "旅先での買い物は？",
+          "description": null
+        },
+        "en": {
+          "prompt": "How important is shopping on your trip?",
+          "description": null
+        },
+        "es": {
+          "prompt": "¿Qué importancia tienen las compras en tu viaje?",
+          "description": null
+        }
+      },
+      "options": [
+        {
+          "value": "main",
+          "displayOrder": 0,
+          "translations": {
+            "ja": {
+              "label": "大きな楽しみのひとつ"
+            },
+            "en": {
+              "label": "One of the main pleasures"
+            },
+            "es": {
+              "label": "Uno de los grandes placeres"
+            }
+          },
+          "effects": [
+            {
+              "attribute": "city-life",
+              "weight": 3
+            }
+          ]
+        },
+        {
+          "value": "some",
+          "displayOrder": 1,
+          "translations": {
+            "ja": {
+              "label": "少しできれば十分"
+            },
+            "en": {
+              "label": "A little is enough"
+            },
+            "es": {
+              "label": "Con un poco basta"
+            }
+          },
+          "effects": [
+            {
+              "attribute": "city-life",
+              "weight": 1
+            }
+          ]
+        },
+        {
+          "value": "none",
+          "displayOrder": 2,
+          "translations": {
+            "ja": {
+              "label": "ほとんどしない"
+            },
+            "en": {
+              "label": "Hardly any"
+            },
+            "es": {
+              "label": "Casi nada"
+            }
+          },
+          "effects": [
+            {
+              "attribute": "city-life",
+              "weight": -2
+            },
+            {
+              "attribute": "nature",
+              "weight": 1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "by-the-sea",
+      "category": "scenery",
+      "type": "single_choice",
+      "status": "published",
+      "priorityWeight": 5,
+      "displayOrder": null,
+      "translations": {
+        "ja": {
+          "prompt": "海辺ではどう過ごしたいですか？",
+          "description": null
+        },
+        "en": {
+          "prompt": "What would you do by the sea?",
+          "description": null
+        },
+        "es": {
+          "prompt": "¿Qué harías junto al mar?",
+          "description": null
+        }
+      },
+      "options": [
+        {
+          "value": "swim",
+          "displayOrder": 0,
+          "translations": {
+            "ja": {
+              "label": "泳いだりシュノーケルをしたり"
+            },
+            "en": {
+              "label": "Swim or snorkel"
+            },
+            "es": {
+              "label": "Nadar o hacer esnórquel"
+            }
+          },
+          "effects": [
+            {
+              "attribute": "beach",
+              "weight": 3
+            },
+            {
+              "attribute": "adventure",
+              "weight": 1
+            }
+          ]
+        },
+        {
+          "value": "watch",
+          "displayOrder": 1,
+          "translations": {
+            "ja": {
+              "label": "眺めながらのんびり"
+            },
+            "en": {
+              "label": "Relax and enjoy the view"
+            },
+            "es": {
+              "label": "Relajarme y mirar el paisaje"
+            }
+          },
+          "effects": [
+            {
+              "attribute": "beach",
+              "weight": 1
+            },
+            {
+              "attribute": "relaxation",
+              "weight": 1
+            }
+          ]
+        },
+        {
+          "value": "no-sea",
+          "displayOrder": 2,
+          "translations": {
+            "ja": {
+              "label": "海はなくてもいい"
+            },
+            "en": {
+              "label": "I don't need the sea"
+            },
+            "es": {
+              "label": "No necesito el mar"
+            }
+          },
+          "effects": [
+            {
+              "attribute": "beach",
+              "weight": -3
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "remote-or-city",
+      "category": "scenery",
+      "type": "single_choice",
+      "status": "published",
+      "priorityWeight": 6,
+      "displayOrder": null,
+      "translations": {
+        "ja": {
+          "prompt": "滞在先に近いのはどちら？",
+          "description": null
+        },
+        "en": {
+          "prompt": "Where would you rather stay?",
+          "description": null
+        },
+        "es": {
+          "prompt": "¿Dónde prefieres alojarte?",
+          "description": null
+        }
+      },
+      "options": [
+        {
+          "value": "remote",
+          "displayOrder": 0,
+          "translations": {
+            "ja": {
+              "label": "人の少ない大自然の中"
+            },
+            "en": {
+              "label": "Far from crowds, in nature"
+            },
+            "es": {
+              "label": "Lejos de la gente, en la naturaleza"
+            }
+          },
+          "effects": [
+            {
+              "attribute": "nature",
+              "weight": 3
+            },
+            {
+              "attribute": "adventure",
+              "weight": 2
+            },
+            {
+              "attribute": "city-life",
+              "weight": -2
+            }
+          ]
+        },
+        {
+          "value": "mix",
+          "displayOrder": 1,
+          "translations": {
+            "ja": {
+              "label": "自然と街の両方"
+            },
+            "en": {
+              "label": "A mix of nature and town"
+            },
+            "es": {
+              "label": "Una mezcla de naturaleza y ciudad"
+            }
+          },
+          "effects": [
+            {
+              "attribute": "nature",
+              "weight": 1
+            },
+            {
+              "attribute": "city-life",
+              "weight": 1
+            }
+          ]
+        },
+        {
+          "value": "city",
+          "displayOrder": 2,
+          "translations": {
+            "ja": {
+              "label": "便利な都会"
+            },
+            "en": {
+              "label": "A convenient city"
+            },
+            "es": {
+              "label": "Una ciudad cómoda"
+            }
+          },
+          "effects": [
+            {
+              "attribute": "city-life",
+              "weight": 3
+            },
+            {
+              "attribute": "nature",
+              "weight": -1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "trip-purpose",
+      "category": "travel-style",
+      "type": "single_choice",
+      "status": "published",
+      "priorityWeight": 6,
+      "displayOrder": null,
+      "translations": {
+        "ja": {
+          "prompt": "今回の旅の目的に近いのは？",
+          "description": null
+        },
+        "en": {
+          "prompt": "Which is closest to the purpose of this trip?",
+          "description": null
+        },
+        "es": {
+          "prompt": "¿Qué se parece más al propósito de este viaje?",
+          "description": null
+        }
+      },
+      "options": [
+        {
+          "value": "rest",
+          "displayOrder": 0,
+          "translations": {
+            "ja": {
+              "label": "日常を離れてのんびり休む"
+            },
+            "en": {
+              "label": "Get away and rest"
+            },
+            "es": {
+              "label": "Desconectar y descansar"
+            }
+          },
+          "effects": [
+            {
+              "attribute": "relaxation",
+              "weight": 3
+            }
+          ]
+        },
+        {
+          "value": "discover",
+          "displayOrder": 1,
+          "translations": {
+            "ja": {
+              "label": "新しい文化や体験に出会う"
+            },
+            "en": {
+              "label": "Discover new cultures and experiences"
+            },
+            "es": {
+              "label": "Descubrir culturas y experiencias nuevas"
+            }
+          },
+          "effects": [
+            {
+              "attribute": "history-culture",
+              "weight": 1
+            },
+            {
+              "attribute": "adventure",
+              "weight": 2
+            }
+          ]
+        },
+        {
+          "value": "both",
+          "displayOrder": 2,
+          "translations": {
+            "ja": {
+              "label": "その両方"
+            },
+            "en": {
+              "label": "A bit of both"
+            },
+            "es": {
+              "label": "Un poco de ambos"
+            }
+          },
+          "effects": [
+            {
+              "attribute": "relaxation",
+              "weight": 1
+            },
+            {
+              "attribute": "adventure",
+              "weight": 1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "travel-distance",
+      "category": "travel-style",
+      "type": "single_choice",
+      "status": "published",
+      "priorityWeight": 4,
+      "displayOrder": null,
+      "translations": {
+        "ja": {
+          "prompt": "移動時間の長い旅は？",
+          "description": null
+        },
+        "en": {
+          "prompt": "How do you feel about long journeys to get there?",
+          "description": null
+        },
+        "es": {
+          "prompt": "¿Qué te parecen los viajes largos para llegar?",
+          "description": null
+        }
+      },
+      "options": [
+        {
+          "value": "fine",
+          "displayOrder": 0,
+          "translations": {
+            "ja": {
+              "label": "遠くても行きたい場所に行く"
+            },
+            "en": {
+              "label": "Distance is fine for the right place"
+            },
+            "es": {
+              "label": "La distancia no importa si el lugar lo merece"
+            }
+          },
+          "effects": [
+            {
+              "attribute": "adventure",
+              "weight": 2
+            },
+            {
+              "attribute": "nature",
+              "weight": 1
+            }
+          ]
+        },
+        {
+          "value": "moderate",
+          "displayOrder": 1,
+          "translations": {
+            "ja": {
+              "label": "ほどほどがいい"
+            },
+            "en": {
+              "label": "Moderate is best"
+            },
+            "es": {
+              "label": "Mejor algo intermedio"
+            }
+          },
+          "effects": [
+            {
+              "attribute": "relaxation",
+              "weight": 1
+            }
+          ]
+        },
+        {
+          "value": "short",
+          "displayOrder": 2,
+          "translations": {
+            "ja": {
+              "label": "なるべく短い移動がいい"
+            },
+            "en": {
+              "label": "As short as possible"
+            },
+            "es": {
+              "label": "Lo más corto posible"
+            }
+          },
+          "effects": [
+            {
+              "attribute": "adventure",
+              "weight": -2
+            },
+            {
+              "attribute": "relaxation",
+              "weight": 2
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

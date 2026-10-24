@@ -59,8 +59,9 @@ shared/                 Locale, currency, month, and API error constants (browse
 domain/diagnosis/       Pure diagnostic engine (docs/DIAGNOSTIC_ALGORITHM.md)
 migrations/             Generated SQL migrations (+ drizzle-kit snapshots in meta/)
 db/seed/dev.sql         Local seed data
+content/                Reviewed content bundles for the admin Import page (ADR-028)
 test/workers/           Workers-runtime tests (D1, auth, CRUD, public API)
-test/node/              Static boundary checks
+test/node/              Static boundary checks, content bundle checks
 scripts/                Build-time verification
 wrangler.jsonc          Public Worker config (binding PUBLIC_DB)
 wrangler.admin.jsonc    Admin Worker config (binding ADMIN_DB; owns migrations)

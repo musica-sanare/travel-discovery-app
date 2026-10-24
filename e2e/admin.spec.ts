@@ -109,6 +109,81 @@ test.describe("admin content workflow on the dev server", () => {
   });
 });
 
+test.describe("admin content import on the dev server", () => {
+  test("checks a bundle, imports new items as drafts, and skips them on a rerun", async ({ page, request }) => {
+    const suffix = String(Date.now());
+    const country = `e2e-land-${suffix}`;
+    const destination = `e2e-import-${suffix}`;
+    const question = `e2e-import-q-${suffix}`;
+    const bundle = (destinationCountry: string) =>
+      JSON.stringify({
+        format: "travel-discovery-content",
+        version: 1,
+        countries: [
+          { slug: "portugal", translations: { ja: { name: "ポルトガル" } } },
+          { slug: country, translations: { ja: { name: "E2E国" } } },
+        ],
+        destinations: [
+          {
+            slug: destination,
+            country: destinationCountry,
+            type: "city",
+            status: "draft",
+            recommendedDays: { min: null, max: null },
+            image: null,
+            attributeScores: [{ attribute: "food", score: 4 }],
+            translations: { ja: { name: "E2E取り込み市", summary: "取り込みテスト用の架空の旅行先です。" } },
+          },
+        ],
+        questions: [
+          {
+            slug: question,
+            category: "travel-style",
+            type: "single_choice",
+            status: "draft",
+            priorityWeight: 5,
+            displayOrder: null,
+            translations: { ja: { prompt: "E2E の質問ですか？" } },
+            options: [
+              { value: "yes", displayOrder: 0, translations: { ja: { label: "はい" } }, effects: [{ attribute: "nature", weight: 2 }] },
+              { value: "no", displayOrder: 1, translations: { ja: { label: "いいえ" } }, effects: [] },
+            ],
+          },
+        ],
+      });
+
+    await page.goto("/import");
+    await expect(page.getByRole("heading", { level: 1, name: "コンテンツのインポート" })).toBeVisible();
+    const input = page.getByLabel("JSON", { exact: true });
+    const checkButton = page.getByRole("button", { name: "内容を確認" });
+
+    await input.fill(bundle("no-such-country"));
+    await checkButton.click();
+    await expect(page.getByRole("alert")).toContainText("destinations[0].country");
+    await expect(page.getByRole("alert")).toContainText("参照先のスラッグが見つかりません。");
+    await expect(page.getByRole("button", { name: "取り込む" })).toHaveCount(0);
+
+    await input.fill(bundle(country));
+    await checkButton.click();
+    await expect(page.getByRole("row", { name: /^国/ })).toContainText("portugal");
+    await page.getByRole("button", { name: "取り込む" }).click();
+    await expect(page.getByRole("status").filter({ hasText: "取り込みが完了しました。" })).toBeVisible();
+
+    const destinations = (await (await request.get(`/api/admin/destinations?q=${destination}`)).json()) as {
+      items: { slug: string; status: string }[];
+    };
+    expect(destinations.items).toEqual([expect.objectContaining({ slug: destination, status: "draft" })]);
+    const questions = (await (await request.get(`/api/admin/questions?q=${question}`)).json()) as {
+      items: { slug: string }[];
+    };
+    expect(questions.items.map((item) => item.slug)).toEqual([question]);
+    expect((await request.get(`${PUBLIC}/api/destinations/${destination}?locale=ja`)).status()).toBe(404);
+
+    await checkButton.click();
+    await expect(page.getByRole("status").filter({ hasText: "新しく作成する項目はありません。" })).toBeVisible();
+  });
+});
+
 test.describe("admin languages", () => {
   test("switching language updates the UI and document metadata and survives a reload", async ({ page }) => {
     await page.goto("/destinations");
@@ -133,7 +208,7 @@ test.describe("admin accessibility (axe-core)", () => {
   // axe is injected as an inline script, which a strict CSP would block.
   test.use({ bypassCSP: true });
 
-  for (const path of ["/destinations", "/destinations/new", "/questions", "/questions/new", "/countries", "/attributes", "/categories", "/settings"]) {
+  for (const path of ["/destinations", "/destinations/new", "/questions", "/questions/new", "/countries", "/attributes", "/categories", "/settings", "/import"]) {
     test(`${path} has no violations`, async ({ page }) => {
       await page.goto(path);
       await expect(page.getByRole("heading", { level: 1 })).toBeVisible();

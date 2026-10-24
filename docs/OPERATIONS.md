@@ -87,10 +87,15 @@ Stop AI with the kill switch (`docs/DEPLOYMENT.md` section 7, ADR-026 E); the di
 Checked 2026-10-19 (https://developers.cloudflare.com/observability/pricing/): on Free, 0.5 GB of ingestion per day and 7-day retention; at the limit ingestion stops until 00:00 UTC and nothing is charged. With invocation logs disabled, only `api_error` and `ai_explanation` lines are ingested, which is expected to stay far below the limit *(要確認: daily volume in the dashboard)*. If the volume approaches the limit, lower `head_sampling_rate` in the environment's `observability` block. Re-check the page before 2026-12-01 and update this section.
 
 ## 8. Publishing production content
-Content is entered only through the production admin console; `db/seed/dev.sql` is never loaded into production. The rules below come from `docs/SPEC.md`, `docs/DIAGNOSTIC_ALGORITHM.md`, and the admin validation (`server/admin/validation.ts`).
+Content is entered only through the production admin console, either in the forms or on the **Import** page with a reviewed bundle from `content/` (ADR-028); `db/seed/dev.sql` is never loaded into production. The rules below come from `docs/SPEC.md`, `docs/DIAGNOSTIC_ALGORITHM.md`, and the admin validation (`server/admin/validation.ts`).
 
 Before:
 - Record a Time Travel bookmark (section 5).
+
+Importing a bundle (ADR-028):
+1. Open Import in the production admin console and load the file (for example `content/initial-v1.json`).
+2. Select "Check": the summary lists what will be created and what is skipped because the slug exists. Fix any reported problem in the file first.
+3. Select "Import" and wait for "The import is complete". If it stops, the message names the item and the reason; fix the file, check again, and import again (created items are skipped).
 
 Order (later items reference earlier ones):
 1. Countries.

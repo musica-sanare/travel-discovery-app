@@ -56,6 +56,7 @@ worker/         Public Worker                admin-worker/   Admin Worker
 domain/         Deterministic diagnosis      server/         Worker-side code (db, http, public, admin, ai)
 shared/         Browser + Worker contracts   migrations/     D1 migrations
 db/seed/        Local seed data              e2e/            Playwright specs
+content/        Content bundles to import
 test/           Workers, Node, and AI-evaluation tests
 scripts/        Build checks and helpers     docs/           Specification, architecture, decisions, guides
 prompts/        Per-phase prompts for Claude Code

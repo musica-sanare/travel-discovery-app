@@ -13,6 +13,7 @@ const NAV_ITEMS = [
   ["/attributes", "nav.attributes"],
   ["/categories", "nav.categories"],
   ["/settings", "nav.settings"],
+  ["/import", "nav.import"],
 ] as const;
 
 /**

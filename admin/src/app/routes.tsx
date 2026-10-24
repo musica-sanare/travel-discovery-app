@@ -1,6 +1,7 @@
 import { Navigate, type RouteObject } from "react-router";
 import { DestinationFormPage } from "../pages/DestinationFormPage";
 import { DestinationsPage } from "../pages/DestinationsPage";
+import { ImportPage } from "../pages/ImportPage";
 import { NotFoundPage } from "../pages/NotFoundPage";
 import { QuestionFormPage } from "../pages/QuestionFormPage";
 import { QuestionsPage } from "../pages/QuestionsPage";
@@ -24,6 +25,7 @@ export const routes: RouteObject[] = [
       { path: "attributes", element: <TaxonomyPage kind="attributes" /> },
       { path: "categories", element: <TaxonomyPage kind="categories" /> },
       { path: "settings", Component: SettingsPage },
+      { path: "import", Component: ImportPage },
       { path: "*", Component: NotFoundPage },
     ],
   },
