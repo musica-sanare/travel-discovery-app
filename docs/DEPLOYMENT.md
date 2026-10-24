@@ -165,6 +165,6 @@ Checked 2026-10-18 ("Phase 6 verification log" in `docs/DECISIONS.md`); free tie
 - [ ] Reduced-motion setting: no blocking animation.
 - [ ] Content review: costs show basis, source, and date; no wording suggests live prices; all published content has `ja` and `en` translations at least.
 - [ ] Outbound search links open the provider start pages only, in a new tab.
-- [ ] The evaluation API token from Stage 5 has been deleted in the dashboard.
-- [ ] The Gemma terms of use and prohibited-use policy have been reviewed (before enabling AI).
+- [x] The evaluation API token from Stage 5 has been deleted in the dashboard (owner, 2026-10-24).
+- [x] The Gemma terms of use and prohibited-use policy have been reviewed (before enabling AI; owner, 2026-10-24).
 - [ ] Commit author emails are acceptable for the intended visibility of the repository (`docs/PUBLIC_RELEASE.md`).
