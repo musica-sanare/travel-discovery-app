@@ -136,6 +136,26 @@ describe("rankDestinations", () => {
     expect(top?.topAttributes).toEqual([{ attribute: "nature", value: 5 }]);
   });
 
+  it("does not explain a result with an attribute the user does not want", () => {
+    const data = content({
+      attributes: attributes("adventure", "beach", "nature"),
+      questions: [
+        question("sea", [option("no-sea", { beach: -3 }), option("sea", { beach: 3 })]),
+        question("style", [option("outdoors", { nature: 3, adventure: 2 }), option("indoors", { nature: -1 })], { category: "interests" }),
+      ],
+      destinations: [destination("cusco", { nature: 5, adventure: 5, beach: 0 }), destination("da-nang", { beach: 5, nature: 3 })],
+    });
+    const answers: Answer[] = [
+      { question: "sea", options: ["no-sea"] },
+      { question: "style", options: ["outdoors"] },
+    ];
+    const { results } = rankDestinations(data, answers, {}, LIMITS);
+    const cusco = results.find((item) => item.slug === "cusco");
+    // beach contributes -3 · -1 = 3 to fit, but an unwanted attribute is never a reason it fits.
+    expect(cusco?.fit).toBeCloseTo(50 + (50 * (3 + 2 + 3)) / 8, 10);
+    expect(cusco?.topAttributes.map((item) => item.attribute)).toEqual(["nature", "adventure"]);
+  });
+
   it("reports ignored answers and still ranks", () => {
     const result = rankDestinations(DATA, [...ANSWERS, { question: "unknown", options: ["x"] }], {}, LIMITS);
     expect(result.ignoredAnswers).toEqual([{ question: "unknown", reason: "unknown_question" }]);

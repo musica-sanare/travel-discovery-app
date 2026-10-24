@@ -78,7 +78,9 @@ The fit is a relative fit against current content data, not a probability. The U
 Budget, season, and duration never change `fit`.
 
 ### Fallback explanation data
-Each result carries structured data from which the UI builds the deterministic, localized explanation (no AI): the top three attributes by positive contribution `P[a] · x_d[a]` (ties by slug), the budget, season, and duration statuses, and coverage. The UI combines these with the destination's authored summary/highlights and message-catalog templates.
+Each result carries structured data from which the UI builds the deterministic, localized explanation (no AI): the top three attributes by positive contribution `P[a] · x_d[a]` among attributes the user wants (`P[a] > 0`; ties by slug), the budget, season, and duration statuses, and coverage. The UI combines these with the destination's authored summary/highlights and message-catalog templates.
+
+A disliked attribute that the destination lacks (`P[a] < 0`, low score) still raises `fit`, but it is never listed as a match: "Why it fits" names only what the user asked for. Example: with `beach` at −3, a destination with `beach 0` gains `+3` in `S_d` but does not show "Beaches". The same list is the `matches` input of the optional AI explanation.
 
 ## 5. Budget comparison
 

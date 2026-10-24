@@ -22,7 +22,7 @@ export interface RankedDestination {
   budget: BudgetComparison;
   season: SeasonStatus;
   duration: DurationStatus;
-  /** Strongest positive contributions, for the deterministic explanation. */
+  /** Strongest positive contributions from wanted attributes (P[a] > 0), for the deterministic explanation. */
   topAttributes: readonly AttributeContribution[];
 }
 
@@ -68,7 +68,7 @@ export function rankDestinations(
       season: seasonStatus(destination, constraints.months),
       duration: durationStatus(destination, constraints.days),
       topAttributes: contributions
-        .filter((item) => item.value > 0)
+        .filter((item) => item.value > 0 && (preferences.values.get(item.attribute) ?? 0) > 0)
         .sort((a, b) => b.value - a.value || compareSlugs(a.attribute, b.attribute))
         .slice(0, TOP_ATTRIBUTE_COUNT),
     });
