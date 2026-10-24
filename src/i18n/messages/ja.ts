@@ -31,6 +31,11 @@ export const ja = {
     checkIn: "CHECK-IN",
     boarding: "BOARDING",
     departure: "DEPARTURE",
+    boardingPass: "BOARDING PASS",
+    fieldDays: "DAYS",
+    fieldMonths: "MONTHS",
+    fieldBudget: "BUDGET",
+    fieldAssist: "ASSIST",
   },
   footer: {
     privacy: "回答はこのブラウザの中だけで使われ、サーバーには送信・保存されません。",

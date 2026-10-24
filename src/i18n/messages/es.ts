@@ -32,6 +32,11 @@ export const es: Messages = {
     checkIn: "CHECK-IN",
     boarding: "BOARDING",
     departure: "DEPARTURE",
+    boardingPass: "BOARDING PASS",
+    fieldDays: "DAYS",
+    fieldMonths: "MONTHS",
+    fieldBudget: "BUDGET",
+    fieldAssist: "ASSIST",
   },
   footer: {
     privacy: "Tus respuestas se quedan en este navegador; no se envían ni se guardan en nuestro servidor.",

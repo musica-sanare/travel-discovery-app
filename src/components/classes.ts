@@ -10,11 +10,16 @@ export const buttonClass = {
 
 export const cardClass = "rounded-2xl border border-line bg-surface p-5 shadow-sm sm:p-6";
 
+/** Text and select fields; callers set the width. */
 export const fieldClass =
-  "min-h-11 w-full rounded-lg border border-line bg-surface px-3 py-2 text-base text-ink sm:w-auto";
+  "min-h-11 rounded-lg border border-line bg-surface px-3 py-2 text-base text-ink aria-invalid:border-warn-ink aria-invalid:bg-warn-soft";
 
 export const choiceClass =
   "flex min-h-11 cursor-pointer items-center gap-3 rounded-lg border border-line bg-surface px-4 py-2 transition-colors hover:border-accent hover:bg-accent-soft has-checked:border-accent has-checked:bg-accent-soft";
+
+/** Compact pill-shaped checkbox choice, such as a travel month. */
+export const chipClass =
+  "flex min-h-11 cursor-pointer items-center gap-2 rounded-full border border-line bg-surface px-4 py-2 text-sm font-medium transition-colors hover:border-accent hover:bg-accent-soft has-checked:border-accent has-checked:bg-accent-soft has-checked:text-ink";
 
 export const noticeClass = {
   info: "rounded-lg bg-accent-soft px-4 py-3 text-sm",

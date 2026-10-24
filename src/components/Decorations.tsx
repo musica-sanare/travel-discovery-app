@@ -123,3 +123,29 @@ export function HorizonArt({ className }: SvgProps) {
     </svg>
   );
 }
+
+const BARCODE_WIDTHS = [3, 1, 2, 1, 1, 3, 1, 2, 2, 1, 1, 1, 3, 2, 1, 2, 1, 3, 1, 1, 2, 1, 2, 3, 1, 1, 2, 1, 3, 1];
+const BARCODE_STARTS = BARCODE_WIDTHS.map((_, index) => BARCODE_WIDTHS.slice(0, index).reduce((sum, w) => sum + w, 0));
+const BARCODE_LENGTH = BARCODE_WIDTHS.reduce((sum, width) => sum + width, 0);
+/** Every other segment is a bar; the rest are gaps. */
+const BARCODE_BARS = BARCODE_WIDTHS.flatMap((width, index) =>
+  index % 2 === 0 ? [{ x: BARCODE_STARTS[index] ?? 0, width }] : [],
+);
+
+/** Decorative boarding-pass barcode; it encodes nothing. */
+export function Barcode({ className }: SvgProps) {
+  return (
+    <svg
+      viewBox={`0 0 ${String(BARCODE_LENGTH)} 10`}
+      preserveAspectRatio="none"
+      aria-hidden="true"
+      focusable="false"
+      className={className}
+      fill="currentColor"
+    >
+      {BARCODE_BARS.map((bar) => (
+        <rect key={bar.x} x={bar.x} y="0" width={bar.width} height="10" />
+      ))}
+    </svg>
+  );
+}
