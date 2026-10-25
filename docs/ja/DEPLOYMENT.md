@@ -1,4 +1,4 @@
-<!-- source: docs/en/DEPLOYMENT.md blob 2de3cacef977c6e184d9989507079a453fe6401f -->
+<!-- source: docs/en/DEPLOYMENT.md blob ba8ca0f53024cfeb8bd103823de514cb0d25567c -->
 [English](../en/DEPLOYMENT.md) | 日本語 · [目次に戻る](README.md)
 
 > この文書は[英語版](../en/DEPLOYMENT.md)の翻訳です。内容が異なる場合は英語版が優先されます。
@@ -172,7 +172,7 @@ npx wrangler d1 migrations apply travel-discovery-preview --remote --env preview
 **後の本番の判断を妨げる**もの（どれか 1 つでも）: 手順 4 で 429 が観測されなかった。手順 3 のリクエストのうち 2 つ以上で `invalid_output`、`timeout`、`provider_error` が出た。順位、比較、データにない事実を含むノートがあった。1 回あたりの Neurons が見積もりを大きく上回った（平均で約 30 を超える）。5 つの項目より多い項目を持つ、またはリクエストの内容を含むログの行があった。アカウントが Workers Free でない、または Billing に新しい請求がある。Workers Logs の量が Free の割り当てに近い（[OPERATIONS.md](OPERATIONS.md) 7 節）。プレビューと本番が Neurons の割り当てを共有するかどうかは要確認のままで、共有するものとして計画する。本番で AI を有効にするのは 7 節による別のオーナーの判断であり、この記録ができてから行う。
 
 ## 8. ロールバック
-- コード: `npx wrangler rollback <VERSION_ID> --name <worker>` またはダッシュボード（Workers & Pages → Worker → Deployments → Rollback）。即座に反映され、直近 100 個のバージョンに使え、バインドしたリソースは変えない: データベースは現在のスキーマとデータのままである。静的アセットがバージョンと一緒に戻るかどうかは文書化されていない *(要確認。プレビューで最初にロールバックを試すときに確認する)*。代わりの方法は、直前の正常なコミットのビルドを再デプロイすることである。
+- コード: `npx wrangler rollback <VERSION_ID> --name <worker>` またはダッシュボード（Workers & Pages → Worker → Deployments → Rollback）。即座に反映され、直近 100 個のバージョンに使え、バインドしたリソースは変えない: データベースは現在のスキーマとデータのままである。静的アセットもバージョンと一緒に戻る: 2026-10-25 に公開プレビュー Worker で確認した（[DECISIONS.md](../working/DECISIONS.md) の "Phase 10 verification log"）。配信される `index.html` とクライアントバンドルは、戻す方向でも元に戻す方向でも約 20 秒以内に戻し先のバージョンのものに切り替わり、もう一方のバージョンのバンドルは配信されなくなった。代わりの方法は、直前の正常なコミットのビルドを再デプロイすることである。
 - データ: `npx wrangler d1 time-travel restore <database> --timestamp <unix|RFC3339>`（または `--bookmark`）で、Workers Free では 7 日以内の時点に復元できる。これは**破壊的**である: すべてのデータを置き換え、実行中のクエリを取り消し、元に戻すためのブックマークを表示する。復元するたびにオーナーの承認を得る。
 - AI の問題: ロールバックではなく停止スイッチ（7 節）を使う。
 
