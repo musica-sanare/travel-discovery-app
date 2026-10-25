@@ -4,6 +4,8 @@ import { rankDestinations } from "../../domain/diagnosis";
 import type { DiagnosisContentResponse } from "../../shared/diagnosis-content";
 import { toEngineContent } from "../../shared/engine-content";
 import type { ExplanationInput, ExplanationProvider } from "../../server/ai/provider";
+import { clientObjectName } from "../../server/public/client-quota";
+import type { AiClientLimiter } from "../../worker/ai-client-limiter";
 import { app as defaultApp, createPublicApp, type AiDependencies, type PublicEnv, type RateLimiter } from "../../worker/index";
 import { ensureSeeded, json, publicRequest } from "./helpers";
 
@@ -57,6 +59,7 @@ function send(options: SendOptions = {}): Promise<Response> {
   const dependencies: AiDependencies = {
     provider: null,
     clientLimiter: null,
+    quotaLimiter: limiter(true).limiter,
     ...options.dependencies,
   };
   const app = createPublicApp({ aiDependencies: () => dependencies });
@@ -324,6 +327,39 @@ describe("POST /api/ai/explanations: rate limiting and logs", () => {
     },
   );
 
+  it("returns 429 without calling AI or reading the body when the quota refuses", async () => {
+    const { provider, calls } = fakeProvider();
+    const quota = limiter(false);
+    const response = await send({ body: "{", headers: { "CF-Connecting-IP": "203.0.113.6" }, dependencies: { provider, quotaLimiter: quota.limiter } });
+    expect(response.status).toBe(429);
+    expect(await json(response)).toEqual({ error: "rate_limited" });
+    expect(quota.keys).toEqual(["ip4:203.0.113.6"]);
+    expect(calls).toHaveLength(0);
+  });
+
+  it("does not consult the quota when the binding already refuses", async () => {
+    const quota = limiter(true);
+    const response = await send({ body: body(), dependencies: { clientLimiter: limiter(false).limiter, quotaLimiter: quota.limiter } });
+    expect(response.status).toBe(429);
+    expect(quota.keys).toEqual([]);
+  });
+
+  it.each([
+    ["missing", null],
+    [
+      "failing",
+      {
+        limit: () => Promise.reject(new Error("Durable Object limit exceeded")),
+      } satisfies RateLimiter,
+    ],
+  ])("fails closed with 503 and no model call when the quota is %s", async (_, quotaLimiter) => {
+    const { provider, calls } = fakeProvider();
+    const response = await send({ body: body(), dependencies: { provider, quotaLimiter } });
+    expect(response.status).toBe(503);
+    expect(await json(response)).toEqual({ error: "ai_unavailable" });
+    expect(calls).toHaveLength(0);
+  });
+
   it.each([
     [{ "CF-Connecting-IP": "203.0.113.5" }, "ip4:203.0.113.5"],
     [{ "CF-Connecting-IP": "2001:db8:aa:bb:1:2:3:4" }, "ip6:2001:db8:aa:bb::/64"],
@@ -360,6 +396,7 @@ describe("POST /api/ai/explanations: rate limiting and logs", () => {
     await send({ body: body(), headers, dependencies: { provider: ok.provider, clientLimiter: limiter(false).limiter } });
     await send({ body: body(), headers, enabled: "false", dependencies: { provider: ok.provider } });
     await send({ body: body(), headers });
+    await send({ body: body(), headers, dependencies: { provider: ok.provider, quotaLimiter: null } });
 
     expect(logs.map((line) => (JSON.parse(line) as { outcome: string; model: string | null }))).toEqual([
       expect.objectContaining({ outcome: "ok", model: "fake-model" }),
@@ -368,6 +405,7 @@ describe("POST /api/ai/explanations: rate limiting and logs", () => {
       expect.objectContaining({ outcome: "rate_limited", model: "fake-model" }),
       expect.objectContaining({ outcome: "disabled", model: "fake-model" }),
       expect.objectContaining({ outcome: "disabled", model: null }),
+      expect.objectContaining({ outcome: "limiter_unavailable", model: "fake-model" }),
     ]);
     for (const line of logs) {
       expect(Object.keys(JSON.parse(line) as object).sort()).toEqual(["destinationCount", "event", "latencyMs", "model", "outcome"]);
@@ -399,6 +437,18 @@ describe("POST /api/ai/explanations: wiring from Worker bindings", () => {
     return { response: JSON.stringify({ explanations: ids.map((id) => ({ id, text: VALID_TEXT })) }) };
   }
 
+  function fakeQuotaNamespace(success = true) {
+    const names: string[] = [];
+    const namespace = {
+      getByName(name: string) {
+        names.push(name);
+        return { check: () => Promise.resolve({ success }) };
+      },
+    };
+    // Only `getByName` and the stub's `check` are used by the Worker.
+    return { namespace: namespace as unknown as DurableObjectNamespace<AiClientLimiter>, names };
+  }
+
   function sendDefault(bindings: Partial<PublicEnv>, address = "198.51.100.9"): Promise<Response> {
     const request = new Request(`${ORIGIN}${PATH}`, {
       method: "POST",
@@ -411,11 +461,13 @@ describe("POST /api/ai/explanations: wiring from Worker bindings", () => {
   it("uses the AI binding with a shortlisted model and the rate-limit bindings", async () => {
     const { binding, calls } = fakeAiBinding(echoIds);
     const client = limiter(true);
+    const quota = fakeQuotaNamespace();
     const response = await sendDefault({
       AI_ASSIST_ENABLED: "true",
       AI_MODEL: "@cf/google/gemma-4-26b-a4b-it",
       AI: binding,
       AI_CLIENT_RATE_LIMITER: client.limiter,
+      AI_CLIENT_LIMITER: quota.namespace,
     });
     expect(response.status).toBe(200);
     const result = (await json(response)) as { explanations: { slug: string; text: string }[] };
@@ -424,6 +476,15 @@ describe("POST /api/ai/explanations: wiring from Worker bindings", () => {
     expect(calls[0]?.model).toBe("@cf/google/gemma-4-26b-a4b-it");
     expect((calls[0]?.options as { signal?: unknown }).signal).toBeInstanceOf(AbortSignal);
     expect(client.keys).toEqual(["ip4:198.51.100.9"]);
+    expect(quota.names).toEqual([await clientObjectName("ip4:198.51.100.9")]);
+    expect(quota.names[0]).toMatch(/^[0-9a-f]{64}$/);
+  });
+
+  it("returns 503 without calling the binding when the quota binding is missing", async () => {
+    const { binding, calls } = fakeAiBinding(echoIds);
+    const response = await sendDefault({ AI_ASSIST_ENABLED: "true", AI_MODEL: "@cf/google/gemma-4-26b-a4b-it", AI: binding });
+    expect(response.status).toBe(503);
+    expect(calls).toHaveLength(0);
   });
 
   it.each([
@@ -432,7 +493,7 @@ describe("POST /api/ai/explanations: wiring from Worker bindings", () => {
     ["the kill switch off", { AI_MODEL: "@cf/meta/llama-3.1-8b-instruct-fp8" }],
   ])("returns 503 without calling the binding with %s", async (_, bindings) => {
     const { binding, calls } = fakeAiBinding(echoIds);
-    const response = await sendDefault({ ...bindings, AI: binding });
+    const response = await sendDefault({ ...bindings, AI: binding, AI_CLIENT_LIMITER: fakeQuotaNamespace().namespace });
     expect(response.status).toBe(503);
     expect(calls).toHaveLength(0);
   });
@@ -445,17 +506,28 @@ describe("POST /api/ai/explanations: wiring from Worker bindings", () => {
     }
     const statuses: number[] = [];
     for (let i = 0; i < 7; i += 1) {
-      const response = await sendDefault({ AI_CLIENT_RATE_LIMITER: env.TEST_AI_CLIENT_RATE_LIMITER }, "203.0.113.201");
+      const response = await sendDefault(
+        { AI_CLIENT_RATE_LIMITER: env.TEST_AI_CLIENT_RATE_LIMITER, AI_CLIENT_LIMITER: fakeQuotaNamespace().namespace },
+        "203.0.113.201",
+      );
       statuses.push(response.status);
     }
     expect(statuses).toEqual([503, 503, 503, 503, 503, 429, 429]);
-    const other = await sendDefault({ AI_CLIENT_RATE_LIMITER: env.TEST_AI_CLIENT_RATE_LIMITER }, "203.0.113.202");
+    const other = await sendDefault(
+      { AI_CLIENT_RATE_LIMITER: env.TEST_AI_CLIENT_RATE_LIMITER, AI_CLIENT_LIMITER: fakeQuotaNamespace().namespace },
+      "203.0.113.202",
+    );
     expect(other.status).toBe(503);
   });
 
   it("returns 503 when the binding returns an unexpected shape", async () => {
     const { binding } = fakeAiBinding(() => ({ result: "unexpected" }));
-    const response = await sendDefault({ AI_ASSIST_ENABLED: "true", AI_MODEL: "@cf/google/gemma-4-26b-a4b-it", AI: binding });
+    const response = await sendDefault({
+      AI_ASSIST_ENABLED: "true",
+      AI_MODEL: "@cf/google/gemma-4-26b-a4b-it",
+      AI: binding,
+      AI_CLIENT_LIMITER: fakeQuotaNamespace().namespace,
+    });
     expect(response.status).toBe(503);
   });
 });

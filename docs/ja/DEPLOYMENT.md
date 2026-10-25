@@ -1,4 +1,4 @@
-<!-- source: docs/en/DEPLOYMENT.md blob 39b757276090c48855592f2dae803365c2a44fca -->
+<!-- source: docs/en/DEPLOYMENT.md blob 6c9e346c964e5be26c8bc0ac778d2f66a34c4e3d -->
 [English](../en/DEPLOYMENT.md) | 日本語 · [目次に戻る](README.md)
 
 > この文書は[英語版](../en/DEPLOYMENT.md)の翻訳です。内容が異なる場合は英語版が優先されます。
@@ -15,7 +15,7 @@
 | 提供するもの | 公開 SPA、読み取り専用 API、AI 説明のエンドポイント | 管理 SPA と管理 API |
 | 保護 | なし（公開サイト） | Worker レベルの Cloudflare Access（"All traffic"）と、すべての管理 API ハンドラーでの JWT 検証（ADR-004） |
 | D1 | 管理 Worker と同じデータベース。コード上は読み取り専用（ADR-018） | マイグレーションを管理する |
-| 任意のバインディング | `AI`、`AI_CLIENT_RATE_LIMITER`（ADR-026） | `ADMIN_RATE_LIMITER`（ADR-020） |
+| 任意のバインディング | `AI`、`AI_CLIENT_RATE_LIMITER`（ADR-026）、Durable Object `AI_CLIENT_LIMITER`（ADR-029。AI に必須） | `ADMIN_RATE_LIMITER`（ADR-020） |
 
 環境: `preview`（確認用）と `production`。それぞれ専用の D1 データベースを持つ。名前付きの環境は、その環境が自分の `name` を設定しない限り、`<name>-<environment>` という別の Worker としてデプロイされる:
 
@@ -64,7 +64,7 @@ npx wrangler d1 create travel-discovery-preview
 ### 3.3 設定（C5、ADR-026「Stage 5 preparation decisions」C）
 `env.preview` と `env.production` は両方の Wrangler 設定にあり（Phase 6、2026-10-18）、それぞれ専用のデータベースと `namespace_id` の値を持つ（プレビュー `1001`／`1002`、本番 `2001`／`2002`）。`env.production` はトップレベルの Worker 名を保つために `name` も設定している。`vars` とバインディングは名前付きの環境に継承されないので、各環境は使うものをすべて宣言する:
 - 両方の Worker: その環境の `database_name` と `database_id` を持つ `d1_databases`（管理用の設定は `migrations_dir` も保持する）。`"observability": { "enabled": true, "logs": { "enabled": true, "invocation_logs": false } }`（アプリ自身の行だけの Workers Logs。呼び出しログは各リクエストの IP アドレス、ヘッダー、位置情報を保存するため。[DECISIONS.md](../working/DECISIONS.md)（英語のみ）「Phase 7 verification log」）。ダッシュボードとの食い違いが黙って生じないよう、明示的に設定した `"workers_dev": true` と `"preview_urls": false`。`upload_source_maps`。
-- 公開 Worker: `ai` バインディング。`vars` の `AI_ASSIST_ENABLED: "false"` と `AI_MODEL: "@cf/google/gemma-4-26b-a4b-it"`。`ratelimits` バインディング `AI_CLIENT_RATE_LIMITER`（`simple: { limit: 5, period: 60 }`）。
+- 公開 Worker: `ai` バインディング。`vars` の `AI_ASSIST_ENABLED: "false"` と `AI_MODEL: "@cf/google/gemma-4-26b-a4b-it"`。`ratelimits` バインディング `AI_CLIENT_RATE_LIMITER`（`simple: { limit: 5, period: 60 }`）。Durable Object のバインディング `AI_CLIENT_LIMITER`（クラス `AiClientLimiter`）とマイグレーション `v1`（`new_sqlite_classes`）。ローカル用にトップレベルにもある（ADR-029）。
 - 管理 Worker: `ratelimits` バインディング `ADMIN_RATE_LIMITER`（推奨値 `limit: 120, period: 60`）。`vars` の `ACCESS_TEAM_DOMAIN` と `ACCESS_POLICY_AUD`（秘密情報ではない。3.4 の後で判明し、管理 Worker ごとに異なる）。
 - `ratelimits` の各エントリーには専用の `namespace_id`（アカウント内で一意な正の整数を文字列で）が必要である。ID を共有するバインディングはカウンターも共有するので、プレビューと本番で共有してはならない。
 - `ai`、`ratelimits`、AI の変数をトップレベルに決して追加しない。`ai` バインディングは、`npm run dev` やテストからでも常に Cloudflare に接続する。
@@ -172,9 +172,9 @@ npx wrangler d1 migrations apply travel-discovery-preview --remote --env preview
 **後の本番の判断を妨げる**もの（どれか 1 つでも）: 手順 4 で 429 が観測されなかった。手順 3 のリクエストのうち 2 つ以上で `invalid_output`、`timeout`、`provider_error` が出た。順位、比較、データにない事実を含むノートがあった。1 回あたりの Neurons が見積もりを大きく上回った（平均で約 30 を超える）。5 つの項目より多い項目を持つ、またはリクエストの内容を含むログの行があった。アカウントが Workers Free でない、または Billing に新しい請求がある。Workers Logs の量が Free の割り当てに近い（[OPERATIONS.md](OPERATIONS.md) 7 節）。プレビューと本番が Neurons の割り当てを共有するかどうかは要確認のままで、共有するものとして計画する。本番で AI を有効にするのは 7 節による別のオーナーの判断であり、この記録ができてから行う。
 
 ### 7.2 AI を無効にしたままのリミッターの確認（別途承認）
-Phase 11 から、公開 Worker は停止スイッチより先に `AI_CLIENT_RATE_LIMITER` を確かめる。そのため、`AI_ASSIST_ENABLED` が `"false"` のデプロイでリミッターを確認できる: モデルは呼ばれず、確認中に誰も AI を使えない。リミッターが拒否したリクエストは 429 `rate_limited` を返し、それ以外は 503 `ai_unavailable` を返して `disabled` の行を書く。各リクエストは Workers Free の 1 日のリクエスト上限に数えられる（ここでは無視できる量）。デプロイと確認はそれぞれオーナーの承認が必要で、この確認のために本番はデプロイしない。
+Phase 11 から、公開 Worker は停止スイッチより先に `AI_CLIENT_RATE_LIMITER`、続いて上限用の Durable Object `AI_CLIENT_LIMITER`（ADR-029）を確かめる。そのため、`AI_ASSIST_ENABLED` が `"false"` のデプロイでリミッターを確認できる: モデルは呼ばれず、確認中に誰も AI を使えない。リミッターが拒否したリクエストは 429 `rate_limited` を返し、それ以外は 503 `ai_unavailable` を返して `disabled` の行を書く。各実行は、そのアドレスの 1 日の上限 30 回にも数えられる（2 回の実行で 10 回分）。各リクエストは Workers Free の 1 日のリクエスト上限に数えられる（ここでは無視できる量）。デプロイと確認はそれぞれオーナーの承認が必要で、この確認のために本番はデプロイしない。
 
-1. 新しい処理順のコミットを、公開プレビュー Worker だけにデプロイする（5 節）。`AI_ASSIST_ENABLED` は `"false"` のまま。ドライランで `AI_CLIENT_RATE_LIMITER`（60 秒に 5 回）があることを確認する。
+1. 確認するコミットを、公開プレビュー Worker だけにデプロイする（5 節）。`AI_ASSIST_ENABLED` は `"false"` のまま。ドライランで `AI_CLIENT_RATE_LIMITER`（60 秒に 5 回）と Durable Object `AI_CLIENT_LIMITER`（`AiClientLimiter`）があることを確認する。Durable Object を含む最初のデプロイでマイグレーション `v1`（`new_sqlite_classes`）が適用される。後でクラスを取り除くには `deleted_classes` のマイグレーションが必要である。
 2. 同じアドレスからの他の AI リクエスト（`scripts/check-deployment.mjs` を含む）から 60 秒以上待つ。
 3. 実行 A、1 本の接続: 1 回の `curl` で 15 回送る。接続は使い回される（`num_connects` は最初のリクエストで 1、その後は 0）。`-4` でリクエストを IPv4 にそろえ、同じキーにする:
 
@@ -189,9 +189,9 @@ Phase 11 から、公開 Worker は停止スイッチより先に `AI_CLIENT_RAT
    ```
 
 5. 60 秒以上待ってから、`node scripts/check-deployment.mjs <account subdomain> preview` を実行する（その AI のチェックは 503 を期待する）。
-6. オーナー: `travel-discovery-preview` の Observability で、実行 A と B の `rate_limited` と `disabled` の行を数える。429 と 503 の数と一致するはずである。
+6. オーナー: `travel-discovery-preview` の Observability で、実行 A と B の `rate_limited` と `disabled` の行を数える。429 と 503 の数と一致するはずである。ダッシュボードで、Durable Object のリクエストと書き込んだ行、Worker のリクエスト数に Durable Object の呼び出しが含まれるかを記録する（ADR-029、要確認）。
 
-[DECISIONS.md](../working/DECISIONS.md)（英語のみ）の「Phase 11 verification log」に、バージョン ID と、実行ごとのステータスコードと接続数の並びを記録する。アドレスは記録しない。解釈: 両方の実行で 429 が出ればリミッターは動いている（5 回を超えて通った分は、ドキュメントにある結果整合によるもの）。実行 A だけで 429 が出るなら、新しい接続で届いたリクエストの時点ではカウンターがまだ共有されていないことを示す。どちらでも 429 が出なければ、binding が Worker に届いていないか、このアカウントで数えられていないことを示す。新しい判断なしに、15 回の実行 2 回を超えて送らない。
+[DECISIONS.md](../working/DECISIONS.md)（英語のみ）の「Phase 11 verification log」に、バージョン ID と、実行ごとのステータスコードと接続数の並びを記録する。アドレスは記録しない。解釈: 上限用の Durable Object があれば、1 つのオブジェクトがそのアドレスのリクエストをすべて数えるので、どちらの実行もちょうど 5 回の 503 のあとに 429 を返さなければならない。どちらかの実行で 503 が 5 回を超えるか、429 が出なければ不合格で、AI は無効のままにして記録する（Durable Object がない状態では、2026-10-25 に binding だけでは実行 A でしか 429 が出なかった: 新しい接続で届いたリクエストはまとめて数えられない）。新しい判断なしに、15 回の実行 2 回を超えて送らない。
 
 ## 8. ロールバック
 - コード: `npx wrangler rollback <VERSION_ID> --name <worker>` またはダッシュボード（Workers & Pages → Worker → Deployments → Rollback）。即座に反映され、直近 100 個のバージョンに使え、バインドしたリソースは変えない: データベースは現在のスキーマとデータのままである。静的アセットもバージョンと一緒に戻る: 2026-10-25 に公開プレビュー Worker で確認した（[DECISIONS.md](../working/DECISIONS.md) の "Phase 10 verification log"）。配信される `index.html` とクライアントバンドルは、戻す方向でも元に戻す方向でも約 20 秒以内に戻し先のバージョンのものに切り替わり、もう一方のバージョンのバンドルは配信されなくなった。代わりの方法は、直前の正常なコミットのビルドを再デプロイすることである。

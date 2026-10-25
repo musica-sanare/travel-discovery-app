@@ -1,4 +1,4 @@
-<!-- source: docs/en/ARCHITECTURE.md blob 047798c72e78384bd79dc5e6d644425aa9e69e9e -->
+<!-- source: docs/en/ARCHITECTURE.md blob d4290b2512b11a71c75a4b2b4864b0c155d32e34 -->
 [English](../en/ARCHITECTURE.md) | 日本語 · [目次に戻る](README.md)
 
 > この文書は[英語版](../en/ARCHITECTURE.md)の翻訳です。内容が異なる場合は英語版が優先されます。
@@ -117,7 +117,7 @@ Phase 4 の設計（ADR-026、提案）:
 - `server/ai/` にインターフェース、Workers AI アダプター、プロンプトの組み立て、出力の検証を置き、`server/public/ai-explanations.ts` にユースケースを置く。ドメインに加わるのは純粋な好みの要約関数だけである。
 - モデルが見るのはスラッグ順に並べた不透明な ID（`d1` など）だけで、スラッグ、順位、スコア、費用、ユーザーの回答は見せない。サーバーが ID をスラッグに戻す。
 - 出力のチェック（形、ID の集合、長さ、数字・URL・マークアップ、文字体系）は補助的なガードであり、文章が事実として正しいことは証明できない。順位と事実の項目は、決定的なエンジンと人が書いたコンテンツが担う。
-- 利用量は、停止スイッチ（`AI_ASSIST_ENABLED`）、バーストのレートリミッター、Workers AI の 1 日の割り当てで抑える。MVP ではアプリ側の 1 日の予算はない。
+- 利用量は、停止スイッチ（`AI_ASSIST_ENABLED`）、バーストのレートリミッター（Rate Limiting バインディング、ベストエフォート）、Durable Object による厳密なクライアントごとの上限（アドレスごとに 60 秒に 5 回、UTC の 1 日に 30 回。ADR-029）、Workers AI の 1 日の割り当てで抑える。MVP ではアプリ全体の 1 日の予算はない。
 
 ## 6. データと API の原則
 

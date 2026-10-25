@@ -29,7 +29,8 @@ export type AiOutcome =
   | "timeout"
   | "invalid_output"
   | "disabled"
-  | "rate_limited";
+  | "rate_limited"
+  | "limiter_unavailable";
 
 /** The only log line for AI requests: no answers, texts, prompts, or addresses. */
 export interface AiLogEntry {

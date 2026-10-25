@@ -114,7 +114,7 @@ Phase 4 design (ADR-026, proposed):
 - `server/ai/` holds the interface, the Workers AI adapter, the prompt builder, and output validation; `server/public/ai-explanations.ts` holds the use case. The domain gains only a pure preference-summary function.
 - The model sees opaque IDs (`d1`, …) in slug order, never slugs, ranks, scores, costs, or user answers; the server maps IDs back to slugs.
 - Output checks (shape, ID set, length, digits/URLs/markup, script) are auxiliary guards; they cannot prove the text is factually correct. Ranking and factual fields stay with the deterministic engine and authored content.
-- Usage is bounded by a kill switch (`AI_ASSIST_ENABLED`), a burst rate limiter, and the Workers AI daily allocation; there is no app-level daily budget in the MVP.
+- Usage is bounded by a kill switch (`AI_ASSIST_ENABLED`), a burst rate limiter (Rate Limiting binding, best effort), a strict per-client quota in a Durable Object (5 per 60 s and 30 per UTC day per address, ADR-029), and the Workers AI daily allocation; there is no app-wide daily budget in the MVP.
 
 ## 6. Data and API principles
 

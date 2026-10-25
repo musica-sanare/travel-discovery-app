@@ -5,5 +5,5 @@
     "lib": ["ES2023"],
     "types": ["@cloudflare/workers-types", "@cloudflare/vitest-plugin/types", "vite/client"]
   },
-  "include": ["worker", "admin-worker", "server", "shared", "test/workers"]
+  "include": ["worker", "admin-worker", "server", "shared", "test/workers", "test/workers-public"]
 }

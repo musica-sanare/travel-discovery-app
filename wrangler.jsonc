@@ -22,6 +22,14 @@
       "database_id": "local-travel-discovery"
     }
   ],
+  // Strict per-client AI quota (docs/working/DECISIONS.md ADR-029). A Durable
+  // Object runs locally under `npm run dev` and the tests, with no connection
+  // to Cloudflare, so the top level keeps it. Bindings and migrations are not
+  // inherited, so every environment repeats them. SQLite-backed classes are
+  // the only kind available on Workers Free; removing the class later needs a
+  // `deleted_classes` migration.
+  "durable_objects": { "bindings": [{ "name": "AI_CLIENT_LIMITER", "class_name": "AiClientLimiter" }] },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["AiClientLimiter"] }],
   // Deployment environments (docs/en/DEPLOYMENT.md "3.3 Configuration"), selected
   // with CLOUDFLARE_ENV at build time only. Bindings and vars are not inherited,
   // so each environment declares all of them. The top level above must never
@@ -50,6 +58,8 @@
         // namespace_id must be unique in the account (ADR-026 B).
         { "name": "AI_CLIENT_RATE_LIMITER", "namespace_id": "1001", "simple": { "limit": 5, "period": 60 } }
       ],
+      "durable_objects": { "bindings": [{ "name": "AI_CLIENT_LIMITER", "class_name": "AiClientLimiter" }] },
+      "migrations": [{ "tag": "v1", "new_sqlite_classes": ["AiClientLimiter"] }],
       "vars": {
         // Kill switch: anything but "true" means no model call (ADR-026 A).
         "AI_ASSIST_ENABLED": "false",
@@ -76,6 +86,8 @@
       "ratelimits": [
         { "name": "AI_CLIENT_RATE_LIMITER", "namespace_id": "2001", "simple": { "limit": 5, "period": 60 } }
       ],
+      "durable_objects": { "bindings": [{ "name": "AI_CLIENT_LIMITER", "class_name": "AiClientLimiter" }] },
+      "migrations": [{ "tag": "v1", "new_sqlite_classes": ["AiClientLimiter"] }],
       "vars": {
         "AI_ASSIST_ENABLED": "false",
         "AI_MODEL": "@cf/google/gemma-4-26b-a4b-it"

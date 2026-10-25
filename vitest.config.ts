@@ -9,6 +9,8 @@ import { defineConfig } from "vitest/config";
 //   environment comment).
 // - "workers": Worker and database tests inside the Workers runtime (workerd)
 //   with a local, migrated D1 database.
+// - "workers-public": tests that need the public Worker as the main module,
+//   such as its Durable Object (ADR-029).
 const adminD1Databases = { ADMIN_DB: "local-travel-discovery" };
 
 // The model evaluation calls real Workers AI models and consumes Neurons, so
@@ -58,6 +60,13 @@ export default defineConfig({
           name: "workers",
           include: ["test/workers/**/*.test.ts"],
           setupFiles: ["./test/workers/setup.ts"],
+        },
+      },
+      {
+        plugins: [cloudflareTest({ wrangler: { configPath: "./wrangler.jsonc" } })],
+        test: {
+          name: "workers-public",
+          include: ["test/workers-public/**/*.test.ts"],
         },
       },
       ...aiEvaluationProjects,

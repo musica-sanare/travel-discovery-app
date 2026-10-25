@@ -1,4 +1,4 @@
-<!-- source: docs/en/DEVELOPMENT.md blob d98f72939a8ffbbc96bdc116fd97da818aff92ca -->
+<!-- source: docs/en/DEVELOPMENT.md blob ea12cd5a7ae5e98519cddd4c6745ffe4d2187636 -->
 [English](../en/DEVELOPMENT.md) | 日本語 · [目次に戻る](README.md)
 
 > この文書は[英語版](../en/DEVELOPMENT.md)の翻訳です。内容が異なる場合は英語版が優先されます。
@@ -147,4 +147,4 @@ curl "http://localhost:5173/api/destinations?locale=en"
 ## 環境変数
 - ローカル: `.dev.vars`（「ローカルでの管理画面」を参照）。`.env.example` にすべての変数を載せている。
 - デプロイした管理 Worker（オーナーが Access の設定を承認した後にだけ設定する）: `ACCESS_TEAM_DOMAIN`、`ACCESS_POLICY_AUD`。これがないと、管理 API のリクエストはすべて 403 で拒否される。任意の Rate Limiting バインディング `ADMIN_RATE_LIMITER`（Access のメールアドレスをキーにする。まだ設定していない。[DECISIONS.md](../working/DECISIONS.md)（英語のみ） ADR-020）。
-- 公開 Worker の AI 説明（[DECISIONS.md](../working/DECISIONS.md)（英語のみ） ADR-026。まだどれも設定していない）: `AI_ASSIST_ENABLED`（`"true"` でエンドポイントが有効になる。未設定を含むそれ以外の値では無効になり、モデルは呼ばれない）、`AI_MODEL`（`server/ai/workers-ai.ts` にあるモデル ID のいずれか）、`AI` バインディング、任意のクライアントごとのレート制限バインディング `AI_CLIENT_RATE_LIMITER`（全体のリミッターは意図的に置いていない。ADR-026）。AI を無効にするには、`AI_ASSIST_ENABLED` を `"true"` 以外にするか削除する。診断はそのまま動く。テストはフェイクを使い、Workers AI を呼ばない。`ai` バインディングは常に Cloudflare に接続するので、これらの設定は名前付きのデプロイ環境にだけ置き、`npm run dev`、テスト、E2E が使うトップレベルの `wrangler.jsonc` には決して置かない（[DECISIONS.md](../working/DECISIONS.md)（英語のみ） ADR-026、C）。実際のモデルでの実行は、[AI_EVALUATION.md](../working/AI_EVALUATION.md)（英語のみ）にある任意の評価手順でだけ行う。ビルドが `.dev.vars` を `dist/` にコピーするので、Cloudflare の API トークンを `.dev.vars` に決して置かない。
+- 公開 Worker の AI 説明（[DECISIONS.md](../working/DECISIONS.md)（英語のみ） ADR-026。まだどれも設定していない）: `AI_ASSIST_ENABLED`（`"true"` でエンドポイントが有効になる。未設定を含むそれ以外の値では無効になり、モデルは呼ばれない）、`AI_MODEL`（`server/ai/workers-ai.ts` にあるモデル ID のいずれか）、`AI` バインディング、任意のクライアントごとのレート制限バインディング `AI_CLIENT_RATE_LIMITER`（全体のリミッターは意図的に置いていない。ADR-026）、Durable Object のバインディング `AI_CLIENT_LIMITER`（厳密なクライアントごとの上限。ADR-029。`wrangler.jsonc` のトップレベルにもあり、そこではローカルでのみ動く。これがないと AI は動かない）。AI を無効にするには、`AI_ASSIST_ENABLED` を `"true"` 以外にするか削除する。診断はそのまま動く。テストはフェイクを使い、Workers AI を呼ばない。`ai` バインディングは常に Cloudflare に接続するので、これらの設定は名前付きのデプロイ環境にだけ置き、`npm run dev`、テスト、E2E が使うトップレベルの `wrangler.jsonc` には決して置かない（[DECISIONS.md](../working/DECISIONS.md)（英語のみ） ADR-026、C）。実際のモデルでの実行は、[AI_EVALUATION.md](../working/AI_EVALUATION.md)（英語のみ）にある任意の評価手順でだけ行う。ビルドが `.dev.vars` を `dist/` にコピーするので、Cloudflare の API トークンを `.dev.vars` に決して置かない。

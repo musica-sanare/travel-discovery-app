@@ -21,11 +21,12 @@ All four Workers use `workers.dev` (`<worker>.<account subdomain>.workers.dev`).
 | App log lines | Dashboard: Workers & Pages → the Worker → Observability | Invocation logs are disabled, so only the app's own lines exist (section 6). |
 | D1 usage | Dashboard: the D1 database → Metrics *(要確認: exact path)* | Cloudflare also emails when the account reaches a D1 daily limit. |
 | Workers AI usage | Dashboard: Workers AI | Only relevant once AI is enabled. |
+| AI quota Durable Object usage | Dashboard: Durable Objects *(要確認: exact path)* | Requests, rows written, and duration of `AiClientLimiter` against the Workers Free daily allowances (ADR-029). |
 | Account changes | Dashboard: Manage Account → Audit Log | Every Wrangler deployment appears as an upload, a deployment, and "Update Worker Script Subdomain". |
 
 App log lines (JSON, one per line):
 - `{"event":"api_error","context":…,"code":…,"errorName":…}`: a request ended with 500 or 503 (`server/http/errors.ts`). `service_unavailable` means a D1 failure, including the daily limits.
-- `{"event":"ai_explanation","outcome":…,"model":…,"latencyMs":…,"destinationCount":…}`: one per AI request. Outcomes: `ok`, `content_mismatch`, `provider_error`, `timeout`, `invalid_output`, `disabled`, `rate_limited`. Since Phase 11 the limiter runs before the kill switch, so `rate_limited` lines can also appear while AI is disabled.
+- `{"event":"ai_explanation","outcome":…,"model":…,"latencyMs":…,"destinationCount":…}`: one per AI request. Outcomes: `ok`, `content_mismatch`, `provider_error`, `timeout`, `invalid_output`, `disabled`, `rate_limited`, `limiter_unavailable`. Since Phase 11 the limiters run before the kill switch, so `rate_limited` lines can also appear while AI is disabled. `limiter_unavailable` means the quota Durable Object failed or is missing (for example a Workers Free daily limit); no model is called and the client gets 503 (ADR-029).
 
 ## 3. Routine checks
 
@@ -133,7 +134,7 @@ After:
 
 ## 9. Open items
 - Rejection of an address outside the Access policy: not checked; it needs a second Cloudflare account, which the owner postponed (2026-10-24).
-- The 429 response of `AI_CLIENT_RATE_LIMITER`: not observed in the preview AI trial of 2026-10-25 (15 requests from one address, all 400; "Phase 10 verification log" in [DECISIONS.md](../working/DECISIONS.md)); cause 要確認. This blocks enabling AI on production (ADR-026 "Readiness for enabling AI"). *Update (2026-10-25, Phase 11)*: different keys for IPv4 and IPv6 and the binding being unavailable on Workers Free are ruled out; the limiter now runs before the kill switch. The check with AI disabled on preview ([DEPLOYMENT.md](DEPLOYMENT.md) 7.2, 2026-10-25) returned 429 after six requests on one connection but none for 15 requests that each opened a new connection, so a client can bypass the binding; whether to accept it as a best-effort limit, add a Durable Object limiter, or keep AI disabled is the owner's decision (要確認, "Phase 11 verification log").
+- The 429 response of `AI_CLIENT_RATE_LIMITER`: not observed in the preview AI trial of 2026-10-25 (15 requests from one address, all 400; "Phase 10 verification log" in [DECISIONS.md](../working/DECISIONS.md)); cause 要確認. This blocks enabling AI on production (ADR-026 "Readiness for enabling AI"). *Update (2026-10-25, Phase 11)*: different keys for IPv4 and IPv6 and the binding being unavailable on Workers Free are ruled out; the limiter now runs before the kill switch. The check with AI disabled on preview ([DEPLOYMENT.md](DEPLOYMENT.md) 7.2, 2026-10-25) returned 429 after six requests on one connection but none for 15 requests that each opened a new connection, so a client can bypass the binding; the owner chose a strict per-client quota in a Durable Object (ADR-029, 2026-10-25); it is implemented and tested locally, and its preview check ([DEPLOYMENT.md](DEPLOYMENT.md) 7.2) is pending ("Phase 11 verification log").
 - Log ingestion after the Cloudflare Observability pricing change of 2026-12-01: check once in the first week of December 2026 (section 3 "Dated"). The volume before the change was recorded on 2026-10-24 (section 7).
 
 ## 10. Actions that start charges

@@ -77,7 +77,16 @@ describe("public Worker boundary", () => {
   });
 
   it("uses only expected packages", () => {
-    expect(graph.packages).toEqual(["drizzle-orm", "drizzle-orm/d1", "drizzle-orm/sqlite-core", "hono", "zod", "zod/mini"]);
+    // `cloudflare:workers` provides the base class of the AI quota Durable Object (ADR-029).
+    expect(graph.packages).toEqual([
+      "cloudflare:workers",
+      "drizzle-orm",
+      "drizzle-orm/d1",
+      "drizzle-orm/sqlite-core",
+      "hono",
+      "zod",
+      "zod/mini",
+    ]);
   });
 });
 

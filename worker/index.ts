@@ -6,7 +6,8 @@
  * This Worker is read-only: it serves GET/HEAD, plus the read-only
  * `POST /api/ai/explanations` (docs/working/DECISIONS.md ADR-026), and imports read
  * modules only. That is a code-level constraint (ADR-018), not a database
- * permission.
+ * permission. The only storage it writes is the AI quota Durable Object's own
+ * per-client counters, never D1 (ADR-029).
  */
 import { Hono } from "hono";
 import { AI_EXPLANATIONS_PATH, aiExplanationRequestSchema } from "../shared/ai-explanation";
@@ -18,6 +19,8 @@ import { hasSameOrigin, parseLocaleParam, readJsonBody } from "../server/http/re
 import { isSlug } from "../shared/slug";
 import { explainDiagnosis, type AiLogEntry } from "../server/public/ai-explanations";
 import { clientRateLimitKey } from "../server/public/rate-limit-key";
+import { clientObjectName } from "../server/public/client-quota";
+import type { AiClientLimiter } from "./ai-client-limiter";
 import { getDiagnosisContent } from "../server/public/diagnosis-content";
 import {
   getPublishedDestination,
@@ -31,9 +34,11 @@ export interface PublicEnv {
   AI_ASSIST_ENABLED?: string;
   /** Workers AI model ID from the shortlist in server/ai/workers-ai.ts. */
   AI_MODEL?: string;
-  /** Optional bindings; none is configured in wrangler.jsonc yet (ADR-026). */
+  /** Optional bindings; `AI` and the rate limiter exist only in the deployment environments (ADR-026 C). */
   AI?: Ai;
   AI_CLIENT_RATE_LIMITER?: RateLimit;
+  /** Strict per-client quota (ADR-029); without it AI never runs. */
+  AI_CLIENT_LIMITER?: DurableObjectNamespace<AiClientLimiter>;
 }
 
 /** Same shape as the Workers Rate Limiting binding. */
@@ -49,6 +54,11 @@ export interface AiDependencies {
    * applied. There is deliberately no limiter shared by all clients (ADR-026 A).
    */
   clientLimiter: RateLimiter | null;
+  /**
+   * Strict per-client quota in a Durable Object (ADR-029); null or a failing
+   * quota means no model call (503).
+   */
+  quotaLimiter: RateLimiter | null;
   timeoutMs?: number;
 }
 
@@ -64,9 +74,13 @@ export function aiDependenciesFromEnv(env: PublicEnv): AiDependencies {
     ai && env.AI_MODEL
       ? createWorkersAiProvider({ run: (model, inputs, options) => ai.run(model, inputs, options) }, env.AI_MODEL)
       : null;
+  const quota = env.AI_CLIENT_LIMITER;
   return {
     provider,
     clientLimiter: env.AI_CLIENT_RATE_LIMITER ?? null,
+    quotaLimiter: quota
+      ? { limit: async ({ key }) => quota.getByName(await clientObjectName(key)).check() }
+      : null,
   };
 }
 
@@ -77,17 +91,32 @@ function logAiEvent(entry: AiLogEntry): void {
 }
 
 /** Outcome-only log line for requests stopped before the use case (no address). */
-function logStopped(outcome: "disabled" | "rate_limited", provider: ExplanationProvider | null): void {
+function logStopped(outcome: "disabled" | "rate_limited" | "limiter_unavailable", provider: ExplanationProvider | null): void {
   logAiEvent({ event: "ai_explanation", outcome, model: provider?.model ?? null, latencyMs: 0, destinationCount: 0 });
+}
+
+// CF-Connecting-IP is set by Cloudflare's edge; X-Forwarded-For can carry client-supplied values.
+function rateLimitKey(request: Request): string {
+  return clientRateLimitKey(request.headers.get("CF-Connecting-IP"));
 }
 
 async function withinRateLimit(dependencies: AiDependencies, request: Request): Promise<boolean> {
   if (!dependencies.clientLimiter) {
     return true;
   }
-  // CF-Connecting-IP is set by Cloudflare's edge; X-Forwarded-For can carry client-supplied values.
-  const key = clientRateLimitKey(request.headers.get("CF-Connecting-IP"));
-  return (await dependencies.clientLimiter.limit({ key })).success;
+  return (await dependencies.clientLimiter.limit({ key: rateLimitKey(request) })).success;
+}
+
+/** Fails closed: a missing or failing quota (for example a Workers Free limit) allows no model call. */
+async function checkQuota(dependencies: AiDependencies, request: Request): Promise<"allowed" | "refused" | "unavailable"> {
+  if (!dependencies.quotaLimiter) {
+    return "unavailable";
+  }
+  try {
+    return (await dependencies.quotaLimiter.limit({ key: rateLimitKey(request) })).success ? "allowed" : "refused";
+  } catch {
+    return "unavailable";
+  }
 }
 
 export function createPublicApp(options: PublicAppOptions = {}) {
@@ -140,11 +169,21 @@ export function createPublicApp(options: PublicAppOptions = {}) {
       return errorResponse("forbidden");
     }
     const dependencies = resolveAi(c.env);
-    // The limiter runs before the kill switch so that it can be verified on a
-    // deployment with AI disabled, without any model call (Phase 11 log).
+    // The limiters run before the kill switch so that they can be verified on
+    // a deployment with AI disabled, without any model call (Phase 11 log).
+    // The binding is a cheap best-effort first step; the quota is strict (ADR-029).
     if (!(await withinRateLimit(dependencies, c.req.raw))) {
       logStopped("rate_limited", dependencies.provider);
       return errorResponse("rate_limited");
+    }
+    const quota = await checkQuota(dependencies, c.req.raw);
+    if (quota === "refused") {
+      logStopped("rate_limited", dependencies.provider);
+      return errorResponse("rate_limited");
+    }
+    if (quota === "unavailable") {
+      logStopped("limiter_unavailable", dependencies.provider);
+      return errorResponse("ai_unavailable");
     }
     if (c.env.AI_ASSIST_ENABLED !== "true" || !dependencies.provider) {
       logStopped("disabled", dependencies.provider);
@@ -166,6 +205,8 @@ export function createPublicApp(options: PublicAppOptions = {}) {
 }
 
 export const app = createPublicApp();
+
+export { AiClientLimiter } from "./ai-client-limiter";
 
 export default {
   fetch: app.fetch,
