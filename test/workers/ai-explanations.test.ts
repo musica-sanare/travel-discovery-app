@@ -307,6 +307,23 @@ describe("POST /api/ai/explanations: rate limiting and logs", () => {
     expect(calls).toHaveLength(0);
   });
 
+  it.each([[undefined], ["false"]])(
+    "consults the limiter before the kill switch, so 429 is observable with AI_ASSIST_ENABLED %s",
+    async (enabled) => {
+      const refused = limiter(false);
+      const refusedResponse = await send({ body: "{", enabled, headers: { "CF-Connecting-IP": "203.0.113.5" }, dependencies: { clientLimiter: refused.limiter } });
+      expect(refusedResponse.status).toBe(429);
+      expect(await json(refusedResponse)).toEqual({ error: "rate_limited" });
+      expect(refused.keys).toEqual(["ip4:203.0.113.5"]);
+
+      const allowed = limiter(true);
+      const allowedResponse = await send({ body: "{", enabled, dependencies: { clientLimiter: allowed.limiter } });
+      expect(allowedResponse.status).toBe(503);
+      expect(await json(allowedResponse)).toEqual({ error: "ai_unavailable" });
+      expect(allowed.keys).toEqual(["unknown"]);
+    },
+  );
+
   it.each([
     [{ "CF-Connecting-IP": "203.0.113.5" }, "ip4:203.0.113.5"],
     [{ "CF-Connecting-IP": "2001:db8:aa:bb:1:2:3:4" }, "ip6:2001:db8:aa:bb::/64"],
@@ -382,10 +399,10 @@ describe("POST /api/ai/explanations: wiring from Worker bindings", () => {
     return { response: JSON.stringify({ explanations: ids.map((id) => ({ id, text: VALID_TEXT })) }) };
   }
 
-  function sendDefault(bindings: Partial<PublicEnv>): Promise<Response> {
+  function sendDefault(bindings: Partial<PublicEnv>, address = "198.51.100.9"): Promise<Response> {
     const request = new Request(`${ORIGIN}${PATH}`, {
       method: "POST",
-      headers: { Origin: ORIGIN, "Content-Type": "application/json", "CF-Connecting-IP": "198.51.100.9" },
+      headers: { Origin: ORIGIN, "Content-Type": "application/json", "CF-Connecting-IP": address },
       body: JSON.stringify(validBody),
     });
     return Promise.resolve(defaultApp.fetch(request, { PUBLIC_DB: env.ADMIN_DB, ...bindings }));
@@ -418,6 +435,22 @@ describe("POST /api/ai/explanations: wiring from Worker bindings", () => {
     const response = await sendDefault({ ...bindings, AI: binding });
     expect(response.status).toBe(503);
     expect(calls).toHaveLength(0);
+  });
+
+  it("refuses the sixth request of one client with the simulated binding while AI is disabled", async () => {
+    // The simulated windows are aligned to the wall clock; start well inside one.
+    const remainingMs = 60_000 - (Date.now() % 60_000);
+    if (remainingMs < 5_000) {
+      await new Promise((resolve) => setTimeout(resolve, remainingMs + 200));
+    }
+    const statuses: number[] = [];
+    for (let i = 0; i < 7; i += 1) {
+      const response = await sendDefault({ AI_CLIENT_RATE_LIMITER: env.TEST_AI_CLIENT_RATE_LIMITER }, "203.0.113.201");
+      statuses.push(response.status);
+    }
+    expect(statuses).toEqual([503, 503, 503, 503, 503, 429, 429]);
+    const other = await sendDefault({ AI_CLIENT_RATE_LIMITER: env.TEST_AI_CLIENT_RATE_LIMITER }, "203.0.113.202");
+    expect(other.status).toBe(503);
   });
 
   it("returns 503 when the binding returns an unexpected shape", async () => {

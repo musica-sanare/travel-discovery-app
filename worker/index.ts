@@ -140,13 +140,15 @@ export function createPublicApp(options: PublicAppOptions = {}) {
       return errorResponse("forbidden");
     }
     const dependencies = resolveAi(c.env);
-    if (c.env.AI_ASSIST_ENABLED !== "true" || !dependencies.provider) {
-      logStopped("disabled", dependencies.provider);
-      return errorResponse("ai_unavailable");
-    }
+    // The limiter runs before the kill switch so that it can be verified on a
+    // deployment with AI disabled, without any model call (Phase 11 log).
     if (!(await withinRateLimit(dependencies, c.req.raw))) {
       logStopped("rate_limited", dependencies.provider);
       return errorResponse("rate_limited");
+    }
+    if (c.env.AI_ASSIST_ENABLED !== "true" || !dependencies.provider) {
+      logStopped("disabled", dependencies.provider);
+      return errorResponse("ai_unavailable");
     }
     const request = await readJsonBody(c.req.raw, aiExplanationRequestSchema);
     const response = await explainDiagnosis(createDatabase(c.env.PUBLIC_DB), request, {

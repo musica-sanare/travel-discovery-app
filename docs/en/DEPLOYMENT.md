@@ -150,7 +150,7 @@ Steps:
 1. Owner: in the dashboard, note the Workers AI Neurons already used today, so the trial's usage can be read as the difference.
 2. Set `AI_ASSIST_ENABLED: "true"` in `env.preview` only (`wrangler.jsonc`), commit (owner-approved), run `CLOUDFLARE_ENV=preview npm run build`, check the dry run (preview database, `AI_ASSIST_ENABLED` `"true"`, `AI_CLIENT_RATE_LIMITER` 5 per 60 s), and deploy only the public preview Worker (section 5). Production and the admin Workers are not deployed.
 3. Notes (about 5 model calls): in the built-in browser, answer one complete quiz in each of `ja`, `en`, and `es` from the start with the AI toggle on, then switch the language of one results page twice. Each step sends one request; returning to a language already shown sends none (ADR-026 C4). Wait at least 60 s between quizzes so the limiter does not refuse them.
-4. Limiter (no model calls): wait 60 s, then from one address send same-origin requests with an empty object as the body. The order in the handler is method → origin → kill switch → limiter → body, so the first requests answer 400 `invalid_request` and later ones 429 `rate_limited`:
+4. Limiter (no model calls): wait 60 s, then from one address send same-origin requests with an empty object as the body. The order in the handler is method → origin → limiter → kill switch → body (the limiter comes before the kill switch since Phase 11), so the first requests answer 400 `invalid_request` and later ones 429 `rate_limited`:
 
    ```bash
    for i in $(seq 1 15); do curl -s -o /dev/null -w "%{http_code}\n" -X POST -H "Origin: https://travel-discovery-preview.<account subdomain>.workers.dev" -H "Content-Type: application/json" --data "{}" https://travel-discovery-preview.<account subdomain>.workers.dev/api/ai/explanations; done
@@ -167,6 +167,28 @@ Steps:
 **Record** in [DECISIONS.md](../working/DECISIONS.md): the date, version IDs, model calls made, Neurons before and after, the 400/429 counts of step 4, the outcome counts and latencies of step 5, and the owner's review of step 6.
 
 **Blocks a later production decision** (any one): no 429 observed in step 4; `invalid_output`, `timeout`, or `provider_error` in more than one of the step 3 requests; any note with a ranking, comparison, or fact not in the data; Neurons per call well above the estimate (more than about 30 on average); a log line with more than the five fields or with any request content; the account not on Workers Free or a new charge in Billing; the Workers Logs volume close to the Free allowance ([OPERATIONS.md](OPERATIONS.md) section 7). Whether preview and production share the Neuron allowance stays 要確認 and is planned as shared. Enabling AI on production is a separate owner decision under section 7, taken only after this record exists.
+
+### 7.2 Limiter check with AI disabled (separate approval)
+Since Phase 11 the public Worker consults `AI_CLIENT_RATE_LIMITER` before the kill switch, so the limiter can be checked on a deployment with `AI_ASSIST_ENABLED` `"false"`: no model is called and nobody can use AI during the check. Requests refused by the limiter answer 429 `rate_limited`; the others answer 503 `ai_unavailable` and write a `disabled` line. Each request counts toward the Workers Free daily request limit (negligible here). The deployment and the check each need the owner's approval; production is not deployed for this check.
+
+1. Deploy the commit with the new order to the public preview Worker only (section 5), with `AI_ASSIST_ENABLED` `"false"`; confirm in the dry run that `AI_CLIENT_RATE_LIMITER` (5 per 60 s) is present.
+2. Wait at least 60 s after any other AI request from the same address (including `scripts/check-deployment.mjs`).
+3. Run A, one connection: 15 requests in one `curl` call, which reuses the connection (`num_connects` is 1 for the first request and 0 for the others). `-4` keeps the requests on IPv4, so they share one key:
+
+   ```bash
+   URL=https://travel-discovery-preview.<account subdomain>.workers.dev; args=(); for i in $(seq 1 15); do args+=("$URL/api/ai/explanations" -o /dev/null); done; curl -4 -s -X POST -H "Origin: $URL" -H "Content-Type: application/json" --data "{}" -w "%{http_code} %{num_connects}\n" "${args[@]}"
+   ```
+
+4. Wait at least 60 s, then run B, a new connection per request:
+
+   ```bash
+   URL=https://travel-discovery-preview.<account subdomain>.workers.dev; for i in $(seq 1 15); do curl -4 -s -o /dev/null -X POST -H "Origin: $URL" -H "Content-Type: application/json" --data "{}" -w "%{http_code} %{num_connects}\n" "$URL/api/ai/explanations"; done
+   ```
+
+5. Wait at least 60 s, then run `node scripts/check-deployment.mjs <account subdomain> preview` (its AI check expects 503).
+6. Owner, Observability of `travel-discovery-preview`: count the `rate_limited` and `disabled` lines of runs A and B; they should match the 429 and 503 counts.
+
+Record in [DECISIONS.md](../working/DECISIONS.md) ("Phase 11 verification log") the version ID and, per run, the sequence of status codes and connection counts; never the address. Interpretation: 429 in both runs means the limiter works (the overshoot beyond five is the documented eventual consistency); 429 only in run A points to counters that are not yet shared when requests arrive on new connections; no 429 in either run points to the binding not reaching the Worker or not counting on this account. Do not send more than the two runs of 15 requests without a new decision.
 
 ## 8. Rollback
 - Code: `npx wrangler rollback <VERSION_ID> --name <worker>` or the dashboard (Workers & Pages → the Worker → Deployments → Rollback). It takes effect immediately, works for the 100 most recent versions, and does not change bound resources: the database stays at its current schema and data. Static assets roll back with the version: checked on the public preview Worker on 2026-10-25 ("Phase 10 verification log" in [DECISIONS.md](../working/DECISIONS.md)), the served `index.html` and client bundle switched to those of the target version within about 20 s in both directions, and the other version's bundle was no longer served. Redeploying the build of the previous good commit is the alternative.

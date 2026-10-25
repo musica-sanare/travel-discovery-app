@@ -25,7 +25,7 @@ All four Workers use `workers.dev` (`<worker>.<account subdomain>.workers.dev`).
 
 App log lines (JSON, one per line):
 - `{"event":"api_error","context":…,"code":…,"errorName":…}`: a request ended with 500 or 503 (`server/http/errors.ts`). `service_unavailable` means a D1 failure, including the daily limits.
-- `{"event":"ai_explanation","outcome":…,"model":…,"latencyMs":…,"destinationCount":…}`: one per AI request. Outcomes: `ok`, `content_mismatch`, `provider_error`, `timeout`, `invalid_output`, `disabled`, `rate_limited`.
+- `{"event":"ai_explanation","outcome":…,"model":…,"latencyMs":…,"destinationCount":…}`: one per AI request. Outcomes: `ok`, `content_mismatch`, `provider_error`, `timeout`, `invalid_output`, `disabled`, `rate_limited`. Since Phase 11 the limiter runs before the kill switch, so `rate_limited` lines can also appear while AI is disabled.
 
 ## 3. Routine checks
 
@@ -133,7 +133,7 @@ After:
 
 ## 9. Open items
 - Rejection of an address outside the Access policy: not checked; it needs a second Cloudflare account, which the owner postponed (2026-10-24).
-- The 429 response of `AI_CLIENT_RATE_LIMITER`: not observed in the preview AI trial of 2026-10-25 (15 requests from one address, all 400; "Phase 10 verification log" in [DECISIONS.md](../working/DECISIONS.md)); cause 要確認. This blocks enabling AI on production (ADR-026 "Readiness for enabling AI").
+- The 429 response of `AI_CLIENT_RATE_LIMITER`: not observed in the preview AI trial of 2026-10-25 (15 requests from one address, all 400; "Phase 10 verification log" in [DECISIONS.md](../working/DECISIONS.md)); cause 要確認. This blocks enabling AI on production (ADR-026 "Readiness for enabling AI"). *Update (2026-10-25, Phase 11)*: different keys for IPv4 and IPv6 and the binding being unavailable on Workers Free are ruled out; the limiter now runs before the kill switch, and the check with AI disabled ([DEPLOYMENT.md](DEPLOYMENT.md) 7.2) is planned on preview ("Phase 11 verification log").
 - Log ingestion after the Cloudflare Observability pricing change of 2026-12-01: check once in the first week of December 2026 (section 3 "Dated"). The volume before the change was recorded on 2026-10-24 (section 7).
 
 ## 10. Actions that start charges

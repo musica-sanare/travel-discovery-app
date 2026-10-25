@@ -1,4 +1,4 @@
-<!-- source: docs/en/OPERATIONS.md blob d1984e01c30bb737d637adb775e262da98b3fae4 -->
+<!-- source: docs/en/OPERATIONS.md blob fb3b121a01ef58d36ef7f19d22dedfe2748b8cf4 -->
 [English](../en/OPERATIONS.md) | 日本語 · [目次に戻る](README.md)
 
 > この文書は[英語版](../en/OPERATIONS.md)の翻訳です。内容が異なる場合は英語版が優先されます。
@@ -28,7 +28,7 @@
 
 アプリのログの行（JSON、1 行に 1 件）:
 - `{"event":"api_error","context":…,"code":…,"errorName":…}`: リクエストが 500 か 503 で終わった（`server/http/errors.ts`）。`service_unavailable` は、1 日の上限を含む D1 の障害を意味する。
-- `{"event":"ai_explanation","outcome":…,"model":…,"latencyMs":…,"destinationCount":…}`: AI のリクエストごとに 1 件。結果は `ok`、`content_mismatch`、`provider_error`、`timeout`、`invalid_output`、`disabled`、`rate_limited`。
+- `{"event":"ai_explanation","outcome":…,"model":…,"latencyMs":…,"destinationCount":…}`: AI のリクエストごとに 1 件。結果は `ok`、`content_mismatch`、`provider_error`、`timeout`、`invalid_output`、`disabled`、`rate_limited`。Phase 11 からリミッターが停止スイッチより先に動くので、AI が無効なときにも `rate_limited` の行が出ることがある。
 
 ## 3. 定期チェック
 
@@ -136,7 +136,7 @@
 
 ## 9. 未解決の項目
 - Access のポリシー外のアドレスが拒否されること: 未確認。2 つ目の Cloudflare アカウントが必要で、オーナーが先送りにした（2026-10-24）。
-- `AI_CLIENT_RATE_LIMITER` の 429 の応答: 2026-10-25 のプレビューでの AI 試行では観測されなかった（同じアドレスから 15 回送り、すべて 400。[DECISIONS.md](../working/DECISIONS.md) の "Phase 10 verification log"）。原因は要確認。これが解決するまで本番で AI を有効にしない（ADR-026「Readiness for enabling AI」）。
+- `AI_CLIENT_RATE_LIMITER` の 429 の応答: 2026-10-25 のプレビューでの AI 試行では観測されなかった（同じアドレスから 15 回送り、すべて 400。[DECISIONS.md](../working/DECISIONS.md) の "Phase 10 verification log"）。原因は要確認。これが解決するまで本番で AI を有効にしない（ADR-026「Readiness for enabling AI」）。*更新（2026-10-25、Phase 11）*: IPv4 と IPv6 でキーが分かれたこと、Workers Free で binding が使えないことは否定された。リミッターは停止スイッチより先に動くようになり、AI を無効にしたままの確認（[DEPLOYMENT.md](DEPLOYMENT.md) 7.2）をプレビューで行う予定（「Phase 11 verification log」）。
 - 2026-12-01 の Cloudflare Observability の料金変更後のログの取り込み量: 2026 年 12 月の第 1 週に一度確認する（3 節「日付の決まったもの」）。変更前の量は 2026-10-24 に記録した（7 節）。
 
 ## 10. 課金が始まる操作
