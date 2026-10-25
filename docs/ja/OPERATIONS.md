@@ -1,4 +1,4 @@
-<!-- source: docs/en/OPERATIONS.md blob fb3b121a01ef58d36ef7f19d22dedfe2748b8cf4 -->
+<!-- source: docs/en/OPERATIONS.md blob 4aa0a848b7aa554c7df218156974f05d0dadaebf -->
 [English](../en/OPERATIONS.md) | 日本語 · [目次に戻る](README.md)
 
 > この文書は[英語版](../en/OPERATIONS.md)の翻訳です。内容が異なる場合は英語版が優先されます。
@@ -136,7 +136,7 @@
 
 ## 9. 未解決の項目
 - Access のポリシー外のアドレスが拒否されること: 未確認。2 つ目の Cloudflare アカウントが必要で、オーナーが先送りにした（2026-10-24）。
-- `AI_CLIENT_RATE_LIMITER` の 429 の応答: 2026-10-25 のプレビューでの AI 試行では観測されなかった（同じアドレスから 15 回送り、すべて 400。[DECISIONS.md](../working/DECISIONS.md) の "Phase 10 verification log"）。原因は要確認。これが解決するまで本番で AI を有効にしない（ADR-026「Readiness for enabling AI」）。*更新（2026-10-25、Phase 11）*: IPv4 と IPv6 でキーが分かれたこと、Workers Free で binding が使えないことは否定された。リミッターは停止スイッチより先に動くようになり、AI を無効にしたままの確認（[DEPLOYMENT.md](DEPLOYMENT.md) 7.2）をプレビューで行う予定（「Phase 11 verification log」）。
+- `AI_CLIENT_RATE_LIMITER` の 429 の応答: 2026-10-25 のプレビューでの AI 試行では観測されなかった（同じアドレスから 15 回送り、すべて 400。[DECISIONS.md](../working/DECISIONS.md) の "Phase 10 verification log"）。原因は要確認。これが解決するまで本番で AI を有効にしない（ADR-026「Readiness for enabling AI」）。*更新（2026-10-25、Phase 11）*: IPv4 と IPv6 でキーが分かれたこと、Workers Free で binding が使えないことは否定された。リミッターは停止スイッチより先に動くようになった。プレビューで AI を無効にしたままの確認（[DEPLOYMENT.md](DEPLOYMENT.md) 7.2、2026-10-25）では、1 本の接続での 6 回目以降は 429 を返したが、毎回新しい接続を開いた 15 回には 1 回も 429 を返さなかった。そのため、クライアントは binding を回避できる。ベストエフォートの制限として受け入れるか、Durable Object のリミッターを追加するか、AI を無効のままにするかは、オーナーが判断する（要確認、「Phase 11 verification log」）。
 - 2026-12-01 の Cloudflare Observability の料金変更後のログの取り込み量: 2026 年 12 月の第 1 週に一度確認する（3 節「日付の決まったもの」）。変更前の量は 2026-10-24 に記録した（7 節）。
 
 ## 10. 課金が始まる操作
