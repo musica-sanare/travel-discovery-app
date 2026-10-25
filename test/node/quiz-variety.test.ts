@@ -6,7 +6,12 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { DEFAULT_QUIZ_SETTINGS } from "../../shared/quiz-settings";
-import { simulateQuizzes, toSimulationContent, type SimulationBundle } from "../simulation/quiz-variety";
+import {
+  DEFAULT_SIMULATION,
+  simulateQuizzes,
+  toSimulationContent,
+  type SimulationBundle,
+} from "../simulation/quiz-variety";
 
 const readBundle = (name: string) =>
   JSON.parse(readFileSync(path.resolve(import.meta.dirname, "../../content", name), "utf8")) as SimulationBundle;
@@ -56,5 +61,13 @@ describe("simulateQuizzes", () => {
     expect(after.distinctQuestionSets).toBeGreaterThan(before.distinctQuestionSets * 2);
     expect(after.meanSharedQuestions).toBeLessThan(before.meanSharedQuestions / 2);
     expect(after.neverInTopResults).toEqual([]);
+  });
+
+  // prompts/13-more-destinations.md acceptance: every published destination reaches the top results.
+  it("brings every initial-v6.json destination into the top results at the default simulation", () => {
+    const v6 = readBundle("initial-v6.json");
+    const report = simulateQuizzes(toSimulationContent(v6), { ...DEFAULT_SIMULATION, limits: DEFAULT_QUIZ_SETTINGS });
+    expect(Object.keys(report.topResultShare)).toHaveLength(v6.destinations.length);
+    expect(report.neverInTopResults).toEqual([]);
   });
 });
