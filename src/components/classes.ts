@@ -1,11 +1,11 @@
 /** Shared Tailwind class strings for the public UI. */
 const buttonBase =
-  "inline-flex min-h-11 items-center justify-center gap-2 rounded-full py-2 text-base font-semibold no-underline transition-colors hover:no-underline disabled:cursor-not-allowed";
+  "inline-flex min-h-11 items-center justify-center gap-2 rounded-full py-2 text-base font-semibold no-underline transition-[color,background-color,border-color] hover:no-underline disabled:cursor-not-allowed";
 
 export const buttonClass = {
   primary: `${buttonBase} bg-sun px-6 text-sun-ink shadow-sm hover:not-disabled:bg-sun/85 disabled:bg-line disabled:text-muted disabled:shadow-none`,
-  secondary: `${buttonBase} border border-line bg-surface px-5 text-ink hover:border-accent hover:bg-accent-soft disabled:opacity-50`,
-  quiet: `${buttonBase} px-3 text-accent hover:bg-accent-soft disabled:opacity-50`,
+  secondary: `${buttonBase} border border-line bg-surface px-5 text-ink hover:not-disabled:border-accent hover:not-disabled:bg-accent-soft disabled:opacity-50`,
+  quiet: `${buttonBase} px-3 text-accent hover:not-disabled:bg-accent-soft disabled:opacity-50`,
 } as const;
 
 export const cardClass = "rounded-2xl border border-line bg-surface p-5 shadow-sm sm:p-6";

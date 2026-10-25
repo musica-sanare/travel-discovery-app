@@ -22,7 +22,7 @@ A scan of the current source tree does not show what earlier commits contained: 
 ## 4. Third-party material
 - [ ] Destination texts, cost estimates, and their cited sources: authored by the owner, with the right to publish them; sources are cited, not copied.
 - [ ] Images: published content may reference external image URLs (`docs/ARCHITECTURE.md` "8. Observability and privacy"); check each provider's license and attribution requirements. `db/seed/dev.sql` contains no external URLs (checked 2026-10-18).
-- [ ] Fonts and icons: none are tracked (no font or image files; system font stacks only, checked 2026-10-18). Re-check if any are added.
+- [ ] Fonts and icons: no font or image files and no third-party icon sets; system font stacks only (checked 2026-10-18). The public UI's icons, map lines, sunset illustration, and barcode are inline SVGs drawn for this project (`src/components/Decorations.tsx`, `src/components/DestinationBand.tsx`; checked 2026-10-25). Re-check if any are added.
 - [ ] AI: the Gemma terms of use and prohibited-use policy have been reviewed (ADR-026 "Model decision"). The evaluation cases in `docs/ai-evaluation/cases.json` are authored test inputs (some name real cities) without personal data; raw model outputs stay in the git-ignored `.ai-eval/`.
 
 ## 5. Private notes and internal material

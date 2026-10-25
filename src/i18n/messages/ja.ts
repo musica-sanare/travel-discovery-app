@@ -49,6 +49,8 @@ export const ja = {
     fit: "FIT",
     stay: "STAY",
     flightLog: "FLIGHT LOG",
+    gateNotFound: "404 · GATE NOT FOUND",
+    delayed: "DELAYED",
   },
   footer: {
     privacy: "回答はこのブラウザの中だけで使われ、サーバーには送信・保存されません。",

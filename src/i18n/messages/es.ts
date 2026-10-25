@@ -50,6 +50,8 @@ export const es: Messages = {
     fit: "FIT",
     stay: "STAY",
     flightLog: "FLIGHT LOG",
+    gateNotFound: "404 · GATE NOT FOUND",
+    delayed: "DELAYED",
   },
   footer: {
     privacy: "Tus respuestas se quedan en este navegador; no se envían ni se guardan en nuestro servidor.",

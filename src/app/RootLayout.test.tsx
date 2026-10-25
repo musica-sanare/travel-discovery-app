@@ -69,6 +69,8 @@ describe("RootLayout", () => {
     renderAt("/does-not-exist");
 
     expect(screen.getByRole("heading", { level: 1 }).textContent).toBe("ページが見つかりません");
+    expect(screen.getByRole("link", { name: "トップページに戻る" }).getAttribute("href")).toBe("/");
+    expect(screen.getByText("404 · GATE NOT FOUND").getAttribute("aria-hidden")).toBe("true");
   });
 
   it("renders a localized error page when a route throws", () => {
