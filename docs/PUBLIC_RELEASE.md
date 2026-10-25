@@ -12,8 +12,8 @@ A scan of the current source tree does not show what earlier commits contained: 
 - [ ] Decide which branches and tags are published; delete or keep private everything else.
 
 ## 2. Commit identities
-- [ ] All commits use `ms <ms@macbook>` (checked 2026-10-18), which reveals a local user and host name, not a real mailbox. Decide whether this is acceptable. Changing it for existing commits means rewriting the history (owner instruction required, and every collaborator must re-clone); for future commits, configure the intended name and, for example, a GitHub `noreply` address.
-- [ ] Co-author trailers (`noreply@anthropic.com`) are acceptable.
+- [x] Every commit uses the author and committer identity `musica-sanare` with its GitHub `noreply` address. The earlier local identity, which revealed a local user and host name, was replaced by an owner-instructed history rewrite on 2026-10-25, and `dev` and `main` were force-pushed; anyone with an older clone must re-clone. Future commits use the same identity.
+- [x] Commit messages contain no AI co-author trailers; the same rewrite removed them.
 
 ## 3. License
 - [ ] The owner chooses a license (none is chosen; README "License"). Do not add one automatically.
