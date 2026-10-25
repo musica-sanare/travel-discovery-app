@@ -1,4 +1,4 @@
-<!-- source: docs/en/DIAGNOSTIC_ALGORITHM.md blob f4baa4e076fc6f218cab9a954b84cc2fb238f825 -->
+<!-- source: docs/en/DIAGNOSTIC_ALGORITHM.md blob 5b6f8d67929da2b22fac4d26a07b66a385aa8a5d -->
 [English](../en/DIAGNOSTIC_ALGORITHM.md) | 日本語 · [目次に戻る](README.md)
 
 > この文書は[英語版](../en/DIAGNOSTIC_ALGORITHM.md)の翻訳です。内容が異なる場合は英語版が優先されます。
@@ -153,7 +153,7 @@ r        = first output of mulberry32(stepSeed)
 したがって `maxQuestions` は絶対的な上限である。候補が尽きたあとは、`minQuestions` は質問を続ける理由にならない。
 
 ### 先送り: 判別力にもとづく選択と早期終了
-現在のコンテンツ（公開済みの旅行先と質問がわずか）では小さすぎて検証できないため、実装していない。公開済みの旅行先が 15 件以上、使える質問が `2 × maxQuestions` 問以上になったら見直す。候補となる定義:
+実装していない。コンテンツが小さすぎて検証できないため先送りにし、公開済みの旅行先が 15 件以上、使える質問が `2 × maxQuestions` 問以上になったら見直すことにしていた。`content/initial-v5.json`（旅行先 18 件、使える質問 29 問、`maxQuestions` 12、Phase 12）でこの条件を満たしたので、たとえば `npm run quiz:simulate` で評価できるようになった。実装するかどうかは別に決める。候補となる定義:
 - `q` の**判別力**: 有効な各選択肢 `o` について、現在の上位 `2 · resultCount` 件の旅行先にわたる `Σ_a w_o[a] · x_d[a]` の母標準偏差を求め、選択肢について平均する。上の重みに掛け合わせる。
 - **安定性**: `minQuestions` 問以上回答した後、上位 `resultCount` 件の旅行先の集合が直近 2 回の回答で変わらず、順位 `resultCount` と `resultCount + 1` の適合度の差が 5 ポイント以上なら終了する。
 
