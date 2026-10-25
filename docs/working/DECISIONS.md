@@ -356,6 +356,8 @@ Official web pages, local tests, and the owner's dashboard readings; no Wrangler
 
 - *Applied* (2026-10-25, owner decision, task 3): scoped `overrides` for `undici` 7.30.1 under `miniflare` and `zod` 4.6.7 under `@cloudflare/vitest-plugin` (ADR-030). `npm audit --omit=dev` reports 0; the remaining `npm audit` findings are the held `esbuild` chain (ADR-003).
 
+- *Status* (2026-10-25): Phase 11's acceptance is met: the trial's log outcomes are recorded, the missing 429 is explained and fixed with the quota Durable Object (verified on preview), ADR-026 "Readiness for enabling AI" and [OPERATIONS.md](../en/OPERATIONS.md) section 9 reflect it, AI is disabled in every environment, `npm audit --omit=dev` reports 0 with the `esbuild` chain held, `npm run check` and `npm run test:e2e` passed, and the account stays on Workers Free. The owner's dashboard readings stay 要確認. Open items are listed under Phase 11 in [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
+
 ## ADR-001: SPA and hosting
 - Status: **Accepted** (Phase 0)
 - Decision: The public app is a React + TypeScript + Vite SPA, deployed as one Cloudflare Worker with static assets via `@cloudflare/vite-plugin`. The admin console is a separate Worker (ADR-004); this ADR covers the public Worker. API routes live under `/api/*` and are the only paths that invoke the Worker (`run_worker_first: ["/api/*"]`); everything else is served as static assets with SPA fallback.

@@ -157,7 +157,7 @@ Acceptance:
 - Any content change is reviewed, imported on both environments with bookmarks, and `npm run check` and `npm run test:e2e` pass.
 
 Status: **complete (2026-10-25)**; every acceptance item is met ([DECISIONS.md](DECISIONS.md) "Phase 10 verification log"). Open items for later phases, each needing the owner's decision:
-- Why `AI_CLIENT_RATE_LIMITER` did not refuse requests on preview (要確認); production AI stays blocked until this is resolved (ADR-026 "Readiness for enabling AI").
+- Why `AI_CLIENT_RATE_LIMITER` did not refuse requests on preview (要確認); production AI stays blocked until this is resolved (ADR-026 "Readiness for enabling AI"). *Resolved 2026-10-25 in Phase 11: the binding does not count requests on new connections together; a strict quota Durable Object (ADR-029) passed the preview check.*
 - The trial's per-request log outcomes and latencies, including the failed `en` request, were not recorded (要確認). *Recorded 2026-10-25 in Phase 11: four `ok`, the `en` request `invalid_output` ([DECISIONS.md](DECISIONS.md) "Phase 10 verification log").*
 - `npm audit` lists high-severity advisories in development-only dependencies (`undici` in `miniflare`, a nested `zod` in `@cloudflare/vitest-plugin`) besides the known `esbuild` one (ADR-003); `npm audit --omit=dev` reports none. *Resolved 2026-10-25 in Phase 11 with scoped overrides (ADR-030); the `esbuild` chain stays held.*
 - Still deferred from the Phase 10 prompt: production AI, images, a dated exchange-rate table, the out-of-policy Access check, other empty costs, and the pre-public-release checklist.
@@ -173,3 +173,18 @@ Acceptance:
 - The missing 429 is explained with evidence and fixed and verified, or recorded as 要確認; ADR-026 "Readiness for enabling AI" reflects the result, and AI is disabled in every environment.
 - `npm audit --omit=dev` reports none, and every remaining advisory is fixed or held with a recorded reason.
 - `npm run check` and `npm run test:e2e` pass after any change, and the account stays on Workers Free.
+
+Status: **complete (2026-10-25)**; every acceptance item is met ([DECISIONS.md](DECISIONS.md) "Phase 11 verification log"):
+- Trial log outcomes recorded in the "Phase 10 verification log": four `ok`, the failed `en` request `invalid_output`.
+- Missing 429 explained: the Rate Limiting binding does not count requests that each arrive on a new connection together. Fixed with a strict per-client quota in a Durable Object on Workers Free (5 per 60 s and 30 per UTC day per address, fail closed; ADR-029), consulted before the kill switch so it is verifiable with AI disabled. On preview (version `a0b632c4`) both runs answered exactly five 503 and then 429. ADR-026 A.2 is met on preview; AI is disabled in every environment.
+- Development advisories: `undici` and the nested `zod` fixed with scoped overrides (ADR-030); `npm audit --omit=dev` reports 0; the `esbuild` chain stays held (ADR-003).
+- `npm run check` (697 tests) and `npm run test:e2e` passed after every change; no paid plan or feature was enabled.
+
+Open items for later phases, each needing the owner's decision or check:
+- Dashboard readings for the preview checks (要確認): the `rate_limited` and `disabled` line counts of the 7.2 runs, the Durable Object requests and rows written, and whether the Worker's request count includes the Durable Object calls (ADR-029). Whether Cloudflare stores Durable Object names is not documented (要確認).
+- Production does not have the quota Durable Object yet: deploying it (the first deployment applies the migration `v1`) and enabling production AI are separate owner decisions (ADR-026 "Readiness for enabling AI").
+- Which output check rejected the trial's `en` response, and what sent the 400 request at 06:26:44Z (要確認, "Phase 10 verification log"); the log line deliberately has no reason field.
+- Clients that change addresses are bounded only by the daily Neuron ceiling; an app-wide daily cap remains an option (ADR-029 "Not covered").
+- Remove the overrides once the Cloudflare packages depend on fixed versions (ADR-030).
+- Dated, outside the phases: the Workers Logs and Billing check in the first week of December 2026 ([OPERATIONS.md](../en/OPERATIONS.md) section 3 "Dated").
+- Still deferred: images, a dated exchange-rate table, the out-of-policy Access check, other empty costs, and the pre-public-release checklist.
