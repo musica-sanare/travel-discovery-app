@@ -1,4 +1,4 @@
-<!-- source: docs/en/OPERATIONS.md blob 30f83a98bff0779be62fb82d10f22fb0a318bc7b -->
+<!-- source: docs/en/OPERATIONS.md blob d1984e01c30bb737d637adb775e262da98b3fae4 -->
 [English](../en/OPERATIONS.md) | 日本語 · [目次に戻る](README.md)
 
 > この文書は[英語版](../en/OPERATIONS.md)の翻訳です。内容が異なる場合は英語版が優先されます。
@@ -136,7 +136,7 @@
 
 ## 9. 未解決の項目
 - Access のポリシー外のアドレスが拒否されること: 未確認。2 つ目の Cloudflare アカウントが必要で、オーナーが先送りにした（2026-10-24）。
-- `AI_CLIENT_RATE_LIMITER` の 429 の応答: AI を有効にしたときにしか観測できない（ADR-026「Open decisions」）。
+- `AI_CLIENT_RATE_LIMITER` の 429 の応答: 2026-10-25 のプレビューでの AI 試行では観測されなかった（同じアドレスから 15 回送り、すべて 400。[DECISIONS.md](../working/DECISIONS.md) の "Phase 10 verification log"）。原因は要確認。これが解決するまで本番で AI を有効にしない（ADR-026「Readiness for enabling AI」）。
 - 2026-12-01 の Cloudflare Observability の料金変更後のログの取り込み量: 2026 年 12 月の第 1 週に一度確認する（3 節「日付の決まったもの」）。変更前の量は 2026-10-24 に記録した（7 節）。
 
 ## 10. 課金が始まる操作

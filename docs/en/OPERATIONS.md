@@ -133,7 +133,7 @@ After:
 
 ## 9. Open items
 - Rejection of an address outside the Access policy: not checked; it needs a second Cloudflare account, which the owner postponed (2026-10-24).
-- The 429 response of `AI_CLIENT_RATE_LIMITER`: observable only with AI enabled (ADR-026 "Open decisions").
+- The 429 response of `AI_CLIENT_RATE_LIMITER`: not observed in the preview AI trial of 2026-10-25 (15 requests from one address, all 400; "Phase 10 verification log" in [DECISIONS.md](../working/DECISIONS.md)); cause 要確認. This blocks enabling AI on production (ADR-026 "Readiness for enabling AI").
 - Log ingestion after the Cloudflare Observability pricing change of 2026-12-01: check once in the first week of December 2026 (section 3 "Dated"). The volume before the change was recorded on 2026-10-24 (section 7).
 
 ## 10. Actions that start charges
