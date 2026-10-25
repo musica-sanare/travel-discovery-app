@@ -203,3 +203,20 @@ Acceptance:
 - The owner approved the new attributes, scores, and questions, and `initial-v5.json` differs from `initial-v4.json` only by them.
 - The bundle is imported on both environments with bookmarks and matches `/api/diagnosis-content` in all three locales; complete quizzes work in all three locales.
 - `npm run check` and `npm run test:e2e` pass after any change, AI is disabled in every environment, and the account stays on Workers Free.
+
+Status: **complete (2026-10-25)**; every acceptance item is met ([DECISIONS.md](DECISIONS.md) "Phase 12 verification log"):
+- Simulation: `npm run quiz:simulate` (opt-in, local, deterministic; `test/simulation/`). With 1,000 sessions at the default settings, `initial-v4.json` gave 64 distinct question sets and 8.43 shared questions per pair of sessions; `initial-v5.json` gives 1,000 and 3.59.
+- Content: `content/initial-v5.json` adds four attributes (`warm-climate`, `nightlife`, `easy-getting-around`, `art-architecture`), their scores for the 18 destinations, and 17 questions, for 11 attributes and 29 published questions. The existing 12 questions are unchanged. The owner approved a rendered review copy in `ja`, `en`, and `es` (ADR-028).
+- Imported with the update mode on preview and production with Time Travel bookmarks. `/api/diagnosis-content` matches the bundle in all three locales on both, and complete quizzes were answered in all three locales on both. The first preview import did not reach the database and was repeated.
+- Quiz settings unchanged at 6/10/12/5, as proposed.
+- `npm run check` (717 tests) and `npm run test:e2e` passed after every code change; AI is disabled in every environment and no paid plan or feature was enabled.
+
+Open items for later phases, each needing the owner's decision or check:
+- Why the first preview import did not reach the database (要確認, "Phase 12 verification log").
+- Rome (7.8%) and Seoul (14.8%) still rarely reach the top 5 in the simulation, because of their existing scores; revisiting existing scores is a separate content decision.
+- Discrimination-based question selection and stability-based early stopping can now be evaluated ([DIAGNOSTIC_ALGORITHM.md](../en/DIAGNOSTIC_ALGORITHM.md) §8); implementing them is a separate decision.
+- The preview seed destinations `lisbon` and `south-iceland` are scored on the original 7 attributes only (preview only).
+- Carried over from Phase 11: the dashboard readings (要確認), the production quota Durable Object and production AI, the trial's `en` rejection and the 400 request (要確認), an app-wide daily cap, and removing the overrides (ADR-030).
+- Still deferred: images, a dated exchange-rate table, the out-of-policy Access check, other empty costs, and the pre-public-release checklist.
+- Dated, outside the phases: the Workers Logs and Billing check in the first week of December 2026 ([OPERATIONS.md](../en/OPERATIONS.md) section 3 "Dated").
+- Next: Phase 13 (more destinations); its prompt file is written when it starts.
