@@ -17,6 +17,7 @@ Each phase is started with the matching prompt file:
 | 8 — Content enrichment and billing safeguards | `prompts/08-content-enrichment.md` |
 | 9 — Source-currency costs, dated operations checks, and an AI trial plan | `prompts/09-currency-and-ai-trial.md` |
 | 10 — Preview AI trial, a rollback check, and a content re-check | `prompts/10-ai-trial-and-operations-checks.md` |
+| 11 — Trial log details, the AI client limiter, and development dependencies | `prompts/11-limiter-and-dependencies.md` |
 
 `prompts/FIRST_MESSAGE.md` is the kickoff message for a new Claude Code session.
 
@@ -160,3 +161,15 @@ Status: **complete (2026-10-25)**; every acceptance item is met ([DECISIONS.md](
 - The trial's per-request log outcomes and latencies, including the failed `en` request, were not recorded (要確認).
 - `npm audit` lists high-severity advisories in development-only dependencies (`undici` in `miniflare`, a nested `zod` in `@cloudflare/vitest-plugin`) besides the known `esbuild` one (ADR-003); `npm audit --omit=dev` reports none.
 - Still deferred from the Phase 10 prompt: production AI, images, a dated exchange-rate table, the out-of-policy Access check, other empty costs, and the pre-public-release checklist.
+
+## Phase 11 — Trial log details, the AI client limiter, and development dependencies
+- Record the preview AI trial's per-request log outcomes before Workers Logs retention ends (about 2026-10-28 06:18 UTC).
+- Find out why `AI_CLIENT_RATE_LIMITER` did not refuse requests on preview; fix and verify it with the owner's approval, or record what was ruled out.
+- Resolve or justify the development-only `npm audit` advisories with owner-approved dependency updates.
+- Not in this phase: production AI and the check after the Observability pricing change of 2026-12-01 (a dated operations task, [OPERATIONS.md](../en/OPERATIONS.md) section 3 "Dated").
+
+Acceptance:
+- The trial's log outcomes are recorded, or their loss is recorded as 要確認.
+- The missing 429 is explained with evidence and fixed and verified, or recorded as 要確認; ADR-026 "Readiness for enabling AI" reflects the result, and AI is disabled in every environment.
+- `npm audit --omit=dev` reports none, and every remaining advisory is fixed or held with a recorded reason.
+- `npm run check` and `npm run test:e2e` pass after any change, and the account stays on Workers Free.

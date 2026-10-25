@@ -4,7 +4,7 @@ English | [日本語](README.ja.md)
 
 Travel Discovery is a responsive web app that recommends overseas city/region-level destinations from a short, varied quiz and optional trip constraints (length, months, budget). The diagnosis is deterministic and works without AI; optional AI notes are off by default and never change the ranking. Results show indicative cost ranges with their source and date, never live prices, and link to flight and hotel searches. The UI supports Japanese, English, and Spanish; Japanese is the default.
 
-**Status:** Phases 0–10 are complete. Preview and production run on `workers.dev` with AI disabled; the preview AI trial found that the per-client limiter did not refuse requests, so production AI is on hold. The next phase is not decided yet ([Implementation plan](docs/working/IMPLEMENTATION_PLAN.md)). No license has been chosen yet ([Public release checklist](docs/working/PUBLIC_RELEASE.md)).
+**Status:** Phases 0–10 are complete. Preview and production run on `workers.dev` with AI disabled; the preview AI trial found that the per-client limiter did not refuse requests, so production AI is on hold. Phase 11 (trial log details, the AI client limiter, and development dependencies) is next ([Implementation plan](docs/working/IMPLEMENTATION_PLAN.md)). No license has been chosen yet ([Public release checklist](docs/working/PUBLIC_RELEASE.md)).
 
 ## Quick start
 
