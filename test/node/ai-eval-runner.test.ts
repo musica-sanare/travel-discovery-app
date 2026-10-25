@@ -23,7 +23,7 @@ import {
 } from "../ai-eval/runner";
 
 const root = path.resolve(import.meta.dirname, "../..");
-const { cases } = JSON.parse(readFileSync(path.join(root, "docs/ai-evaluation/cases.json"), "utf8")) as { cases: EvaluationCase[] };
+const { cases } = JSON.parse(readFileSync(path.join(root, "test/ai-eval/cases.json"), "utf8")) as { cases: EvaluationCase[] };
 const NOW = new Date("2026-10-20T09:00:00Z");
 const ACCOUNT = "0123456789abcdef0123456789abcdef";
 const TOKEN = "test-token-never-recorded";

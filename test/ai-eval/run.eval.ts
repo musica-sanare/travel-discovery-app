@@ -9,9 +9,9 @@ import { assertNewRun, buildJobs, readEvalConfig, runEvaluation, type Evaluation
 
 const root = path.resolve(import.meta.dirname, "../..");
 
-test("evaluate candidate models on docs/ai-evaluation/cases.json", { timeout: 60 * 60 * 1000 }, async () => {
+test("evaluate candidate models on test/ai-eval/cases.json", { timeout: 60 * 60 * 1000 }, async () => {
   const config = readEvalConfig(process.env, new Date());
-  const { cases } = JSON.parse(readFileSync(path.join(root, "docs/ai-evaluation/cases.json"), "utf8")) as {
+  const { cases } = JSON.parse(readFileSync(path.join(root, "test/ai-eval/cases.json"), "utf8")) as {
     cases: EvaluationCase[];
   };
   const outputDir = path.join(root, ".ai-eval");
