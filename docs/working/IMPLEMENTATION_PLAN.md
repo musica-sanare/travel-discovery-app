@@ -19,6 +19,7 @@ Each phase is started with the matching prompt file:
 | 10 — Preview AI trial, a rollback check, and a content re-check | `prompts/10-ai-trial-and-operations-checks.md` |
 | 11 — Trial log details, the AI client limiter, and development dependencies | `prompts/11-limiter-and-dependencies.md` |
 | 12 — More attributes and questions for a more varied quiz | `prompts/12-attributes-and-questions.md` |
+| 13 — More destinations | `prompts/13-more-destinations.md` |
 
 `prompts/FIRST_MESSAGE.md` is the kickoff message for a new Claude Code session.
 
@@ -219,4 +220,19 @@ Open items for later phases, each needing the owner's decision or check:
 - Carried over from Phase 11: the dashboard readings (要確認), the production quota Durable Object and production AI, the trial's `en` rejection and the 400 request (要確認), an app-wide daily cap, and removing the overrides (ADR-030).
 - Still deferred: images, a dated exchange-rate table, the out-of-policy Access check, other empty costs, and the pre-public-release checklist.
 - Dated, outside the phases: the Workers Logs and Billing check in the first week of December 2026 ([OPERATIONS.md](../en/OPERATIONS.md) section 3 "Dated").
-- Next: Phase 13 (more destinations); its prompt file is written when it starts.
+- Next: Phase 13 (more destinations, `prompts/13-more-destinations.md`).
+
+## Phase 13 — More destinations
+Owner decision (2026-10-25, Phase 12 order): more destinations come after the attributes and questions of Phase 12, before the AI notices and limits in the UI (Phase 14).
+- Review the coverage of the 18 destinations by region, type, and attribute profile, using `npm run quiz:simulate` for the top-result shares.
+- Propose new city/region-level destinations (no Japan) to reach a total the owner approves; for each approved one, scores for all 11 attributes, texts in `ja`, `en`, and `es`, recommended days, and costs and best months only under the Phase 8 and Phase 9 source rules. The owner reviews a rendered copy.
+- Keep existing content unchanged unless the owner approves a listed score change.
+- Build `content/initial-v6.json`, compare the simulation with `initial-v5.json`, and propose any change of the quiz settings (the owner changes them in the admin console).
+- Import on preview, then production, with Time Travel bookmarks, a check that the new content is served before the bookmark after the import, and checks in all three locales.
+- Not in this phase: new attributes or questions, AI UI changes, deploying the quota Durable Object to production, production AI, discrimination-based question selection, and images unless the owner decides otherwise.
+
+Acceptance:
+- Coverage review and before/after simulation numbers are recorded, and every published destination reaches the top results in the after-change simulation.
+- The owner approved the new destinations and any score changes, `initial-v6.json` differs from `initial-v5.json` only by them, and every cost and best-month entry has a cited source.
+- The bundle is imported on both environments with bookmarks and matches `/api/diagnosis-content` in all three locales; complete quizzes work in all three locales.
+- `npm run check` and `npm run test:e2e` pass after any change, AI is disabled in every environment, and the account stays on Workers Free.
