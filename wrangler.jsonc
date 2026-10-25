@@ -52,7 +52,8 @@
       ],
       "vars": {
         // Kill switch: anything but "true" means no model call (ADR-026 A).
-        "AI_ASSIST_ENABLED": "false",
+        // "true" only during the preview AI trial (docs/en/DEPLOYMENT.md 7.1).
+        "AI_ASSIST_ENABLED": "true",
         "AI_MODEL": "@cf/google/gemma-4-26b-a4b-it"
       }
     },
