@@ -3,27 +3,24 @@
 ## Product
 Build **Travel Discovery**, a modern, responsive web app that recommends overseas destinations based on a user's travel preferences and constraints.
 
-## Language policy (mandatory)
-- All communication with the project owner in Claude Code conversations must be in Japanese, including questions, progress updates, explanations, test summaries, and handoff notes.
-- All repository documentation and prose intended to live in the repository must be written in English, including Markdown docs, README, architecture notes, ADRs, setup instructions, and user-facing source comments.
-- Source-code comments and docstrings must be in English. Prefer clear naming over comments; do not add redundant comments.
+## Read first
+Before changing code or docs, read:
+- `docs/en/README.md` (docs index)
+- `docs/en/SPEC.md`
+- `docs/en/ARCHITECTURE.md`
+- `docs/en/DATA_MODEL.md`
+- `docs/working/IMPLEMENTATION_PLAN.md`
+- `docs/working/DECISIONS.md`
+
+If any path does not exist, report it rather than silently inventing its contents.
+
+## Product UI localization
 - The application UI must support Japanese, English, and Spanish from the MVP. Users must be able to switch language in the UI.
 - Keep UI strings out of components and domain logic. Use a consistent localization/i18n approach with typed translation keys and locale files.
 - Store locale-neutral stable IDs/slugs in data. Localize user-visible question text, option labels, destination names/descriptions, validation messages, and admin UI labels.
 - Default locale: Japanese. Supported locale codes: `ja`, `en`, `es`.
 - Format numbers, dates, and currencies according to the selected locale where applicable.
 - Do not machine-translate arbitrary content at runtime as a substitute for curated translations. If a translation is unavailable, use a documented fallback strategy.
-- Discuss the work with the owner in Japanese even when repository artifacts are written in English.
-
-## Read first
-Before changing code, read:
-- `docs/SPEC.md`
-- `docs/ARCHITECTURE.md`
-- `docs/DATA_MODEL.md`
-- `docs/IMPLEMENTATION_PLAN.md`
-- `docs/DECISIONS.md`
-
-If any path does not exist, report it rather than silently inventing its contents.
 
 ## Non-negotiable principles
 1. The core diagnostic and destination ranking must work without generative AI.
@@ -52,7 +49,7 @@ If any path does not exist, report it rather than silently inventing its content
 - Do not add analytics, trackers, cookies, or external services without documenting the purpose and privacy impact.
 
 ## Dependencies and current documentation
-Before choosing framework/plugin versions or Cloudflare/AI capabilities, verify current official documentation and compatibility. Prefer stable releases. Record important choices and rationale in `docs/DECISIONS.md`. Do not assume a free tier or model availability without checking current terms.
+Before choosing framework/plugin versions or Cloudflare/AI capabilities, verify current official documentation and compatibility. Prefer stable releases. Record important choices and rationale in `docs/working/DECISIONS.md`. Do not assume a free tier or model availability without checking current terms.
 
 ## Workflow
 - Work one phase at a time using the prompt files under `prompts/`.
@@ -67,32 +64,5 @@ Before choosing framework/plugin versions or Cloudflare/AI capabilities, verify 
 - Do not proceed to the next phase until the current phase's acceptance criteria pass.
 - If an architectural decision would materially change cost, security, deployment, or data model, stop and ask before proceeding.
 
-## Git and Commit Conventions
-
-### Approval and repository hygiene
-- Repository is initially private.
-- Never commit, stage for commit, push, or deploy without explicit approval from the project owner. Approval applies only to the specific commit or action that was reviewed.
-- Never commit secrets, `.env` files, personal data, real API tokens, or generated credentials.
-- Include `.env.example` with placeholders only.
-- Keep commits focused. Do not rewrite or delete history unless explicitly instructed.
-- Before proposing a commit, review the full working-tree diff and the complete list of files to be committed (including new, untracked files), and confirm that no secrets, generated files, or unrelated changes are included. Staging happens only as part of an approved commit.
-- Before any public release, inspect the complete repository history and scan for secrets.
-
-### Commit message format
-- Write commit messages in English.
-- Subject line: a Conventional Commits prefix (`feat:`, `fix:`, `docs:`, `test:`, `refactor:`, `chore:`, etc.) followed by a concise summary in the imperative mood, preferably 50 characters or fewer in total (e.g. `feat: add localized error boundary`).
-- Body: always contains these three sections, in this order:
-  1. `Change:` what changed.
-  2. `Reason:` why the change was necessary or what problem it addresses.
-  3. `Handoff:` follow-up work, unresolved issues, known limitations, or other information the next contributor needs. Write `None.` when there is nothing to hand off.
-- Keep each section concise: enough to understand what changed, why, and what comes next, without reopening the original conversation.
-
-### Referencing documentation instead of duplicating it
-- When details are already recorded in documentation, ADRs, or source code, do not repeat them in the commit message. Point to where they are recorded instead: the file path plus the heading, section, or ADR number (e.g. `docs/DECISIONS.md` ADR-016, `docs/ARCHITECTURE.md` "4. Admin authentication").
-- Only reference files and headings that exist in the commit being made and actually contain the information.
-- Information that is not documented elsewhere, or a caution that is essential for the next piece of work, may be written in the commit message as needed.
-- References support the message; they do not replace it. The message alone must still convey the summary of the change and its reason.
-
-### Proposing a commit
-- Show the complete commit message (subject and full body following the rules above), not only the subject line, together with the list of files to be committed.
-- Wait for the owner's explicit approval before staging, committing, or pushing.
+## Overrides of shared rules
+None.

@@ -378,7 +378,7 @@ Primary documents and official web pages only; no Wrangler remote command, deplo
 - Status: Accepted
 - Decision: Claude Code conversations with the owner are always in Japanese. Repository documentation, source comments, and docstrings are in English.
 - Rationale: Keep collaboration comfortable while making the repository accessible to an international audience.
-- Enforcement: State this policy in `CLAUDE.md` and review all generated artifacts.
+- Enforcement: State this policy in `CLAUDE.md` and review all generated artifacts. *Update (2026-10-25)*: the conversation and repository language rules now come from the owner's shared Claude Code rules (`claude-shared-rules`, `language.md`), so `CLAUDE.md` keeps only the product UI localization rules. The shared rules add one exception: stable docs have Japanese translations in `docs/ja/` and [README.ja.md](../../README.ja.md).
 
 ## ADR-012: Application locales and i18n library
 - Status: **Accepted** (Phase 0)
