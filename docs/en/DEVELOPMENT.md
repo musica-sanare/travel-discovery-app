@@ -37,6 +37,7 @@ Do not install with `--omit=optional`: the `workerd` and `esbuild` binaries come
 | `npm run check` | Lint, type-check, tests, and build in sequence. |
 | `npm run test:e2e` | Playwright end-to-end tests against a production build (see "End-to-end tests"). Not part of `check`. |
 | `npm run ai:eval` | Opt-in model evaluation against real Workers AI models; consumes Neurons and needs explicit confirmation and credentials ([AI_EVALUATION.md](../working/AI_EVALUATION.md)). Never part of `check`. |
+| `npm run quiz:simulate` | Deterministic quiz-variety simulation on content bundles (`test/simulation/`): distinct question sets, shared questions, and how often each question and destination appears. Set `QUIZ_SIMULATE_BUNDLES` to comma-separated file names in `content/` (default: the newest bundle). Local only, no network. Never part of `check`. |
 | `npm run e2e:db` | Recreate the isolated E2E database in `.wrangler/e2e/state` (migrate and seed). Run automatically by `test:e2e`. |
 | `npm run db:generate` | Generate a SQL migration from `server/db/schema.ts` into `migrations/` (drizzle-kit). Review the SQL before applying. |
 | `npm run db:migrate:local` | Apply pending migrations to the local D1 database. |

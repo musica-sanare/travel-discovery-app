@@ -20,6 +20,13 @@ const aiEvaluationProjects =
     ? [{ test: { name: "ai-eval", include: ["test/ai-eval/**/*.eval.ts"], environment: "node" } }]
     : [];
 
+// The quiz-variety simulation only reports numbers, so its project exists only
+// under `npm run quiz:simulate` (prompts/12-attributes-and-questions.md task 1).
+const quizSimulationProjects =
+  process.env.npm_lifecycle_event === "quiz:simulate"
+    ? [{ test: { name: "quiz-simulate", include: ["test/simulation/**/*.sim.ts"], environment: "node" } }]
+    : [];
+
 export default defineConfig({
   test: {
     restoreMocks: true,
@@ -70,6 +77,7 @@ export default defineConfig({
         },
       },
       ...aiEvaluationProjects,
+      ...quizSimulationProjects,
     ],
   },
 });

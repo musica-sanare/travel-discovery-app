@@ -12,6 +12,7 @@
     "drizzle.config.ts",
     "playwright.config.ts",
     "test/node",
-    "test/ai-eval"
+    "test/ai-eval",
+    "test/simulation"
   ]
 }

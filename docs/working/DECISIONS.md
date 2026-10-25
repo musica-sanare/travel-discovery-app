@@ -358,6 +358,18 @@ Official web pages, local tests, and the owner's dashboard readings; no Wrangler
 
 - *Status* (2026-10-25): Phase 11's acceptance is met: the trial's log outcomes are recorded, the missing 429 is explained and fixed with the quota Durable Object (verified on preview), ADR-026 "Readiness for enabling AI" and [OPERATIONS.md](../en/OPERATIONS.md) section 9 reflect it, AI is disabled in every environment, `npm audit --omit=dev` reports 0 with the `esbuild` chain held, `npm run check` and `npm run test:e2e` passed, and the account stays on Workers Free. The owner's dashboard readings stay 要確認. Open items are listed under Phase 11 in [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
+## Phase 12 verification log (from 2026-10-25)
+
+Local simulation and content review; no Wrangler remote command, deployment, import, or quiz-settings change unless an entry says otherwise.
+
+- *Owner decisions* (2026-10-25, tasks 1–2): the simulation runs as an opt-in Vitest project (`npm run quiz:simulate`, like `ai:eval`) so no dependency is added; four new attributes are approved for scoring and questions: `warm-climate`, `nightlife`, `easy-getting-around`, and `art-architecture`. A fifth candidate, `day-trips`, was not chosen.
+- *Implemented* (2026-10-25, task 1): `test/simulation/quiz-variety.ts` runs the engine on a bundle for 1,000 sessions. Session seeds come from mulberry32 states starting at master seed `20261025`; each session's answers come from a separate stream seeded from its session seed. A single-choice answer picks one option uniformly; a multiple-choice answer includes each option with probability 0.5 and draws again when none is chosen. Shown questions are skipped at the stated skip rate. No trip constraints, so no destination is excluded by budget. `test/node/quiz-variety.test.ts` checks determinism and the counts.
+- *Baseline* (2026-10-25, `content/initial-v4.json`, default settings 6/10/12/5, task 1). The numbers are for random answers, not for real users.
+  - Skip rate 0%: 12 usable questions, 64 distinct question sets in 1,000 sessions (at most 66 = C(12, 10) are possible), mean 8.43 shared questions per pair of sessions (any two sets share at least 8), mean Jaccard 0.733.
+  - Questions shown: `trip-interests` 93.7%, `trip-pace` 92.9%, `scenery-type` 92.4%, `activity-level` 92.0%, `food-style` 85.5%, `remote-or-city` 85.2%, `trip-purpose` 84.6%, `by-the-sea` 83.3%, `museums` 80.3%, `evenings` 77.4%, `travel-distance` 70.6%, `shopping` 62.1%.
+  - In the top 5: `bali` 48.9%, `rio-de-janeiro` 47.6%, `andalusia` 41.0%, `bangkok` 40.6%, `sicily` 38.9%, `barcelona` 36.0%, `sydney` 35.5%, `cusco` 31.7%, `provence` 31.2%, `honolulu` 26.2%, `singapore` 24.8%, `buenos-aires` 21.6%, `paris` 21.3%, `santorini` 20.6%, `uyuni` 11.6%, `taipei` 11.4%, `seoul` 6.4%, `rome` 4.7%. Every destination reaches the top 5 at least once.
+  - Skip rate 10%: 64 distinct sets, mean 8.44 shared questions, mean Jaccard 0.735; the shares differ by at most 3 points.
+
 ## ADR-001: SPA and hosting
 - Status: **Accepted** (Phase 0)
 - Decision: The public app is a React + TypeScript + Vite SPA, deployed as one Cloudflare Worker with static assets via `@cloudflare/vite-plugin`. The admin console is a separate Worker (ADR-004); this ADR covers the public Worker. API routes live under `/api/*` and are the only paths that invoke the Worker (`run_worker_first: ["/api/*"]`); everything else is served as static assets with SPA fallback.

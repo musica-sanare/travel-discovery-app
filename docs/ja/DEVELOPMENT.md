@@ -1,4 +1,4 @@
-<!-- source: docs/en/DEVELOPMENT.md blob ea12cd5a7ae5e98519cddd4c6745ffe4d2187636 -->
+<!-- source: docs/en/DEVELOPMENT.md blob 9897623f82520e6616d77426b6851bbeb37d4de4 -->
 [English](../en/DEVELOPMENT.md) | 日本語 · [目次に戻る](README.md)
 
 > この文書は[英語版](../en/DEVELOPMENT.md)の翻訳です。内容が異なる場合は英語版が優先されます。
@@ -40,6 +40,7 @@ npm run db:reset:local
 | `npm run check` | lint、型チェック、テスト、ビルドを順に実行する。 |
 | `npm run test:e2e` | 本番ビルドに対する Playwright の E2E テスト（「End-to-end tests」を参照）。`check` には含まれない。 |
 | `npm run ai:eval` | 実際の Workers AI モデルに対して任意で行うモデル評価。Neurons を消費し、明示的な確認と認証情報が必要（[AI_EVALUATION.md](../working/AI_EVALUATION.md)（英語のみ））。`check` には決して含めない。 |
+| `npm run quiz:simulate` | コンテンツのバンドルで、クイズの変化を決定的にシミュレーションする（`test/simulation/`）。質問セットの種類数、共通する質問の数、各質問と各旅行先が出る割合を表示する。`QUIZ_SIMULATE_BUNDLES` に `content/` のファイル名をカンマ区切りで指定する（既定は最新のバンドル）。ローカルのみで、ネットワークは使わない。`check` には含めない。 |
 | `npm run e2e:db` | `.wrangler/e2e/state` にある E2E 専用のデータベースを作り直す（マイグレーションとシード）。`test:e2e` が自動で実行する。 |
 | `npm run db:generate` | `server/db/schema.ts` から `migrations/` に SQL マイグレーションを生成する（drizzle-kit）。適用する前に SQL を確認する。 |
 | `npm run db:migrate:local` | 未適用のマイグレーションをローカルの D1 データベースに適用する。 |
