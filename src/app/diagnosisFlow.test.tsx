@@ -102,6 +102,11 @@ describe("diagnosis flow", () => {
     expect(screen.getAllByRole("article")).toHaveLength(2);
     expect(screen.getAllByText(/^相対的な適合度: \d+ \/ 100$/)).toHaveLength(2);
     expect(screen.queryByText(/AI アシストは現在利用できません/)).toBeNull();
+    for (const article of screen.getAllByRole("article")) {
+      // The decorative destination band adds nothing to the accessibility tree.
+      expect(article.querySelector("[aria-hidden='true'] svg")).not.toBeNull();
+      expect(within(article).queryByText("CITY")?.closest("[aria-hidden='true']")).not.toBeNull();
+    }
     // One snapshot request; answers and constraints never leave the browser.
     expect(requests).toEqual(["/api/diagnosis-content?locale=ja"]);
 

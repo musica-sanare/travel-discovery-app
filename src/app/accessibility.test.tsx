@@ -195,6 +195,8 @@ describe("accessibility (axe-core)", () => {
     expect(container.textContent).toContain(
       t("results.cost", { period: perDay, min: money("JPY", 10000), max: money("JPY", 20000) }),
     );
+    // The one card with costs labels its cost block as indicative (ADR-008).
+    expect(screen.getAllByText(t("results.indicative"))).toHaveLength(1);
     for (const image of container.querySelectorAll("img")) {
       expect(image.getAttribute("referrerpolicy")).toBe("no-referrer");
     }
