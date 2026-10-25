@@ -49,7 +49,7 @@ Monthly:
 - Billing (owner, in the dashboard): Manage Account → Billing lists only the domain registration and no other subscription, and the Workers plan is still Free. Anything else is an incident: do not pay or upgrade, and record what was found in `docs/DECISIONS.md` (section 10 lists the actions that start charges).
 
 Dated:
-- **Before 2026-12-01**: Workers Logs moves to Cloudflare Observability pricing. Re-check the pages in the last week of November 2026 and compare the daily log volume with the Free allowance (section 7).
+- **First week of December 2026 (2026-12-01 to 2026-12-07)**: Workers Logs moved to Cloudflare Observability pricing on 2026-12-01 (section 7). Re-read both pages linked in section 7; the owner reads the account's log ingestion in the dashboard (Billable Usage if it is shown, otherwise the Observability event counts) and the Billing page. Record the dates and values in section 7 and in `docs/DECISIONS.md`, and remove this entry and the matching item in section 9. Do this together with the December monthly checks. Anything other than Free usage within the allowance is an incident: do not pay or upgrade.
 
 ## 4. Incidents
 
@@ -85,7 +85,9 @@ Stop AI with the kill switch (`docs/DEPLOYMENT.md` section 7, ADR-026 E); the di
 - When sharing a log entry, remove the account ID and hostnames first.
 
 ## 7. Workers Logs pricing from 2026-12-01
-Checked 2026-10-19 and re-checked 2026-10-24, unchanged (https://developers.cloudflare.com/observability/pricing/, updated 2026-10-15; https://developers.cloudflare.com/workers/observability/logs/workers-logs/, updated 2026-10-12): on Free, 0.5 GB of ingestion per day and 7-day retention; at the limit ingestion stops until 00:00 UTC and nothing is charged. Until 2026-12-01 the Free limit is 200,000 events per day with 3-day retention. With invocation logs disabled, only `api_error` and `ai_explanation` lines are ingested, which is expected to stay far below the limit *(要確認: daily volume in the dashboard)*. If the volume approaches the limit, lower `head_sampling_rate` in the environment's `observability` block. Re-check both pages once more in the last week of November 2026 and update this section with the date.
+Checked 2026-10-19 and re-checked 2026-10-24 and 2026-10-25, unchanged (https://developers.cloudflare.com/observability/pricing/, updated 2026-10-15; https://developers.cloudflare.com/workers/observability/logs/workers-logs/, updated 2026-10-12): on Free, 0.5 GB of ingestion per day and 7-day retention; at the limit ingestion stops until 00:00 UTC and nothing is charged. Until 2026-12-01 the Free limit is 200,000 events per day with 3-day retention. The allowance is shared by every Worker on the account.
+
+Volume (owner, dashboard, 2026-10-24; "Phase 9 verification log" in `docs/DECISIONS.md`): with invocation logs disabled, only `api_error` and `ai_explanation` lines are ingested. The account-wide total is normally about one line per hour, with peaks of about 30–40 lines per minute during manual checks: a few percent of the allowance at most, even at an assumed 5 KB per line (line size not documented). If the volume approaches the limit, lower `head_sampling_rate` in the environment's `observability` block. After 2026-12-01, confirm the actual ingestion once (section 3 "Dated").
 
 ## 8. Publishing production content
 Content is entered only through the production admin console, either in the forms or on the **Import** page with a reviewed bundle from `content/` (ADR-028); `db/seed/dev.sql` is never loaded into production. The rules below come from `docs/SPEC.md`, `docs/DIAGNOSTIC_ALGORITHM.md`, and the admin validation (`server/admin/validation.ts`).
@@ -130,7 +132,7 @@ After:
 ## 9. Open items
 - Rejection of an address outside the Access policy: not checked; it needs a second Cloudflare account, which the owner postponed (2026-10-24).
 - The 429 response of `AI_CLIENT_RATE_LIMITER`: observable only with AI enabled (ADR-026 "Open decisions").
-- Daily Workers Logs volume compared with the 0.5 GB Free allowance (section 7): to be read by the owner in the dashboard before 2026-12-01.
+- Log ingestion after the Cloudflare Observability pricing change of 2026-12-01: check once in the first week of December 2026 (section 3 "Dated"). The volume before the change was recorded on 2026-10-24 (section 7).
 
 ## 10. Actions that start charges
 The account stays on Workers Free; the only accepted charge is the existing domain registration. None of the dashboard actions below is taken without the owner's decision, recorded in `docs/DECISIONS.md` together with the expected monthly cost. Checked 2026-10-24 on the linked pages.

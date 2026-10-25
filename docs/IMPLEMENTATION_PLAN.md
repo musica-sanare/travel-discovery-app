@@ -130,7 +130,7 @@ Acceptance:
 - AI stays disabled and the account stays on Workers Free.
 
 ## Phase 9 — Source-currency costs, dated operations checks, and an AI trial plan
-- Record the daily Workers Logs volume and re-check the pricing pages in the last week of November 2026 (before 2026-12-01).
+- Record the daily Workers Logs volume and re-check the pricing pages in the last week of November 2026 (before 2026-12-01). *Changed 2026-10-25 (owner decision): re-checked on 2026-10-25 instead; the check after 2026-12-01 is a dated operations task (`docs/OPERATIONS.md` section 3 "Dated").*
 - Add `USD` and `EUR` estimates where the verified source publishes that currency, without conversion; review, then import on preview and production.
 - Search again, time-boxed, for the empty costs with a likely candidate.
 - Document the preview AI trial plan for the owner's decision; AI stays disabled.
@@ -140,14 +140,13 @@ Acceptance:
 - Every added estimate matches its source's currency and figures; quizzes with `USD` and `EUR` budgets compare at least one destination on both environments.
 - The AI trial plan is in `docs/DEPLOYMENT.md` 7.1, AI stays disabled, and the account stays on Workers Free.
 
-## Phase 10 — Preview AI trial, Observability pricing follow-up, and a rollback check
-- After 2026-12-01, re-read the Observability pricing pages, record the account's log ingestion and Billing page, and do the December monthly checks.
+## Phase 10 — Preview AI trial, a rollback check, and a content re-check
 - Run the preview AI trial of `docs/DEPLOYMENT.md` 7.1 if the owner decides to; otherwise record the decision.
 - Check on preview whether a Worker rollback also restores static assets.
 - Re-check the Buenos Aires tourism site for a recommended season.
+- Not in this phase: the check after the Observability pricing change of 2026-12-01, which is a dated operations task (`docs/OPERATIONS.md` section 3 "Dated").
 
 Acceptance:
-- The post-change pricing check and log ingestion are recorded with dates; the account stays on Workers Free with no new charge.
-- The AI trial is recorded as 7.1 requires, or the owner's decision not to run it is recorded; AI is disabled in every environment at the end.
+- The AI trial is recorded as 7.1 requires, or the owner's decision not to run it is recorded; AI is disabled in every environment at the end, and the account stays on Workers Free.
 - The rollback question in `docs/DEPLOYMENT.md` section 8 is answered or recorded as 要確認 with the reason.
 - Any content change is reviewed, imported on both environments with bookmarks, and `npm run check` and `npm run test:e2e` pass.
