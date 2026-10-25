@@ -18,6 +18,7 @@ Each phase is started with the matching prompt file:
 | 9 — Source-currency costs, dated operations checks, and an AI trial plan | `prompts/09-currency-and-ai-trial.md` |
 | 10 — Preview AI trial, a rollback check, and a content re-check | `prompts/10-ai-trial-and-operations-checks.md` |
 | 11 — Trial log details, the AI client limiter, and development dependencies | `prompts/11-limiter-and-dependencies.md` |
+| 12 — More attributes and questions for a more varied quiz | `prompts/12-attributes-and-questions.md` |
 
 `prompts/FIRST_MESSAGE.md` is the kickoff message for a new Claude Code session.
 
@@ -188,3 +189,17 @@ Open items for later phases, each needing the owner's decision or check:
 - Remove the overrides once the Cloudflare packages depend on fixed versions (ADR-030).
 - Dated, outside the phases: the Workers Logs and Billing check in the first week of December 2026 ([OPERATIONS.md](../en/OPERATIONS.md) section 3 "Dated").
 - Still deferred: images, a dated exchange-rate table, the out-of-policy Access check, other empty costs, and the pre-public-release checklist.
+
+## Phase 12 — More attributes and questions for a more varied quiz
+Owner decision (2026-10-25): next come more attributes and questions (Phase 12), then more destinations (Phase 13), then the AI notices and limits in the UI together with production readiness for AI (Phase 14). Phases 13 and 14 get their own prompt files when they start.
+- Measure the current quiz variety with a deterministic local simulation (distinct question sets, overlap, how often each question and destination appears).
+- Propose 3–5 new attributes with definitions and a scoring rubric, scores for the 18 published destinations, and new questions to reach about 30; the owner reviews a rendered copy in `ja`, `en`, and `es`.
+- Build `content/initial-v5.json` from the approved items, compare the simulation with the baseline, and propose any change of the quiz settings (the owner changes them in the admin console).
+- Import on preview, then production, with Time Travel bookmarks and checks in all three locales.
+- Not in this phase: new destinations, AI UI changes, deploying the quota Durable Object to production, production AI, and discrimination-based question selection.
+
+Acceptance:
+- Baseline and after-change simulation numbers are recorded, with clearly more distinct question sets after the change.
+- The owner approved the new attributes, scores, and questions, and `initial-v5.json` differs from `initial-v4.json` only by them.
+- The bundle is imported on both environments with bookmarks and matches `/api/diagnosis-content` in all three locales; complete quizzes work in all three locales.
+- `npm run check` and `npm run test:e2e` pass after any change, AI is disabled in every environment, and the account stays on Workers Free.
