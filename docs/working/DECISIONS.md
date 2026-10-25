@@ -369,6 +369,17 @@ Local simulation and content review; no Wrangler remote command, deployment, imp
   - Questions shown: `trip-interests` 93.7%, `trip-pace` 92.9%, `scenery-type` 92.4%, `activity-level` 92.0%, `food-style` 85.5%, `remote-or-city` 85.2%, `trip-purpose` 84.6%, `by-the-sea` 83.3%, `museums` 80.3%, `evenings` 77.4%, `travel-distance` 70.6%, `shopping` 62.1%.
   - In the top 5: `bali` 48.9%, `rio-de-janeiro` 47.6%, `andalusia` 41.0%, `bangkok` 40.6%, `sicily` 38.9%, `barcelona` 36.0%, `sydney` 35.5%, `cusco` 31.7%, `provence` 31.2%, `honolulu` 26.2%, `singapore` 24.8%, `buenos-aires` 21.6%, `paris` 21.3%, `santorini` 20.6%, `uyuni` 11.6%, `taipei` 11.4%, `seoul` 6.4%, `rome` 4.7%. Every destination reaches the top 5 at least once.
   - Skip rate 10%: 64 distinct sets, mean 8.44 shared questions, mean Jaccard 0.735; the shares differ by at most 3 points.
+- *Owner decision* (2026-10-25, tasks 3–4): the rendered review copy is approved unchanged. It covers scores for the four new attributes on all 18 destinations (editorial judgements with one-line reasons in the review copy only), 17 new questions in `ja`, `en`, and `es`, and the counts of questions moving each attribute. Its open points are accepted as proposed:
+  - `heat` / `climate`, `daily-rhythm` / `evenings`, and `food-adventure` / `food-style` stay as separate questions.
+  - `art-architecture`, `food`, `nature`, and `relaxation` are lowered by two questions each; none was added only to reach three.
+  - The total is 29 published questions. The existing 12 questions are unchanged, because the import skips existing question slugs (ADR-028).
+- *Implemented* (2026-10-25, task 5): `content/initial-v5.json` is `initial-v4.json` plus the 4 attributes, their 72 destination scores, and the 17 questions. With those removed, it equals `initial-v4.json` (checked by comparing the parsed files). `test/node/content-bundle.test.ts` now requires every published destination to score every active attribute and every active attribute to be affected by a published question; `test/node/quiz-variety.test.ts` requires `initial-v5.json` to give more than twice the distinct question sets and less than half the shared questions of `initial-v4.json`.
+- *Comparison* (2026-10-25, `content/initial-v5.json`, same simulation and settings as the baseline). The numbers are for random answers, not for real users.
+  - Skip rate 0%: 29 usable questions, 1,000 distinct question sets in 1,000 sessions (baseline 64), mean 3.59 shared questions (baseline 8.43), mean Jaccard 0.226 (baseline 0.733). Skip rate 10%: 1,000, 3.60, 0.227.
+  - Questions shown: from `trip-interests` 52.0% to `travel-distance` 22.6% (baseline 93.7% to 62.1%).
+  - In the top 5: from `barcelona` 47.6% to `rome` 7.8% (baseline `bali` 48.9% to `rome` 4.7%); `seoul` 14.8% (6.4%), `taipei` 15.9% (11.4%). Every destination reaches the top 5 at least once. Rome stays rare because of its existing scores (for example `beach` 0, `relaxation` 2), which are outside this phase.
+  - Other settings (target / max, minimum 6, 5 results): 8/12 → 999 sets, 2.31 shared, Jaccard 0.177; 12/15 → 999, 5.15, 0.280; 15/20 → 1,000, 8.01, 0.370.
+- *Proposal* (2026-10-25, task 5; quiz settings are changed only by the owner in the admin console): keep 6/10/12/5. With 29 questions, a 10-question quiz already shares about a third of its questions with another quiz; longer quizzes lower the variety and lengthen the quiz without an additional measured benefit.
 
 ## ADR-001: SPA and hosting
 - Status: **Accepted** (Phase 0)

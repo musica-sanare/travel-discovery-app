@@ -85,4 +85,31 @@ describe.each(files)("%s", (file) => {
       .map((entry) => entry.slug);
     expect(withoutEffects).toEqual([]);
   });
+
+  // Unscored attributes lower coverage instead of counting as 0 (docs/en/DIAGNOSTIC_ALGORITHM.md §3).
+  it("scores every active attribute for every published destination", () => {
+    if (!parsed.bundle) throw new Error("invalid bundle");
+    const active = parsed.bundle.attributes.filter((entry) => entry.data.status === "active").map((entry) => entry.slug);
+    const missing = parsed.bundle.destinations
+      .filter((entry) => entry.data.status === "published")
+      .flatMap((entry) => {
+        const scored = new Set((entry.data.attributeScores as { attribute: string }[]).map((score) => score.attribute));
+        return active.filter((slug) => !scored.has(slug)).map((slug) => `${entry.slug}/${slug}`);
+      });
+    expect(missing).toEqual([]);
+  });
+
+  it("affects every active attribute by at least one published question", () => {
+    if (!parsed.bundle) throw new Error("invalid bundle");
+    const affected = new Set(
+      parsed.bundle.questions
+        .filter((entry) => entry.data.status === "published")
+        .flatMap((entry) => (entry.data.options as { effects: { attribute: string }[] }[]).flatMap((option) => option.effects))
+        .map((effect) => effect.attribute),
+    );
+    const unaffected = parsed.bundle.attributes
+      .filter((entry) => entry.data.status === "active" && !affected.has(entry.slug))
+      .map((entry) => entry.slug);
+    expect(unaffected).toEqual([]);
+  });
 });

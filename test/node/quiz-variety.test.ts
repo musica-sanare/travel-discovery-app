@@ -8,9 +8,9 @@ import { describe, expect, it } from "vitest";
 import { DEFAULT_QUIZ_SETTINGS } from "../../shared/quiz-settings";
 import { simulateQuizzes, toSimulationContent, type SimulationBundle } from "../simulation/quiz-variety";
 
-const bundle = JSON.parse(
-  readFileSync(path.resolve(import.meta.dirname, "../../content/initial-v4.json"), "utf8"),
-) as SimulationBundle;
+const readBundle = (name: string) =>
+  JSON.parse(readFileSync(path.resolve(import.meta.dirname, "../../content", name), "utf8")) as SimulationBundle;
+const bundle = readBundle("initial-v4.json");
 const content = toSimulationContent(bundle);
 const options = { runs: 200, masterSeed: 1, skipRate: 0, limits: DEFAULT_QUIZ_SETTINGS };
 
@@ -47,5 +47,14 @@ describe("simulateQuizzes", () => {
     expect(Object.values(report.topResultShare).filter((share) => share > 0)).toHaveLength(
       DEFAULT_QUIZ_SETTINGS.resultCount,
     );
+  });
+
+  // prompts/12-attributes-and-questions.md acceptance: clearly more varied than the baseline.
+  it("gives initial-v5.json more varied question sets than initial-v4.json", () => {
+    const before = simulateQuizzes(content, options);
+    const after = simulateQuizzes(toSimulationContent(readBundle("initial-v5.json")), options);
+    expect(after.distinctQuestionSets).toBeGreaterThan(before.distinctQuestionSets * 2);
+    expect(after.meanSharedQuestions).toBeLessThan(before.meanSharedQuestions / 2);
+    expect(after.neverInTopResults).toEqual([]);
   });
 });
