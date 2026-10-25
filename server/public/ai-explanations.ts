@@ -1,5 +1,5 @@
 /**
- * AI explanation use case (`POST /api/ai/explanations`, docs/DECISIONS.md
+ * AI explanation use case (`POST /api/ai/explanations`, docs/working/DECISIONS.md
  * ADR-026). Recomputes the ranking from published content with the same
  * engine as the browser, refuses requests whose answers or expected results do
  * not match, sends only a minimal ranking-free summary to the provider, and

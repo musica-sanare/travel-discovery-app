@@ -1,5 +1,5 @@
 /**
- * Rate-limit key for a client address (docs/DECISIONS.md ADR-026 B). IPv4
+ * Rate-limit key for a client address (docs/working/DECISIONS.md ADR-026 B). IPv4
  * addresses are used as is; IPv6 addresses are reduced to their /64 prefix,
  * because one subscriber usually controls a whole /64. Anything that does not
  * parse falls back to one shared key, which fails safe. The key is used only

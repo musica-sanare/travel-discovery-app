@@ -1,7 +1,7 @@
 {
   // Admin Worker: admin SPA + admin API. Every URL of this Worker must be
   // protected by Worker-level Cloudflare Access, and every admin API request
-  // also validates the Access JWT in code (docs/DECISIONS.md, ADR-004).
+  // also validates the Access JWT in code (docs/working/DECISIONS.md, ADR-004).
   "$schema": "./node_modules/wrangler/config-schema.json",
   "name": "travel-discovery-admin",
   "main": "./admin-worker/index.ts",
@@ -42,7 +42,7 @@
         }
       ]
     },
-    // Deployment environment (docs/DEPLOYMENT.md "3.3 Configuration" and
+    // Deployment environment (docs/en/DEPLOYMENT.md "3.3 Configuration" and
     // "3.4 Cloudflare Access"). Enable workers_dev only while Worker-level
     // Access ("All traffic") protects this Worker. Without the two ACCESS_*
     // values the admin API answers 403 (fail closed).
@@ -52,7 +52,7 @@
       "upload_source_maps": true,
       // Invocation logs would store each request with its IP address, headers,
       // and geolocation; only the app's own console lines are kept
-      // (docs/DECISIONS.md "Phase 7 verification log").
+      // (docs/working/DECISIONS.md "Phase 7 verification log").
       "observability": { "enabled": true, "logs": { "enabled": true, "invocation_logs": false } },
       "d1_databases": [
         {

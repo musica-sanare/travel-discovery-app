@@ -1,3 +1,5 @@
+English | [日本語](../ja/SPEC.md) · [Docs index](README.md)
+
 # Product Specification — Travel Discovery
 
 - Version: 0.1

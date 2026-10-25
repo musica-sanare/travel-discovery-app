@@ -5,7 +5,7 @@
   "compatibility_date": "2026-10-12",
   "upload_source_maps": true,
   // Version URLs are public when enabled; keep them off unless explicitly
-  // needed and protected (see docs/DECISIONS.md, ADR-004).
+  // needed and protected (see docs/working/DECISIONS.md, ADR-004).
   "preview_urls": false,
   "assets": {
     "not_found_handling": "single-page-application",
@@ -22,7 +22,7 @@
       "database_id": "local-travel-discovery"
     }
   ],
-  // Deployment environments (docs/DEPLOYMENT.md "3.3 Configuration"), selected
+  // Deployment environments (docs/en/DEPLOYMENT.md "3.3 Configuration"), selected
   // with CLOUDFLARE_ENV at build time only. Bindings and vars are not inherited,
   // so each environment declares all of them. The top level above must never
   // get the ai or ratelimits bindings: an ai binding always connects to
@@ -35,11 +35,11 @@
       "upload_source_maps": true,
       // Invocation logs would store each request with its IP address, headers,
       // and geolocation; only the app's own console lines are kept
-      // (docs/DECISIONS.md "Phase 7 verification log").
+      // (docs/working/DECISIONS.md "Phase 7 verification log").
       "observability": { "enabled": true, "logs": { "enabled": true, "invocation_logs": false } },
       "d1_databases": [
         {
-          // Created 2026-10-18 (docs/DEPLOYMENT.md "3.2 D1 databases").
+          // Created 2026-10-18 (docs/en/DEPLOYMENT.md "3.2 D1 databases").
           "binding": "PUBLIC_DB",
           "database_name": "travel-discovery-preview",
           "database_id": "d0f881f6-cc73-40cc-9de0-1460a5589625"
@@ -66,7 +66,7 @@
       "observability": { "enabled": true, "logs": { "enabled": true, "invocation_logs": false } },
       "d1_databases": [
         {
-          // Created 2026-10-18 (docs/DEPLOYMENT.md "3.2 D1 databases").
+          // Created 2026-10-18 (docs/en/DEPLOYMENT.md "3.2 D1 databases").
           "binding": "PUBLIC_DB",
           "database_name": "travel-discovery-production",
           "database_id": "09ee8032-0e63-47b1-8b47-507d643d6255"

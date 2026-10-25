@@ -5,7 +5,7 @@ import react from "@vitejs/plugin-react";
 import { defineConfig } from "vite";
 
 // E2E runs use an isolated local D1 state so they never touch development
-// data (playwright.config.ts, docs/DEVELOPMENT.md "End-to-end tests").
+// data (playwright.config.ts, docs/en/DEVELOPMENT.md "End-to-end tests").
 const e2eStateDir = process.env.E2E_STATE_DIR;
 
 export default defineConfig({

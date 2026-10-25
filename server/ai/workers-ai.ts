@@ -1,5 +1,5 @@
 /**
- * Workers AI adapter (docs/DECISIONS.md ADR-026). Only models from the
+ * Workers AI adapter (docs/working/DECISIONS.md ADR-026). Only models from the
  * evaluated shortlist are accepted, because request options and output shapes
  * differ between them; any other model ID leaves AI unavailable. The adapter
  * extracts the model's answer but does not trust it: the use case validates it.
@@ -25,7 +25,7 @@ interface ModelProfile {
 
 /**
  * Shortlist from the Phase 4 verification log. Observed in evaluation probes
- * (2026-10-18, docs/DECISIONS.md ADR-026 "Evaluation round 1"):
+ * (2026-10-18, docs/working/DECISIONS.md ADR-026 "Evaluation round 1"):
  * `llama-3.1-8b-instruct-fp8` rejects JSON Schema (403, code 5025), and
  * `qwen3-30b-a3b-fp8` with `enable_thinking: false` returns its answer only in
  * reasoning fields, so it keeps its default reasoning. `llama-3.3-70b` is not

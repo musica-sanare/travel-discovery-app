@@ -1,5 +1,5 @@
 /**
- * Outbound search links (docs/DECISIONS.md ADR-024). Fixed start-page URLs:
+ * Outbound search links (docs/working/DECISIONS.md ADR-024). Fixed start-page URLs:
  * no verified affiliate-free deep-link format exists, so no search
  * parameters, user data, or affiliate IDs are ever appended.
  */

@@ -2,7 +2,7 @@
  * Maps the diagnosis content snapshot to the engine's input. The snapshot
  * contains only published/active content, so statuses are set accordingly.
  * Used by the browser and by the AI explanation endpoint, so both rank the
- * same content the same way (docs/DECISIONS.md ADR-026).
+ * same content the same way (docs/working/DECISIONS.md ADR-026).
  */
 import type { DiagnosisContent, QuizLimits } from "../domain/diagnosis";
 import type { DiagnosisContentResponse } from "./diagnosis-content";

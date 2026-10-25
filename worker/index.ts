@@ -4,7 +4,7 @@
  * served by the Workers static-assets layer without invoking it.
  *
  * This Worker is read-only: it serves GET/HEAD, plus the read-only
- * `POST /api/ai/explanations` (docs/DECISIONS.md ADR-026), and imports read
+ * `POST /api/ai/explanations` (docs/working/DECISIONS.md ADR-026), and imports read
  * modules only. That is a code-level constraint (ADR-018), not a database
  * permission.
  */

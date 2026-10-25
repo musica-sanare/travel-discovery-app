@@ -22,7 +22,7 @@ coverage/
 playwright-report/
 test-results/
 
-# Model evaluation records (docs/AI_EVALUATION.md); raw outputs stay local
+# Model evaluation records (docs/working/AI_EVALUATION.md); raw outputs stay local
 .ai-eval/
 
 # Personal Claude Code settings (shared settings would live in .claude/settings.json)

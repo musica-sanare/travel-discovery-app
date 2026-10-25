@@ -1,7 +1,7 @@
 -- Local development seed data (apply after migrations to an empty database:
 -- `npm run db:reset:local`). Small curated sample with ja/en/es text.
 -- No indicative cost estimates are seeded: no sourced estimates exist
--- yet, and seed data must not present invented prices (docs/SPEC.md §7).
+-- yet, and seed data must not present invented prices (docs/en/SPEC.md §7).
 -- Rows reference each other by slug so the file does not depend on IDs.
 -- Multi-row VALUES are used because D1 limits compound SELECT terms.
 

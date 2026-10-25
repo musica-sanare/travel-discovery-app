@@ -1,6 +1,8 @@
+English | [日本語](../ja/OPERATIONS.md) · [Docs index](README.md)
+
 # Operations Runbook
 
-Last reviewed: 2026-10-24. This page covers running the deployed app; how to deploy, migrate, enable AI, and roll back is in `docs/DEPLOYMENT.md`, and the facts behind each rule are in `docs/DECISIONS.md`. Every remote Wrangler command, deployment, rollback, restore, and account or Access change needs the owner's approval at that time. Dashboard steps are the owner's.
+Last reviewed: 2026-10-24. This page covers running the deployed app; how to deploy, migrate, enable AI, and roll back is in [DEPLOYMENT.md](DEPLOYMENT.md), and the facts behind each rule are in [DECISIONS.md](../working/DECISIONS.md). Every remote Wrangler command, deployment, rollback, restore, and account or Access change needs the owner's approval at that time. Dashboard steps are the owner's.
 
 ## 1. What runs where
 
@@ -9,7 +11,7 @@ Last reviewed: 2026-10-24. This page covers running the deployed app; how to dep
 | `preview` | `travel-discovery-preview` | `travel-discovery-admin-preview` | `travel-discovery-preview` (seed data) |
 | `production` | `travel-discovery` | `travel-discovery-admin` | `travel-discovery-production` |
 
-All four Workers use `workers.dev` (`<worker>.<account subdomain>.workers.dev`). The account is on Workers Free and Zero Trust Free; AI is disabled everywhere. Free-tier limits are shared by the whole account, so heavy use of preview also affects production (`docs/DEPLOYMENT.md` section 9).
+All four Workers use `workers.dev` (`<worker>.<account subdomain>.workers.dev`). The account is on Workers Free and Zero Trust Free; AI is disabled everywhere. Free-tier limits are shared by the whole account, so heavy use of preview also affects production ([DEPLOYMENT.md](DEPLOYMENT.md) section 9).
 
 ## 2. Where to look
 
@@ -45,11 +47,11 @@ Weekly, and after any change on the Access tab, a Zero Trust policy, or the acco
 Monthly:
 - `npm audit --omit=dev` (expected: 0 vulnerabilities) and `npm audit` (known development-only advisory, ADR-003).
 - New releases of the pinned GitHub Actions; update the SHA and version comment together (ADR-027).
-- The free-tier pages in `docs/DEPLOYMENT.md` section 9 for changes.
-- Billing (owner, in the dashboard): Manage Account → Billing lists only the domain registration and no other subscription, and the Workers plan is still Free. Anything else is an incident: do not pay or upgrade, and record what was found in `docs/DECISIONS.md` (section 10 lists the actions that start charges).
+- The free-tier pages in [DEPLOYMENT.md](DEPLOYMENT.md) section 9 for changes.
+- Billing (owner, in the dashboard): Manage Account → Billing lists only the domain registration and no other subscription, and the Workers plan is still Free. Anything else is an incident: do not pay or upgrade, and record what was found in [DECISIONS.md](../working/DECISIONS.md) (section 10 lists the actions that start charges).
 
 Dated:
-- **First week of December 2026 (2026-12-01 to 2026-12-07)**: Workers Logs moved to Cloudflare Observability pricing on 2026-12-01 (section 7). Re-read both pages linked in section 7; the owner reads the account's log ingestion in the dashboard (Billable Usage if it is shown, otherwise the Observability event counts) and the Billing page. Record the dates and values in section 7 and in `docs/DECISIONS.md`, and remove this entry and the matching item in section 9. Do this together with the December monthly checks. Anything other than Free usage within the allowance is an incident: do not pay or upgrade.
+- **First week of December 2026 (2026-12-01 to 2026-12-07)**: Workers Logs moved to Cloudflare Observability pricing on 2026-12-01 (section 7). Re-read both pages linked in section 7; the owner reads the account's log ingestion in the dashboard (Billable Usage if it is shown, otherwise the Observability event counts) and the Billing page. Record the dates and values in section 7 and in [DECISIONS.md](../working/DECISIONS.md), and remove this entry and the matching item in section 9. Do this together with the December monthly checks. Anything other than Free usage within the allowance is an incident: do not pay or upgrade.
 
 ## 4. Incidents
 
@@ -57,7 +59,7 @@ Dated:
 1. Check Metrics of the public Worker and its `api_error` lines.
 2. Error 1027 or no Worker requests at all: the account's 100,000 requests/day are used up. Nothing to do until 00:00 UTC; static pages still load.
 3. `api_error` with `service_unavailable`: a D1 failure. If Cloudflare sent a D1 daily-limit email, queries resume at 00:00 UTC; data is not affected.
-4. Started right after a deployment: roll back (`docs/DEPLOYMENT.md` section 8) or redeploy the previous good commit.
+4. Started right after a deployment: roll back ([DEPLOYMENT.md](DEPLOYMENT.md) section 8) or redeploy the previous good commit.
 5. Never upgrade the plan to get out of a limit without the owner's decision (ADR-015).
 
 ### 4.2 Admin Worker reachable without Access
@@ -65,21 +67,21 @@ Any unauthenticated 200 from an admin URL. The admin API still answers 403 witho
 1. Remove the URL at once: redeploy that Worker with `"workers_dev": false` in its environment (rebuild with `CLOUDFLARE_ENV=<env>`, deploy with `--config dist-admin/admin_worker/wrangler.json`), or disable `workers.dev` in the dashboard (Settings → Domains & Routes), which is faster but is reverted by the next deployment.
 2. Check the Access tab scope and the policy (section 3), and the Audit Log for what changed.
 3. Re-enable `workers_dev`, redeploy, and check the redirect immediately and for two minutes.
-4. Record the incident in `docs/DECISIONS.md`.
+4. Record the incident in [DECISIONS.md](../working/DECISIONS.md).
 
 ### 4.3 Wrong content published
 Archive or correct it in the admin console. To undo a larger mistake, restore the database with Time Travel (section 5).
 
 ### 4.4 AI problems or abuse (once AI is enabled)
-Stop AI with the kill switch (`docs/DEPLOYMENT.md` section 7, ADR-026 E); the diagnosis keeps working. Stop when Neurons exceed about 70% of the daily allocation before 12:00 UTC, or when `rate_limited` or `provider_error` outcomes spike.
+Stop AI with the kill switch ([DEPLOYMENT.md](DEPLOYMENT.md) section 7, ADR-026 E); the diagnosis keeps working. Stop when Neurons exceed about 70% of the daily allocation before 12:00 UTC, or when `rate_limited` or `provider_error` outcomes spike.
 
 ## 5. Backups and restore
 - D1 Time Travel keeps 7 days on Workers Free. Before bulk content changes, record a bookmark: `npx wrangler d1 time-travel info travel-discovery-production` (remote read; approval).
-- A restore replaces the whole database and is destructive (`docs/DEPLOYMENT.md` section 8); it always needs the owner's approval.
+- A restore replaces the whole database and is destructive ([DEPLOYMENT.md](DEPLOYMENT.md) section 8); it always needs the owner's approval.
 - Optional SQL exports (`npx wrangler d1 export … --remote --output <file>`) stay outside the repository.
 
 ## 6. Logs and privacy
-- Workers Logs is enabled on all four Workers with invocation logs disabled. Invocation logs would store each request with its IP address, headers (including Access tokens on the admin Workers), and geolocation ("Phase 7 verification log" in `docs/DECISIONS.md`). Do not re-enable them.
+- Workers Logs is enabled on all four Workers with invocation logs disabled. Invocation logs would store each request with its IP address, headers (including Access tokens on the admin Workers), and geolocation ("Phase 7 verification log" in [DECISIONS.md](../working/DECISIONS.md)). Do not re-enable them.
 - The app's own lines contain no addresses, answers, or texts. Keep it that way when adding log lines.
 - Retention: 3 days on Workers Free, 7 days from 2026-12-01.
 - When sharing a log entry, remove the account ID and hostnames first.
@@ -87,10 +89,10 @@ Stop AI with the kill switch (`docs/DEPLOYMENT.md` section 7, ADR-026 E); the di
 ## 7. Workers Logs pricing from 2026-12-01
 Checked 2026-10-19 and re-checked 2026-10-24 and 2026-10-25, unchanged (https://developers.cloudflare.com/observability/pricing/, updated 2026-10-15; https://developers.cloudflare.com/workers/observability/logs/workers-logs/, updated 2026-10-12): on Free, 0.5 GB of ingestion per day and 7-day retention; at the limit ingestion stops until 00:00 UTC and nothing is charged. Until 2026-12-01 the Free limit is 200,000 events per day with 3-day retention. The allowance is shared by every Worker on the account.
 
-Volume (owner, dashboard, 2026-10-24; "Phase 9 verification log" in `docs/DECISIONS.md`): with invocation logs disabled, only `api_error` and `ai_explanation` lines are ingested. The account-wide total is normally about one line per hour, with peaks of about 30–40 lines per minute during manual checks: a few percent of the allowance at most, even at an assumed 5 KB per line (line size not documented). If the volume approaches the limit, lower `head_sampling_rate` in the environment's `observability` block. After 2026-12-01, confirm the actual ingestion once (section 3 "Dated").
+Volume (owner, dashboard, 2026-10-24; "Phase 9 verification log" in [DECISIONS.md](../working/DECISIONS.md)): with invocation logs disabled, only `api_error` and `ai_explanation` lines are ingested. The account-wide total is normally about one line per hour, with peaks of about 30–40 lines per minute during manual checks: a few percent of the allowance at most, even at an assumed 5 KB per line (line size not documented). If the volume approaches the limit, lower `head_sampling_rate` in the environment's `observability` block. After 2026-12-01, confirm the actual ingestion once (section 3 "Dated").
 
 ## 8. Publishing production content
-Content is entered only through the production admin console, either in the forms or on the **Import** page with a reviewed bundle from `content/` (ADR-028); `db/seed/dev.sql` is never loaded into production. The rules below come from `docs/SPEC.md`, `docs/DIAGNOSTIC_ALGORITHM.md`, and the admin validation (`server/admin/validation.ts`).
+Content is entered only through the production admin console, either in the forms or on the **Import** page with a reviewed bundle from `content/` (ADR-028); `db/seed/dev.sql` is never loaded into production. The rules below come from [SPEC.md](SPEC.md), [DIAGNOSTIC_ALGORITHM.md](DIAGNOSTIC_ALGORITHM.md), and the admin validation (`server/admin/validation.ts`).
 
 Before:
 - Record a Time Travel bookmark (section 5).
@@ -119,9 +121,9 @@ Minimum for a useful diagnosis:
 - Questions spread over several categories (selection balances categories).
 
 Each published item:
-- Translations: the admin console requires `ja` or `en` to publish. Publish with `ja`, `en`, and `es` where possible, and at least `ja` and `en` (`docs/DEPLOYMENT.md` section 10); missing locales fall back as described in ADR-012.
+- Translations: the admin console requires `ja` or `en` to publish. Publish with `ja`, `en`, and `es` where possible, and at least `ja` and `en` ([DEPLOYMENT.md](DEPLOYMENT.md) section 10); missing locales fall back as described in ADR-012.
 - Costs: indicative ranges only, with currency, period, basis in every translated locale, source, and the date checked; never wording that suggests live prices (ADR-008).
-- Images: `https` URL, attribution, and alt text in every translated locale; check the provider's license (`docs/PUBLIC_RELEASE.md` section 4).
+- Images: `https` URL, attribution, and alt text in every translated locale; check the provider's license ([PUBLIC_RELEASE.md](../working/PUBLIC_RELEASE.md) section 4).
 - Best months, recommended days, and cautions where known; leave unknown values empty rather than guessing.
 - A human-authored summary and highlights, which also serve as the explanation when AI is off.
 
@@ -135,7 +137,7 @@ After:
 - Log ingestion after the Cloudflare Observability pricing change of 2026-12-01: check once in the first week of December 2026 (section 3 "Dated"). The volume before the change was recorded on 2026-10-24 (section 7).
 
 ## 10. Actions that start charges
-The account stays on Workers Free; the only accepted charge is the existing domain registration. None of the dashboard actions below is taken without the owner's decision, recorded in `docs/DECISIONS.md` together with the expected monthly cost. Checked 2026-10-24 on the linked pages.
+The account stays on Workers Free; the only accepted charge is the existing domain registration. None of the dashboard actions below is taken without the owner's decision, recorded in [DECISIONS.md](../working/DECISIONS.md) together with the expected monthly cost. Checked 2026-10-24 on the linked pages.
 - **Upgrading to Workers Paid**: at least USD 5 per month per account; usage above the included allotments (D1, Workers Logs, Queues, and others) is then billed instead of failing (https://developers.cloudflare.com/workers/platform/pricing/, updated 2026-10-02). After 2026-12-01 paid log ingestion also continues automatically above the included amount (https://developers.cloudflare.com/observability/pricing/).
 - **Workers Logpush**: available only on Workers Paid (https://developers.cloudflare.com/workers/observability/logs/logpush/, updated 2026-10-12).
 - **Enabling R2**: free tier of 10 GB-month of Standard storage, 1 million Class A and 10 million Class B operations per month, per-unit prices above it (https://developers.cloudflare.com/r2/pricing/, updated 2026-10-01). Whether enabling R2 requires a payment method is not stated on the page *(要確認)*.

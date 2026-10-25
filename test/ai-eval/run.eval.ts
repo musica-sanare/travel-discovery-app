@@ -1,5 +1,5 @@
 /**
- * Entry point for `npm run ai:eval` only (docs/AI_EVALUATION.md). Calls real
+ * Entry point for `npm run ai:eval` only (docs/working/AI_EVALUATION.md). Calls real
  * models and consumes Neurons; never part of `npm test` or `npm run check`.
  */
 import { appendFileSync, existsSync, mkdirSync, readFileSync } from "node:fs";

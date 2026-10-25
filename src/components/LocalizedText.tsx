@@ -4,7 +4,7 @@ import type { Locale } from "../../shared/locales";
 
 /**
  * Marks content shown in a fallback locale with its `lang` and a short hint
- * (docs/DECISIONS.md ADR-012).
+ * (docs/working/DECISIONS.md ADR-012).
  */
 export function LocalizedText({
   locale,

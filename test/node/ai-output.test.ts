@@ -1,5 +1,5 @@
 /**
- * Text guards and structural checks for model output (docs/DECISIONS.md
+ * Text guards and structural checks for model output (docs/working/DECISIONS.md
  * ADR-026). These cases document known patterns only; passing them does not
  * mean a text is accurate.
  */

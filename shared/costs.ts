@@ -1,6 +1,6 @@
 /**
  * Locale-neutral cost vocabulary shared by the database schema, admin
- * validation, and the diagnostic engine (docs/DECISIONS.md ADR-021).
+ * validation, and the diagnostic engine (docs/working/DECISIONS.md ADR-021).
  */
 export const SUPPORTED_CURRENCIES = ["JPY", "USD", "EUR"] as const;
 export type Currency = (typeof SUPPORTED_CURRENCIES)[number];

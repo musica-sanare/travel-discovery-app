@@ -1,6 +1,6 @@
 /**
  * Stable API error codes shared by the Workers and the admin UI
- * (contract: docs/DECISIONS.md, ADR-015).
+ * (contract: docs/working/DECISIONS.md, ADR-015).
  */
 export const API_ERROR_CODES = [
   "invalid_request",

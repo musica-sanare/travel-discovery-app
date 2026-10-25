@@ -1,6 +1,6 @@
 /**
  * Published seed content must have curated ja/en/es translations
- * (docs/DATA_MODEL.md "Design rules"). Drafts may be incomplete.
+ * (docs/en/DATA_MODEL.md "Design rules"). Drafts may be incomplete.
  */
 import { env } from "cloudflare:workers";
 import { beforeAll, describe, expect, it } from "vitest";

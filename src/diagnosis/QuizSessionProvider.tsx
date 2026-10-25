@@ -7,7 +7,7 @@ import { INITIAL_SESSION, sessionReducer } from "./session";
 
 /**
  * Holds the quiz session and the content snapshot in memory only
- * (docs/DECISIONS.md ADR-022). The snapshot is fetched once a quiz starts and
+ * (docs/working/DECISIONS.md ADR-022). The snapshot is fetched once a quiz starts and
  * again when the language changes or a reload is requested; a page reload
  * starts from scratch.
  */

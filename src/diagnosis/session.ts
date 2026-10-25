@@ -1,5 +1,5 @@
 /**
- * In-memory quiz session state (docs/DECISIONS.md ADR-022). Pure reducer and
+ * In-memory quiz session state (docs/working/DECISIONS.md ADR-022). Pure reducer and
  * selectors; nothing here touches storage or the network.
  */
 import {

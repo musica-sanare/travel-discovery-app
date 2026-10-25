@@ -1,5 +1,5 @@
 /**
- * Next-question selection and stopping rule (docs/DIAGNOSTIC_ALGORITHM.md §7, §8).
+ * Next-question selection and stopping rule (docs/en/DIAGNOSTIC_ALGORITHM.md §7, §8).
  */
 import { compareSlugs, prepareContent, type UsableContent, type UsableQuestion } from "./content";
 import { buildPreferences } from "./preferences";

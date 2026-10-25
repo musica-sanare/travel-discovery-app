@@ -11,7 +11,7 @@ const publicHealth = `http://localhost:${String(PORT)}/api/health`;
 // Local runs use the installed Google Chrome (`channel: "chrome"`), so no
 // browser download is needed. Set PLAYWRIGHT_CHANNEL=bundled to use
 // Playwright's own Chromium after `npx playwright install chromium`
-// (docs/DEVELOPMENT.md "End-to-end tests").
+// (docs/en/DEVELOPMENT.md "End-to-end tests").
 const browser = process.env.PLAYWRIGHT_CHANNEL === "bundled" ? {} : { channel: "chrome" };
 
 export default defineConfig({

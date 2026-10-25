@@ -1,5 +1,5 @@
 /**
- * Preference summary for optional AI explanations (docs/DECISIONS.md
+ * Preference summary for optional AI explanations (docs/working/DECISIONS.md
  * ADR-026). It reads the same preference vector as scoring but has no effect
  * on ranking.
  */

@@ -1,5 +1,5 @@
-// Unauthenticated checks of a deployed environment (docs/DEPLOYMENT.md
-// "6. Checks after each deployment", docs/OPERATIONS.md "3. Routine checks").
+// Unauthenticated checks of a deployed environment (docs/en/DEPLOYMENT.md
+// "6. Checks after each deployment", docs/en/OPERATIONS.md "3. Routine checks").
 // Sends only anonymous GET/POST/DELETE requests; never signs in or changes data.
 //
 // Usage: node scripts/check-deployment.mjs <account subdomain> <preview|production> [--watch-admin <seconds>]
@@ -24,7 +24,7 @@ const publicBase = `https://${workers.public}.${subdomain}.workers.dev`;
 const adminBase = `https://${workers.admin}.${subdomain}.workers.dev`;
 
 // The first TLS use in a Node process loads the CA store, which took 4-7 s on
-// macOS (docs/DECISIONS.md "Phase 8 verification log"). Do it before any request
+// macOS (docs/working/DECISIONS.md "Phase 8 verification log"). Do it before any request
 // so that each request's timeout covers only the network.
 createSecureContext();
 
@@ -95,7 +95,7 @@ async function checkAdmin(label) {
       const redirected = response.status === 302 && /^https:\/\/[a-z0-9-]+\.cloudflareaccess\.com\//.test(location);
       report(redirected, `${label}admin ${path} redirects to Access`, `status ${response.status}`);
       if (response.status === 200) {
-        console.log("ALERT admin Worker answers without Access: follow docs/OPERATIONS.md 4.2 now.");
+        console.log("ALERT admin Worker answers without Access: follow docs/en/OPERATIONS.md 4.2 now.");
       }
     } catch (error) {
       report(false, `${label}admin ${path} redirects to Access`, error instanceof Error ? error.message : String(error));

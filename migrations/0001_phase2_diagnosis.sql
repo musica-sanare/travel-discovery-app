@@ -1,5 +1,5 @@
 -- Phase 2: cost estimates per currency and structured best months
--- (docs/DECISIONS.md ADR-021, docs/DATA_MODEL.md "Phase 2 schema notes").
+-- (docs/working/DECISIONS.md ADR-021, docs/en/DATA_MODEL.md "Phase 2 schema notes").
 -- Hand-edited from drizzle-kit output. D1 enforces foreign keys while applying
 -- migrations, so dropping the old `destinations` table can cascade-delete its
 -- translations and attribute scores. They are copied to backup tables first

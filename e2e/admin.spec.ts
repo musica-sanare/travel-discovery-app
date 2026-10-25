@@ -1,5 +1,5 @@
 /**
- * Admin console end to end (docs/DECISIONS.md ADR-004, ADR-025).
+ * Admin console end to end (docs/working/DECISIONS.md ADR-004, ADR-025).
  * - Denied paths run against the admin production build, which has no local
  *   identity and no Access JWT, so every admin API request must be 403.
  * - Allowed paths run against the admin dev server with the local E2E identity

@@ -1,5 +1,5 @@
 /**
- * Contract of `GET /api/diagnosis-content` (docs/DECISIONS.md ADR-022). The
+ * Contract of `GET /api/diagnosis-content` (docs/working/DECISIONS.md ADR-022). The
  * server builds this shape; the browser validates responses against it before
  * running the diagnostic engine. Uses `zod/mini` to keep the public bundle
  * small (ADR-023).

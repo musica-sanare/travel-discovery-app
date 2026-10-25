@@ -1,5 +1,5 @@
 /**
- * Content bundle import (docs/DECISIONS.md ADR-028). The bundle uses the admin
+ * Content bundle import (docs/working/DECISIONS.md ADR-028). The bundle uses the admin
  * API payloads, except that references are slugs instead of IDs. This module
  * only checks the envelope, slugs, and references; every item is validated by
  * the server when it is created.

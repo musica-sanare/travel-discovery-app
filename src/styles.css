@@ -1,6 +1,6 @@
 /*
  * Public SPA styles: Tailwind CSS 4 utilities plus a small set of design
- * tokens for the "Flight Deck" look (docs/DECISIONS.md ADR-014). Colors switch
+ * tokens for the "Flight Deck" look (docs/working/DECISIONS.md ADR-014). Colors switch
  * with the system color scheme; motion is limited to short CSS transitions
  * disabled under prefers-reduced-motion.
  */

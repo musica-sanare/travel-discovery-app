@@ -1,5 +1,5 @@
 /**
- * Contract of `POST /api/ai/explanations` (docs/DECISIONS.md ADR-026). The
+ * Contract of `POST /api/ai/explanations` (docs/working/DECISIONS.md ADR-026). The
  * request carries only validated IDs and constraint values; the server
  * recomputes the ranking and treats `expected` as an equality check only. The
  * response carries explanation text per destination slug and nothing that

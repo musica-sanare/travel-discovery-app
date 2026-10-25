@@ -1,6 +1,6 @@
 /**
  * Read-only snapshot for the in-browser diagnostic engine
- * (`GET /api/diagnosis-content`, docs/DECISIONS.md ADR-022). Returns
+ * (`GET /api/diagnosis-content`, docs/working/DECISIONS.md ADR-022). Returns
  * published, active content only, in the requested locale with ADR-012
  * fallback. Must not import write helpers (ADR-018).
  */

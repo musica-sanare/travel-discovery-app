@@ -1,3 +1,5 @@
+English | [日本語](../ja/DEVELOPMENT.md) · [Docs index](README.md)
+
 # Local Development
 
 ## Prerequisites
@@ -15,7 +17,7 @@ npm run db:reset:local
 
 `.npmrc` sets:
 - `engine-strict=true`: installs fail on an unsupported Node version.
-- `strict-allow-scripts=true`: installs fail if any dependency has install scripts not listed in `package.json` `allowScripts`. The scripts of `esbuild`, `fsevents`, and `workerd` are explicitly denied because they are not needed (ADR-016 in `docs/DECISIONS.md`).
+- `strict-allow-scripts=true`: installs fail if any dependency has install scripts not listed in `package.json` `allowScripts`. The scripts of `esbuild`, `fsevents`, and `workerd` are explicitly denied because they are not needed (ADR-016 in [DECISIONS.md](../working/DECISIONS.md)).
 
 If `npm ci` fails with `ESTRICTALLOWSCRIPTS`, a dependency update introduced a new install script. Review what it does, then record a decision with `npm deny-scripts <pkg>` (preferred) or `npm approve-scripts <pkg>` (version-pinned). Never use `--dangerously-allow-all-scripts` or `npm approve-scripts --all`.
 
@@ -34,14 +36,14 @@ Do not install with `--omit=optional`: the `workerd` and `esbuild` binaries come
 | `npm test` | Vitest: `unit` project (Node/jsdom) and `workers` project (Workers runtime with a migrated local D1). |
 | `npm run check` | Lint, type-check, tests, and build in sequence. |
 | `npm run test:e2e` | Playwright end-to-end tests against a production build (see "End-to-end tests"). Not part of `check`. |
-| `npm run ai:eval` | Opt-in model evaluation against real Workers AI models; consumes Neurons and needs explicit confirmation and credentials (docs/AI_EVALUATION.md). Never part of `check`. |
+| `npm run ai:eval` | Opt-in model evaluation against real Workers AI models; consumes Neurons and needs explicit confirmation and credentials ([AI_EVALUATION.md](../working/AI_EVALUATION.md)). Never part of `check`. |
 | `npm run e2e:db` | Recreate the isolated E2E database in `.wrangler/e2e/state` (migrate and seed). Run automatically by `test:e2e`. |
 | `npm run db:generate` | Generate a SQL migration from `server/db/schema.ts` into `migrations/` (drizzle-kit). Review the SQL before applying. |
 | `npm run db:migrate:local` | Apply pending migrations to the local D1 database. |
 | `npm run db:seed:local` | Load `db/seed/dev.sql` into the local database (expects an empty, migrated database). |
 | `npm run db:reset:local` | Delete local D1 state, then migrate and seed. |
 
-There is intentionally no deploy script and no remote database command. Do not run `wrangler deploy` or any `--remote` command without the owner's approval. `scripts/check-deployment.mjs` only sends anonymous requests to the deployed Workers (`docs/OPERATIONS.md` "3. Routine checks").
+There is intentionally no deploy script and no remote database command. Do not run `wrangler deploy` or any `--remote` command without the owner's approval. `scripts/check-deployment.mjs` only sends anonymous requests to the deployed Workers ([OPERATIONS.md](OPERATIONS.md) "3. Routine checks").
 
 ## Project layout
 
@@ -56,7 +58,7 @@ server/public/          Published-content reads and the AI explanation use case 
 server/ai/              AI provider interface and model-output validation (public Worker only)
 server/admin/           Admin validation, reads, writes, Access auth (admin only)
 shared/                 Locale, currency, month, and API error constants (browser and Workers)
-domain/diagnosis/       Pure diagnostic engine (docs/DIAGNOSTIC_ALGORITHM.md)
+domain/diagnosis/       Pure diagnostic engine (docs/en/DIAGNOSTIC_ALGORITHM.md)
 migrations/             Generated SQL migrations (+ drizzle-kit snapshots in meta/)
 db/seed/dev.sql         Local seed data
 content/                Reviewed content bundles for the admin Import page (ADR-028)
@@ -137,9 +139,9 @@ The admin spec covers authorization on the production build (403 for every reque
 
 ## Continuous integration
 
-`.github/workflows/ci.yml` runs two jobs on pushes to `main` and `dev` and on pull requests (docs/DECISIONS.md ADR-027): `check` (`npm ci`, `npm run check`) and `e2e` (`npm ci`, `npm run test:e2e` with the Google Chrome preinstalled on the runner image, so nothing is downloaded). Failed E2E runs upload `test-results/` (traces with local seed data only) as an artifact kept for 7 days. Neither job needs secrets. A full local E2E run took about 1 minute on 2026-10-24.
+`.github/workflows/ci.yml` runs two jobs on pushes to `main` and `dev` and on pull requests ([DECISIONS.md](../working/DECISIONS.md) ADR-027): `check` (`npm ci`, `npm run check`) and `e2e` (`npm ci`, `npm run test:e2e` with the Google Chrome preinstalled on the runner image, so nothing is downloaded). Failed E2E runs upload `test-results/` (traces with local seed data only) as an artifact kept for 7 days. Neither job needs secrets. A full local E2E run took about 1 minute on 2026-10-24.
 
 ## Environment variables
 - Local: `.dev.vars` (see "Admin locally"). `.env.example` lists all variables.
-- Deployed admin Worker (set only after the owner approves the Access setup): `ACCESS_TEAM_DOMAIN`, `ACCESS_POLICY_AUD`. Without them every admin API request is rejected with 403. Optional Rate Limiting binding `ADMIN_RATE_LIMITER` (keyed by the Access email; not configured yet, docs/DECISIONS.md ADR-020).
-- Public Worker, AI explanations (docs/DECISIONS.md ADR-026; none is configured yet): `AI_ASSIST_ENABLED` (`"true"` enables the endpoint; anything else, including unset, disables it and no model is called), `AI_MODEL` (one of the model IDs in `server/ai/workers-ai.ts`), the `AI` binding, and the optional per-client rate-limit binding `AI_CLIENT_RATE_LIMITER` (there is deliberately no global limiter, ADR-026). To disable AI, set `AI_ASSIST_ENABLED` to anything other than `"true"` or remove it; the diagnosis keeps working. Tests use fakes and never call Workers AI. These settings belong only in a named deployment environment, never in the top-level `wrangler.jsonc` used by `npm run dev`, tests, and E2E, because an `ai` binding always connects to Cloudflare (docs/DECISIONS.md ADR-026, C). Real-model runs use only the opt-in evaluation procedure in `docs/AI_EVALUATION.md`; never put a Cloudflare API token in `.dev.vars`, because the build copies that file into `dist/`.
+- Deployed admin Worker (set only after the owner approves the Access setup): `ACCESS_TEAM_DOMAIN`, `ACCESS_POLICY_AUD`. Without them every admin API request is rejected with 403. Optional Rate Limiting binding `ADMIN_RATE_LIMITER` (keyed by the Access email; not configured yet, [DECISIONS.md](../working/DECISIONS.md) ADR-020).
+- Public Worker, AI explanations ([DECISIONS.md](../working/DECISIONS.md) ADR-026; none is configured yet): `AI_ASSIST_ENABLED` (`"true"` enables the endpoint; anything else, including unset, disables it and no model is called), `AI_MODEL` (one of the model IDs in `server/ai/workers-ai.ts`), the `AI` binding, and the optional per-client rate-limit binding `AI_CLIENT_RATE_LIMITER` (there is deliberately no global limiter, ADR-026). To disable AI, set `AI_ASSIST_ENABLED` to anything other than `"true"` or remove it; the diagnosis keeps working. Tests use fakes and never call Workers AI. These settings belong only in a named deployment environment, never in the top-level `wrangler.jsonc` used by `npm run dev`, tests, and E2E, because an `ai` binding always connects to Cloudflare ([DECISIONS.md](../working/DECISIONS.md) ADR-026, C). Real-model runs use only the opt-in evaluation procedure in [AI_EVALUATION.md](../working/AI_EVALUATION.md); never put a Cloudflare API token in `.dev.vars`, because the build copies that file into `dist/`.

@@ -1,6 +1,8 @@
+[Docs index](../en/README.md)
+
 # AI Model Evaluation Plan (Phase 4, Stage 5)
 
-Plan for a small comparison of Workers AI models for the optional AI explanations (`docs/DECISIONS.md` ADR-026). Running it requires the owner's explicit approval because it needs an API token and consumes Neurons.
+Plan for a small comparison of Workers AI models for the optional AI explanations ([DECISIONS.md](DECISIONS.md) ADR-026). Running it requires the owner's explicit approval because it needs an API token and consumes Neurons.
 
 **Status (2026-10-18):** two rounds were run by the owner (`2026-10-20-r1`, `2026-10-20-r3`, plus a Qwen re-run and manual probes). Results and the resulting choice of `gemma-4-26b-a4b-it` are recorded in ADR-026 "Evaluation round 1", "Evaluation round 2", and "Model decision". Raw records stay in the git-ignored `.ai-eval/`.
 
@@ -8,7 +10,7 @@ Plan for a small comparison of Workers AI models for the optional AI explanation
 
 - Candidates: `@cf/google/gemma-4-26b-a4b-it`, `@cf/qwen/qwen3-30b-a3b-fp8`, `@cf/meta/llama-3.1-8b-instruct-fp8` (request options per model in `server/ai/workers-ai.ts`).
 - Same prompt, request options, and validation as production: the run uses `buildModelRequest`, `extractModelAnswer`, and `parseModelOutput` from `server/ai/` unchanged. The digit rule stays as implemented (ADR-026 F). Request options differ per model where a model requires it (Llama 3.1 8B without JSON Schema; Qwen with its default reasoning; see ADR-026 "Evaluation round 1").
-- Inputs: the ten fixed cases in [`ai-evaluation/cases.json`](ai-evaluation/cases.json), already in the model-facing shape. Most destinations are fictional, so any concrete fact in an answer that is not in the input is detectable as invented. C06 uses well-known real cities with deliberately generic data. No personal data.
+- Inputs: the ten fixed cases in [`test/ai-eval/cases.json`](../../test/ai-eval/cases.json), already in the model-facing shape. Most destinations are fictional, so any concrete fact in an answer that is not in the input is detectable as invented. C06 uses well-known real cities with deliberately generic data. No personal data.
 - Out of scope: changing the prompt, guards, or limits during the run. Findings that suggest such changes are recorded and decided afterwards.
 
 ## 2. Cases
@@ -109,7 +111,7 @@ Summary table for ADR-026:
 
 ## 7. Checks before any run (pricing, usage, terms)
 
-Facts already verified are in `docs/DECISIONS.md` "Phase 4 verification log". Re-check on the day of the run, from official pages:
+Facts already verified are in [DECISIONS.md](DECISIONS.md) "Phase 4 verification log". Re-check on the day of the run, from official pages:
 
 1. Account plan and payment method (Free or Paid). On Free, exceeding 10,000 Neurons/day fails without charge; on Paid, the excess is billed. Run only on Free, or set an explicit spend limit with the owner first.
 2. Prices of the three models on the pricing page, its update date, and whether reasoning tokens are billed as output tokens (要確認).

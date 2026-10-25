@@ -1,5 +1,5 @@
 /**
- * Season and trip-duration notes (docs/DIAGNOSTIC_ALGORITHM.md §6). They never
+ * Season and trip-duration notes (docs/en/DIAGNOSTIC_ALGORITHM.md §6). They never
  * exclude or reorder destinations.
  */
 import type { DestinationContent } from "./types";

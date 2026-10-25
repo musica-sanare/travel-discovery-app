@@ -1,7 +1,7 @@
 import { defineConfig } from "drizzle-kit";
 
 // drizzle-kit only generates SQL migration files from the schema. Migrations
-// are applied with `wrangler d1 migrations apply` (see docs/DEVELOPMENT.md);
+// are applied with `wrangler d1 migrations apply` (see docs/en/DEVELOPMENT.md);
 // drizzle-kit is never connected to a remote database.
 export default defineConfig({
   dialect: "sqlite",

@@ -1,5 +1,5 @@
 /**
- * Enforces the public/admin boundary (docs/DECISIONS.md, ADR-018) by walking
+ * Enforces the public/admin boundary (docs/working/DECISIONS.md, ADR-018) by walking
  * the relative import graph. The public Worker's read-only status is a
  * code-level constraint, not a database permission, so this test and the ESLint
  * import restrictions are what keep write paths out of it.

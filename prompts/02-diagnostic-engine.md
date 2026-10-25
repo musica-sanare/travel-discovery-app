@@ -21,7 +21,7 @@ Implement the quiz and ranking domain as pure TypeScript modules independent of 
 - AI must not be imported or used in this phase.
 
 ## Before coding
-Write down the exact scoring formula, normalization, question-selection heuristic, stopping rule, and tie-breaking rule in `docs/DECISIONS.md` or a dedicated `docs/DIAGNOSTIC_ALGORITHM.md`. Keep the formula understandable; avoid premature ML or complex statistical methods.
+Write down the exact scoring formula, normalization, question-selection heuristic, stopping rule, and tie-breaking rule in `docs/working/DECISIONS.md` or a dedicated `docs/en/DIAGNOSTIC_ALGORITHM.md`. Keep the formula understandable; avoid premature ML or complex statistical methods.
 
 ## Tests
 Include tests for:

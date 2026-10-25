@@ -1,5 +1,5 @@
 /**
- * Client for the optional AI explanation endpoint (docs/DECISIONS.md
+ * Client for the optional AI explanation endpoint (docs/working/DECISIONS.md
  * ADR-026). Called only when the user turned AI assistance on. Every failure
  * maps to a reason for a non-blocking notice; the deterministic results never
  * depend on this call.

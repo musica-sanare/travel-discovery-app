@@ -1,6 +1,6 @@
 /**
  * Hard filtering, ranking, and fallback-explanation data
- * (docs/DIAGNOSTIC_ALGORITHM.md §4).
+ * (docs/en/DIAGNOSTIC_ALGORITHM.md §4).
  */
 import { durationStatus, seasonStatus, type DurationStatus, type SeasonStatus } from "./annotations";
 import { compareBudget, type BudgetComparison } from "./budget";

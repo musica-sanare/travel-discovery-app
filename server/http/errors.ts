@@ -1,5 +1,5 @@
 /**
- * Shared API error contract (docs/DECISIONS.md, ADR-015): clients receive a
+ * Shared API error contract (docs/working/DECISIONS.md, ADR-015): clients receive a
  * stable error code and, for validation failures, field paths with issue
  * codes. Internal messages, SQL, and stack traces are never returned.
  */

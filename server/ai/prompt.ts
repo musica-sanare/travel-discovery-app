@@ -1,5 +1,5 @@
 /**
- * Prompt for AI explanations (docs/DECISIONS.md ADR-026). Server-only: the
+ * Prompt for AI explanations (docs/working/DECISIONS.md ADR-026). Server-only: the
  * public client bundle must not contain it (checked by
  * scripts/verify-bundles.mjs through PROMPT_MARKER).
  */

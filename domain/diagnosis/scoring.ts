@@ -1,5 +1,5 @@
 /**
- * Destination fit score (docs/DIAGNOSTIC_ALGORITHM.md §3). Budget, season,
+ * Destination fit score (docs/en/DIAGNOSTIC_ALGORITHM.md §3). Budget, season,
  * and duration never enter this module.
  */
 import { signalStrength } from "./preferences";

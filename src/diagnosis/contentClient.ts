@@ -1,5 +1,5 @@
 /**
- * Loads and validates the diagnosis content snapshot (docs/DECISIONS.md
+ * Loads and validates the diagnosis content snapshot (docs/working/DECISIONS.md
  * ADR-022). Any non-success, non-JSON, or unexpected response is reported as
  * `unavailable` (covers D1 limits and the platform's Error 1027 page).
  */

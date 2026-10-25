@@ -1,15 +1,17 @@
+English | [日本語](../ja/ARCHITECTURE.md) · [Docs index](README.md)
+
 # Architecture — Travel Discovery
 
 ## 1. Architecture overview
 
-Two Cloudflare Workers share one D1 database (decisions: `docs/DECISIONS.md` ADR-001, ADR-004, ADR-018):
+Two Cloudflare Workers share one D1 database (decisions: [DECISIONS.md](../working/DECISIONS.md) ADR-001, ADR-004, ADR-018):
 
 | Worker | Serves | Access protection | D1 usage |
 |---|---|---|---|
 | Public Worker | Public SPA (static assets) + public read API under `/api/*` + the opt-in AI explanation endpoint (Phase 4, ADR-026) | None (public site) | Read-only **by code structure and tests only** (no DB-level permission) |
 | Admin Worker | Admin SPA (static assets) + admin API | Worker-level Cloudflare Access ("All traffic") on every URL, plus JWT validation in every admin API handler | Reads and writes; owns migrations |
 
-Both are TypeScript + React + Vite apps built with Cloudflare's Vite plugin, from separate configs (`vite.config.ts` + `wrangler.jsonc`, `vite.admin.config.ts` + `wrangler.admin.jsonc`) into separate outputs (`dist/`, `dist-admin/`). The public Worker contains no admin editing functions. The source layout and the module boundaries are listed in `docs/DEVELOPMENT.md` ("Project layout").
+Both are TypeScript + React + Vite apps built with Cloudflare's Vite plugin, from separate configs (`vite.config.ts` + `wrangler.jsonc`, `vite.admin.config.ts` + `wrangler.admin.jsonc`) into separate outputs (`dist/`, `dist-admin/`). The public Worker contains no admin editing functions. The source layout and the module boundaries are listed in [DEVELOPMENT.md](DEVELOPMENT.md) ("Project layout").
 
 Components:
 - React + TypeScript + Vite.
@@ -25,7 +27,7 @@ Components:
 - Vitest for unit/integration tests; Playwright for E2E.
 - GitHub Actions for lint, type-check, tests, and build.
 
-Do not assume versions or compatibility from memory. Check current official docs before scaffolding and record decisions in `docs/DECISIONS.md`.
+Do not assume versions or compatibility from memory. Check current official docs before scaffolding and record decisions in [DECISIONS.md](../working/DECISIONS.md).
 
 ## 2. Logical layers
 
@@ -68,11 +70,11 @@ Domain logic must not import React, Cloudflare bindings, database clients, or AI
 ## 3. Request flow
 
 ### Diagnosis
-Scoring runs in the browser (`docs/DECISIONS.md` ADR-022).
+Scoring runs in the browser ([DECISIONS.md](../working/DECISIONS.md) ADR-022).
 
 1. When the user starts a quiz, the client loads one content snapshot from `GET /api/diagnosis-content?locale=` (published content, scoring data, quiz settings). The response is not cached by HTTP; the client reuses it in memory for up to 5 minutes.
 2. The client keeps trip constraints, answers, and the seed in memory only. Nothing is stored on the server, and a reload restarts the quiz. With AI assistance off, nothing is sent to the server either; with it on, see step 4.
-3. The client runs question selection, scoring, and ranking with `domain/diagnosis/` (`docs/DIAGNOSTIC_ALGORITHM.md`) and renders results with the deterministic explanation.
+3. The client runs question selection, scoring, and ranking with `domain/diagnosis/` ([DIAGNOSTIC_ALGORITHM.md](DIAGNOSTIC_ALGORITHM.md)) and renders results with the deterministic explanation.
 4. Phase 4 (ADR-026, proposed): if AI assistance is enabled, the client sends one `POST /api/ai/explanations` request with the answers, constraints, locale, and the slugs it displays. The Worker validates them, recomputes the ranking from current published content with the same domain module, and returns `409` without calling AI if the slugs differ. Otherwise it sends a minimal, ranking-free summary to Workers AI and returns `{ slug, text }` pairs for those destinations only. It never trusts a client-supplied ranking and stores nothing.
 5. If AI is off or fails, the deterministic explanation is shown on its own; when AI succeeds, its text is an additional, labelled paragraph next to the deterministic explanation.
 
@@ -92,7 +94,7 @@ Decision (owner-approved, ADR-004): a separate admin Worker protected by Worker-
 - Workers with static assets do not receive `ctx.access`, so the admin API validates the JWT itself (`jose`, team JWKS, issuer, AUD) and fails closed.
 - The public Worker has no admin routes or write code, so misconfiguring the public side cannot expose admin functions.
 - Do not create a homemade password system.
-- `docs/DECISIONS.md` ("Admin authentication status") tracks what is implemented, what is tested, and what can only be verified after an approved deployment.
+- [DECISIONS.md](../working/DECISIONS.md) ("Admin authentication status") tracks what is implemented, what is tested, and what can only be verified after an approved deployment.
 
 ## 5. AI provider boundary
 
@@ -130,14 +132,14 @@ Phase 4 design (ADR-026, proposed):
 
 - Keep locale dictionaries/resources separate from UI components and domain logic.
 - Use stable typed translation keys and a consistent fallback policy.
-- Keep content translations separate from stable entity IDs/slugs in `*_translations` tables (see `docs/DATA_MODEL.md`). Missing translations follow `ja → en`, `en → ja`, `es → en → ja` (ADR-012).
+- Keep content translations separate from stable entity IDs/slugs in `*_translations` tables (see [DATA_MODEL.md](DATA_MODEL.md)). Missing translations follow `ja → en`, `en → ja`, `es → en → ja` (ADR-012).
 - The selected locale must be available to public and admin UI, and language changes must update document language metadata.
 - Format dates, numbers, and currencies using locale-aware platform APIs.
 - Do not send locale preference to third parties unless necessary and documented.
 
 ## 8. Observability and privacy
 
-MVP does not require analytics. Log only operational errors and coarse AI usage/failure counters if useful. Do not log complete answers or sensitive user text. Document log retention and provider data flow. Deployed Workers use Workers Logs with invocation logs disabled, because those would store each request's IP address, headers, and geolocation; only the app's own lines are kept (3 days on Workers Free, 7 days from 2026-12-01; `docs/DECISIONS.md` "Phase 7 verification log").
+MVP does not require analytics. Log only operational errors and coarse AI usage/failure counters if useful. Do not log complete answers or sensitive user text. Document log retention and provider data flow. Deployed Workers use Workers Logs with invocation logs disabled, because those would store each request's IP address, headers, and geolocation; only the app's own lines are kept (3 days on Workers Free, 7 days from 2026-12-01; [DECISIONS.md](../working/DECISIONS.md) "Phase 7 verification log").
 
 External images: a destination may reference an `https` image URL entered in the admin console. Browsers load it directly from that host, which therefore sees the visitor's IP address and user agent; the app sends no referrer (`referrerPolicy="no-referrer"`, ADR-017) and no cookies to it. Prefer images hosted on our own origin or a provider whose privacy terms are acceptable, and record the provider when adding one.
 

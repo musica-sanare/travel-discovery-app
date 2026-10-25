@@ -1,7 +1,7 @@
 # Lint, type-check, unit and Workers-runtime tests, and production build
 # (with bundle checks) from a clean checkout, plus the Playwright E2E tests
 # against local builds. E2E uses the Google Chrome preinstalled on the runner
-# image, so no browser is downloaded (docs/DECISIONS.md ADR-025, ADR-027).
+# image, so no browser is downloaded (docs/working/DECISIONS.md ADR-025, ADR-027).
 # Nothing here deploys, uses secrets, or calls Workers AI.
 name: CI
 

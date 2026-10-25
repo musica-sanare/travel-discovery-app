@@ -1,4 +1,4 @@
-/** Rate-limit keys from client addresses (docs/DECISIONS.md ADR-026 B). */
+/** Rate-limit keys from client addresses (docs/working/DECISIONS.md ADR-026 B). */
 import { describe, expect, it } from "vitest";
 import { clientRateLimitKey } from "../../server/public/rate-limit-key";
 

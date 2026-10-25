@@ -1,5 +1,5 @@
 {
-  "$comment": "Model-evaluation cases for docs/AI_EVALUATION.md. Each `input` has the exact shape the server sends to the provider (ExplanationInput in server/ai/provider.ts), already minimized and truncated. Destinations are fictional unless `realPlaces` is true; real places use only short, generic descriptions. No personal data.",
+  "$comment": "Model-evaluation cases for docs/working/AI_EVALUATION.md. Each `input` has the exact shape the server sends to the provider (ExplanationInput in server/ai/provider.ts), already minimized and truncated. Destinations are fictional unless `realPlaces` is true; real places use only short, generic descriptions. No personal data.",
   "version": 1,
   "cases": [
     {

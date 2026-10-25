@@ -2,7 +2,7 @@
 /**
  * Automated accessibility checks with axe-core on every public page state.
  * jsdom cannot compute colors, so contrast is checked in a real browser
- * (docs/DEVELOPMENT.md "Accessibility checks").
+ * (docs/en/DEVELOPMENT.md "Accessibility checks").
  */
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import axe from "axe-core";

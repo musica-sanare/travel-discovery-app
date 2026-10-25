@@ -1,8 +1,8 @@
 /**
  * Quiz settings stored in `app_settings` under the `quiz` key. Bounds follow
- * docs/SPEC.md §4 and §6 (defaults: 6 / 10 / 12 questions, 3-5 results).
+ * docs/en/SPEC.md §4 and §6 (defaults: 6 / 10 / 12 questions, 3-5 results).
  * Uses `zod/mini` because the schema is also bundled into the public SPA
- * (docs/DECISIONS.md ADR-023).
+ * (docs/working/DECISIONS.md ADR-023).
  */
 import * as z from "zod/mini";
 

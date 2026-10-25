@@ -1,7 +1,7 @@
 /**
  * Every content bundle in content/ must import cleanly (ADR-028): valid
  * envelope and references, every item accepted by the admin API validation,
- * and published items translated into all three locales (docs/OPERATIONS.md 8).
+ * and published items translated into all three locales (docs/en/OPERATIONS.md 8).
  */
 import { readdirSync, readFileSync } from "node:fs";
 import path from "node:path";

@@ -1,5 +1,5 @@
 /**
- * `GET /api/diagnosis-content` (docs/DECISIONS.md ADR-022): published, active
+ * `GET /api/diagnosis-content` (docs/working/DECISIONS.md ADR-022): published, active
  * content only, ADR-012 locale fallback, strict locale parameter, no caching.
  */
 import { env } from "cloudflare:workers";

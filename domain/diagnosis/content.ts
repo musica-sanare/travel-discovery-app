@@ -1,7 +1,7 @@
 /**
  * Reduces raw content to what the engine may use: active attributes,
  * publishable questions with active options, and published destinations
- * (docs/DIAGNOSTIC_ALGORITHM.md §1).
+ * (docs/en/DIAGNOSTIC_ALGORITHM.md §1).
  */
 import type { DestinationContent, DiagnosisContent, QuestionType } from "./types";
 

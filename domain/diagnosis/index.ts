@@ -1,5 +1,5 @@
 /**
- * Deterministic diagnostic engine (docs/DIAGNOSTIC_ALGORITHM.md). Pure
+ * Deterministic diagnostic engine (docs/en/DIAGNOSTIC_ALGORITHM.md). Pure
  * TypeScript: no React, database, Cloudflare bindings, network, or AI.
  */
 export type * from "./types";

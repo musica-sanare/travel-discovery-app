@@ -1,6 +1,6 @@
 /**
  * Boundary between the AI explanation use case and a model provider
- * (docs/ARCHITECTURE.md §5, docs/DECISIONS.md ADR-026). The input is already
+ * (docs/en/ARCHITECTURE.md §5, docs/working/DECISIONS.md ADR-026). The input is already
  * minimized and validated; the output is untrusted and validated by the
  * caller.
  */

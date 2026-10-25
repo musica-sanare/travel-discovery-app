@@ -1,7 +1,7 @@
 /**
  * D1 schema (Drizzle ORM 0.45). Base tables hold locale-neutral data only;
  * user-visible text lives in `*_translations` tables keyed by (id, locale).
- * See docs/DATA_MODEL.md for the logical model and Phase 1 schema notes.
+ * See docs/en/DATA_MODEL.md for the logical model and Phase 1 schema notes.
  */
 import { relations, sql } from "drizzle-orm";
 import { check, index, integer, primaryKey, sqliteTable, text, unique } from "drizzle-orm/sqlite-core";
@@ -164,7 +164,7 @@ export const destinationTranslations = sqliteTable(
   ],
 );
 
-/** Indicative cost per destination and currency (docs/DECISIONS.md ADR-021). */
+/** Indicative cost per destination and currency (docs/working/DECISIONS.md ADR-021). */
 export const destinationCostEstimates = sqliteTable(
   "destination_cost_estimates",
   {

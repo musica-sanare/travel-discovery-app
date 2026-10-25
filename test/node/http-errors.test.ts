@@ -1,4 +1,4 @@
-/** Mapping of thrown errors to the API error contract (docs/DECISIONS.md ADR-015). */
+/** Mapping of thrown errors to the API error contract (docs/working/DECISIONS.md ADR-015). */
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { toErrorResponse } from "../../server/http/errors";
 

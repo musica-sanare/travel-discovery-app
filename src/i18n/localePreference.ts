@@ -1,5 +1,5 @@
 /**
- * Initial UI locale and its persistence (docs/DECISIONS.md ADR-022): a stored
+ * Initial UI locale and its persistence (docs/working/DECISIONS.md ADR-022): a stored
  * supported choice, else the first supported browser language, else Japanese.
  * Only this preference is stored; storage failures are ignored.
  */

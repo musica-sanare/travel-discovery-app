@@ -1,6 +1,6 @@
 # Claude Code first message — Travel Discovery
 
-Read `CLAUDE.md`, `docs/SPEC.md`, `docs/ARCHITECTURE.md`, `docs/DATA_MODEL.md`, `docs/IMPLEMENTATION_PLAN.md`, and `docs/DECISIONS.md`.
+Read `CLAUDE.md`, `docs/en/SPEC.md`, `docs/en/ARCHITECTURE.md`, `docs/en/DATA_MODEL.md`, `docs/working/IMPLEMENTATION_PLAN.md`, and `docs/working/DECISIONS.md`.
 
 We are building an overseas destination recommendation app with Japanese, English, and Spanish UI (`ja`, `en`, `es`), defaulting to Japanese.
 

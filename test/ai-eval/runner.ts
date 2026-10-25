@@ -1,5 +1,5 @@
 /**
- * Opt-in model evaluation runner (docs/AI_EVALUATION.md, docs/DECISIONS.md
+ * Opt-in model evaluation runner (docs/working/AI_EVALUATION.md, docs/working/DECISIONS.md
  * ADR-026 C6). It calls the Workers AI REST API with the production request
  * builder and validation, so every call consumes Neurons. It never runs in
  * `npm test`, `npm run check`, or E2E; it refuses to start without an explicit
@@ -18,7 +18,7 @@ export const HARD_TIMEOUT_MS = 60_000;
 export const DEFAULT_BUDGET_NEURONS = 5_000;
 
 /**
- * Neurons per million tokens (input, output) from docs/DECISIONS.md "Phase 4
+ * Neurons per million tokens (input, output) from docs/working/DECISIONS.md "Phase 4
  * verification log" (pricing page updated 2026-10-15). Re-check before a run.
  */
 export const PRICES: Readonly<Record<string, { input: number; output: number }>> = {
@@ -157,7 +157,7 @@ function explanationItems(answer: unknown): { id: unknown; text: unknown }[] | n
 /**
  * Production acceptance plus a reason for rejection, and whether the answer
  * would pass with digits masked (analysis only; the production rule is
- * unchanged, docs/DECISIONS.md ADR-026 F).
+ * unchanged, docs/working/DECISIONS.md ADR-026 F).
  */
 export function analyzeAnswer(
   answer: unknown,

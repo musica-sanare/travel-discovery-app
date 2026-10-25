@@ -22,7 +22,7 @@ Do not implement the entire product yet. First inspect the repository, verify cu
    - Cloudflare Access protection and how Worker/API requests are authenticated
    - Workers AI invocation, currently supported models, pricing/free allowance, and limitations
 3. Verify current compatibility for the proposed React, Vite, React Router, Tailwind/shadcn, Drizzle, Zod, Vitest, Playwright, and Cloudflare tooling. Prefer stable compatible versions.
-4. Update `docs/DECISIONS.md` with verified decisions, official source URLs, date checked, alternatives considered, and any unresolved `要確認`.
+4. Update `docs/working/DECISIONS.md` with verified decisions, official source URLs, date checked, alternatives considered, and any unresolved `要確認`.
 5. If an important decision cannot be verified or has a material security/cost impact, stop and ask before committing to it.
 6. Propose the exact repository structure and package scripts.
 7. Implement only the minimal foundation: app scaffold, strict TypeScript, lint/type-check/test/build scripts, basic route structure, and placeholder pages if needed.
@@ -42,5 +42,5 @@ Do not implement the entire product yet. First inspect the repository, verify cu
 - Production build succeeds.
 - Lint, type-check, and test scripts exist and pass.
 - Current Cloudflare setup and admin protection path are documented.
-- `docs/DECISIONS.md` distinguishes verified facts from assumptions.
+- `docs/working/DECISIONS.md` distinguishes verified facts from assumptions.
 - End with changed files, commands/results, unresolved questions, and the recommended next phase.

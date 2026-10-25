@@ -1,7 +1,7 @@
 /**
  * Migration 0001 rebuilds `destinations`. D1 enforces foreign keys while
  * migrating, so the rebuild must not cascade-delete destination translations or
- * attribute scores (docs/DECISIONS.md ADR-021).
+ * attribute scores (docs/working/DECISIONS.md ADR-021).
  */
 import { applyD1Migrations } from "cloudflare:test";
 import { env } from "cloudflare:workers";

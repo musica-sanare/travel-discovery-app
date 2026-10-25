@@ -1,3 +1,5 @@
+[Docs index](../en/README.md)
+
 # Implementation Plan
 
 Each phase is started with the matching prompt file:
@@ -20,7 +22,7 @@ Each phase is started with the matching prompt file:
 - Inspect repository and existing files.
 - Verify current official Cloudflare docs for React/Vite/Workers, D1, AI, and Access.
 - Verify current compatibility for framework/tool versions and package manager.
-- Write `docs/DECISIONS.md` with choices, rationale, alternatives, and unresolved questions.
+- Write [DECISIONS.md](DECISIONS.md) with choices, rationale, alternatives, and unresolved questions.
 - Choose and configure the i18n library; scaffold locale resources for `ja`, `en`, and `es`.
 - Scaffold minimal app and local dev scripts.
 - Ensure local app starts and production build works.
@@ -32,7 +34,7 @@ Acceptance:
 - No production resource created without approval.
 
 ## Phase 1 — Database and admin access
-- Define schema and migrations, including `ja`/`en`/`es` translation tables (see `docs/DATA_MODEL.md`).
+- Define schema and migrations, including `ja`/`en`/`es` translation tables (see [DATA_MODEL.md](../en/DATA_MODEL.md)).
 - Create local D1 config and seed workflow.
 - Map platform quota/limit errors (e.g. D1 daily limits on Workers Free) to a generic, localized "temporarily unavailable" response.
 - Create the separate admin Worker and implement admin access protection for its UI and APIs (Worker-level Access + in-Worker JWT validation; ADR-004). Keep the public Worker read-only (ADR-018).
@@ -86,7 +88,7 @@ Acceptance:
 ## Phase 5 — Quality, accessibility, and end-to-end coverage
 - Add Playwright E2E tests for quiz and admin authorization.
 - Review accessibility, security, error messages, dependencies, and secrets.
-- Add rate limiting for admin API endpoints (deferred from Phase 1; `docs/DECISIONS.md` ADR-020) together with the AI endpoint limits.
+- Add rate limiting for admin API endpoints (deferred from Phase 1; [DECISIONS.md](DECISIONS.md) ADR-020) together with the AI endpoint limits.
 
 Acceptance:
 - All automated checks pass, or any remaining failure is documented with reason and risk.
@@ -108,17 +110,17 @@ Acceptance:
 - Publish production content through the admin console and verify it in all locales.
 - Close or document the remaining deploy-only checks.
 - Run E2E tests in CI.
-- Write the operations runbook (`docs/OPERATIONS.md`).
+- Write the operations runbook ([OPERATIONS.md](../en/OPERATIONS.md)).
 - Prepare the AI enablement decision; the decision itself is the owner's.
 
 Acceptance:
 - Every open check is verified, or recorded as 要確認 with a reason.
-- `docs/OPERATIONS.md` exists and covers monitoring, incidents, and the AI kill switch.
+- [OPERATIONS.md](../en/OPERATIONS.md) exists and covers monitoring, incidents, and the AI kill switch.
 - CI runs E2E tests, or the reason it does not is recorded.
 - AI remains disabled in all environments.
 
 ## Phase 8 — Content enrichment and billing safeguards
-- Decide how existing destinations are updated (admin forms or an update mode for the Import page). *Decided 2026-10-24: an opt-in update mode for destinations (`docs/DECISIONS.md` ADR-028 "Update mode").*
+- Decide how existing destinations are updated (admin forms or an update mode for the Import page). *Decided 2026-10-24: an opt-in update mode for destinations ([DECISIONS.md](DECISIONS.md) ADR-028 "Update mode").*
 - Add sourced indicative costs, best months, and, if the owner approves, licensed images to the published content.
 - Review, then import on preview and production; answer full quizzes in English and Spanish.
 - Add a monthly billing check and the list of charge-starting dashboard actions to the runbook; re-check Workers Logs pricing before 2026-12-01.
@@ -130,7 +132,7 @@ Acceptance:
 - AI stays disabled and the account stays on Workers Free.
 
 ## Phase 9 — Source-currency costs, dated operations checks, and an AI trial plan
-- Record the daily Workers Logs volume and re-check the pricing pages in the last week of November 2026 (before 2026-12-01). *Changed 2026-10-25 (owner decision): re-checked on 2026-10-25 instead; the check after 2026-12-01 is a dated operations task (`docs/OPERATIONS.md` section 3 "Dated").*
+- Record the daily Workers Logs volume and re-check the pricing pages in the last week of November 2026 (before 2026-12-01). *Changed 2026-10-25 (owner decision): re-checked on 2026-10-25 instead; the check after 2026-12-01 is a dated operations task ([OPERATIONS.md](../en/OPERATIONS.md) section 3 "Dated").*
 - Add `USD` and `EUR` estimates where the verified source publishes that currency, without conversion; review, then import on preview and production.
 - Search again, time-boxed, for the empty costs with a likely candidate.
 - Document the preview AI trial plan for the owner's decision; AI stays disabled.
@@ -138,15 +140,15 @@ Acceptance:
 Acceptance:
 - The log volume and the pricing re-check are recorded with dates before 2026-12-01.
 - Every added estimate matches its source's currency and figures; quizzes with `USD` and `EUR` budgets compare at least one destination on both environments.
-- The AI trial plan is in `docs/DEPLOYMENT.md` 7.1, AI stays disabled, and the account stays on Workers Free.
+- The AI trial plan is in [DEPLOYMENT.md](../en/DEPLOYMENT.md) 7.1, AI stays disabled, and the account stays on Workers Free.
 
 ## Phase 10 — Preview AI trial, a rollback check, and a content re-check
-- Run the preview AI trial of `docs/DEPLOYMENT.md` 7.1 if the owner decides to; otherwise record the decision.
+- Run the preview AI trial of [DEPLOYMENT.md](../en/DEPLOYMENT.md) 7.1 if the owner decides to; otherwise record the decision.
 - Check on preview whether a Worker rollback also restores static assets.
 - Re-check the Buenos Aires tourism site for a recommended season.
-- Not in this phase: the check after the Observability pricing change of 2026-12-01, which is a dated operations task (`docs/OPERATIONS.md` section 3 "Dated").
+- Not in this phase: the check after the Observability pricing change of 2026-12-01, which is a dated operations task ([OPERATIONS.md](../en/OPERATIONS.md) section 3 "Dated").
 
 Acceptance:
 - The AI trial is recorded as 7.1 requires, or the owner's decision not to run it is recorded; AI is disabled in every environment at the end, and the account stays on Workers Free.
-- The rollback question in `docs/DEPLOYMENT.md` section 8 is answered or recorded as 要確認 with the reason.
+- The rollback question in [DEPLOYMENT.md](../en/DEPLOYMENT.md) section 8 is answered or recorded as 要確認 with the reason.
 - Any content change is reviewed, imported on both environments with bookmarks, and `npm run check` and `npm run test:e2e` pass.

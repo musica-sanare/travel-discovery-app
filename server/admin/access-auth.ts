@@ -1,5 +1,5 @@
 /**
- * Admin request authorization (docs/DECISIONS.md, ADR-004).
+ * Admin request authorization (docs/working/DECISIONS.md, ADR-004).
  *
  * Cloudflare Access protects every URL of the admin Worker at the edge, and
  * this module independently verifies the Access JWT on every admin API request

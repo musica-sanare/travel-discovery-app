@@ -1,6 +1,6 @@
 # Prompt 05 — Quality, accessibility, and end-to-end coverage
 
-Review the complete app against `docs/SPEC.md`, not just the happy path.
+Review the complete app against `docs/en/SPEC.md`, not just the happy path.
 
 ## Tasks
 - Test switching between Japanese, English, and Spanish across public and admin pages.

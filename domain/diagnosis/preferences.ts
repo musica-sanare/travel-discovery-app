@@ -1,5 +1,5 @@
 /**
- * Turns answers into the preference vector P (docs/DIAGNOSTIC_ALGORITHM.md §2).
+ * Turns answers into the preference vector P (docs/en/DIAGNOSTIC_ALGORITHM.md §2).
  */
 import type { UsableContent } from "./content";
 import type { Answer } from "./types";

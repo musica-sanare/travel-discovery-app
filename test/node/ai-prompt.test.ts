@@ -1,4 +1,4 @@
-/** Prompt construction (docs/DECISIONS.md ADR-026). */
+/** Prompt construction (docs/working/DECISIONS.md ADR-026). */
 import { describe, expect, it } from "vitest";
 import { buildMessages, PROMPT_MARKER, responseJsonSchema, SYSTEM_PROMPT } from "../../server/ai/prompt";
 import type { ExplanationInput } from "../../server/ai/provider";

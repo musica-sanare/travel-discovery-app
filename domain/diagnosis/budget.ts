@@ -1,6 +1,6 @@
 /**
  * Budget comparison, kept separate from scoring
- * (docs/DIAGNOSTIC_ALGORITHM.md §5). No currency conversion is performed.
+ * (docs/en/DIAGNOSTIC_ALGORITHM.md §5). No currency conversion is performed.
  */
 import { BUDGET_COMPARABLE_SCOPE, type CostPeriod, type Currency } from "../../shared/costs";
 import type { Budget, DestinationContent } from "./types";

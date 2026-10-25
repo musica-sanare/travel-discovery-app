@@ -1,5 +1,5 @@
 /**
- * Seeded randomness for question selection (docs/DIAGNOSTIC_ALGORITHM.md §7).
+ * Seeded randomness for question selection (docs/en/DIAGNOSTIC_ALGORITHM.md §7).
  * Each step's number depends only on (seed, step), never on earlier draws.
  */
 const GOLDEN_RATIO_32 = 0x9e3779b9;

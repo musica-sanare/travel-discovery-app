@@ -1,6 +1,6 @@
 /**
  * Best travel months are stored as a 12-bit mask (bit m - 1 = month m) and
- * exchanged as a sorted list of months 1-12 (docs/DATA_MODEL.md "Phase 2
+ * exchanged as a sorted list of months 1-12 (docs/en/DATA_MODEL.md "Phase 2
  * schema notes").
  */
 export const MONTHS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] as const;

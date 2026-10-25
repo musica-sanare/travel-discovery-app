@@ -1,6 +1,8 @@
+English | [日本語](../ja/DIAGNOSTIC_ALGORITHM.md) · [Docs index](README.md)
+
 # Diagnostic Algorithm — Travel Discovery
 
-This document is the specification for the deterministic quiz and ranking engine (Phase 2). The implementation lives in `domain/diagnosis/` and must match this document; tests in `domain/diagnosis/*.test.ts` encode the examples below. Decisions and rationale are recorded in `docs/DECISIONS.md` ADR-021.
+This document is the specification for the deterministic quiz and ranking engine (Phase 2). The implementation lives in `domain/diagnosis/` and must match this document; tests in `domain/diagnosis/*.test.ts` encode the examples below. Decisions and rationale are recorded in [DECISIONS.md](../working/DECISIONS.md) ADR-021.
 
 The engine is pure TypeScript: no React, database, Cloudflare bindings, network, or AI. Given the same content, answers, constraints, settings, and seed, it always returns the same output.
 

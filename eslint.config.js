@@ -4,7 +4,7 @@ import reactRefresh from "eslint-plugin-react-refresh";
 import globals from "globals";
 import tseslint from "typescript-eslint";
 
-// Module boundaries (docs/DECISIONS.md, ADR-004 and ADR-018). The public Worker
+// Module boundaries (docs/working/DECISIONS.md, ADR-004 and ADR-018). The public Worker
 // and public SPA must never import admin code or write helpers; the public
 // read-only status is enforced by these rules and tests, not by the database.
 const ADMIN_ONLY_IMPORTS = [
@@ -14,7 +14,7 @@ const SERVER_ONLY_IMPORTS = [
   { group: ["**/server/**", "**/worker/**", "**/admin-worker/**"], message: "Server-only module." },
 ];
 
-// The diagnostic engine is pure (docs/DIAGNOSTIC_ALGORITHM.md): it may import
+// The diagnostic engine is pure (docs/en/DIAGNOSTIC_ALGORITHM.md): it may import
 // only its own modules and `shared/` constants.
 const DOMAIN_FORBIDDEN_IMPORTS = [
   {

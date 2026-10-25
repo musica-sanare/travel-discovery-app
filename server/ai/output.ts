@@ -1,5 +1,5 @@
 /**
- * Validation of model output (docs/DECISIONS.md ADR-026).
+ * Validation of model output (docs/working/DECISIONS.md ADR-026).
  * - Structural checks (exact shape, exact set of input IDs) keep the model from
  *   adding, dropping, or duplicating destinations.
  * - Text guards reject some obvious failure patterns (numbers, links, markup,
@@ -12,7 +12,7 @@ import type { Locale } from "../../shared/locales";
 import { MAX_RESULT_COUNT } from "../../shared/quiz-settings";
 
 /**
- * Lowered from 40 after evaluation (docs/DECISIONS.md ADR-026 "Evaluation
+ * Lowered from 40 after evaluation (docs/working/DECISIONS.md ADR-026 "Evaluation
  * round 2"): models answer sparse destinations briefly instead of inventing
  * details, and a short honest note is acceptable.
  */

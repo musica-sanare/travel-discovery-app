@@ -1,7 +1,7 @@
 /**
  * Input and output shapes of the diagnostic engine. Content is identified by
  * stable slugs; the engine filters inactive content itself
- * (docs/DIAGNOSTIC_ALGORITHM.md §1).
+ * (docs/en/DIAGNOSTIC_ALGORITHM.md §1).
  */
 import type { CostPeriod, CostScope, Currency } from "../../shared/costs";
 
