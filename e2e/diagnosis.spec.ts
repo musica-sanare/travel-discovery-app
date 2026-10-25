@@ -190,6 +190,10 @@ test.describe("optional AI notes", () => {
     const articles = page.getByRole("article");
     const count = await articles.count();
     await expect(page.getByRole("heading", { level: 3, name: "AI による補足" })).toHaveCount(count);
+    for (const article of await articles.all()) {
+      await expect(article.getByText(AI_TEXT)).toBeVisible();
+      await expect(article.getByText("AI が生成した文章です。")).toBeVisible();
+    }
     expect(bodies).toHaveLength(1);
     const [body] = bodies;
     expect(Object.keys(body ?? {}).sort()).toEqual(["answers", "constraints", "expected", "locale"]);
