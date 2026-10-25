@@ -15,6 +15,8 @@ Each phase is started with the matching prompt file:
 | 6 — Documentation, CI, and release | `prompts/06-release.md` |
 | 7 — Post-launch operations | `prompts/07-operations.md` |
 | 8 — Content enrichment and billing safeguards | `prompts/08-content-enrichment.md` |
+| 9 — Source-currency costs, dated operations checks, and an AI trial plan | `prompts/09-currency-and-ai-trial.md` |
+| 10 — Preview AI trial, a rollback check, and a content re-check | `prompts/10-ai-trial-and-operations-checks.md` |
 
 `prompts/FIRST_MESSAGE.md` is the kickoff message for a new Claude Code session.
 
@@ -143,12 +145,18 @@ Acceptance:
 - The AI trial plan is in [DEPLOYMENT.md](../en/DEPLOYMENT.md) 7.1, AI stays disabled, and the account stays on Workers Free.
 
 ## Phase 10 — Preview AI trial, a rollback check, and a content re-check
-- Run the preview AI trial of [DEPLOYMENT.md](../en/DEPLOYMENT.md) 7.1 if the owner decides to; otherwise record the decision.
-- Check on preview whether a Worker rollback also restores static assets.
-- Re-check the Buenos Aires tourism site for a recommended season.
+- Run the preview AI trial of [DEPLOYMENT.md](../en/DEPLOYMENT.md) 7.1 if the owner decides to; otherwise record the decision. *Done 2026-10-25: run and recorded; blocked for production because `AI_CLIENT_RATE_LIMITER` returned no 429 (cause 要確認); AI disabled again ([DECISIONS.md](DECISIONS.md) "Phase 10 verification log").*
+- Check on preview whether a Worker rollback also restores static assets. *Done 2026-10-25: it does, within about 20 s ([DEPLOYMENT.md](../en/DEPLOYMENT.md) section 8).*
+- Re-check the Buenos Aires tourism site for a recommended season. *Done 2026-10-25: all twelve months from the city's tourist board, imported on both environments as `content/initial-v4.json`.*
 - Not in this phase: the check after the Observability pricing change of 2026-12-01, which is a dated operations task ([OPERATIONS.md](../en/OPERATIONS.md) section 3 "Dated").
 
 Acceptance:
 - The AI trial is recorded as 7.1 requires, or the owner's decision not to run it is recorded; AI is disabled in every environment at the end, and the account stays on Workers Free.
 - The rollback question in [DEPLOYMENT.md](../en/DEPLOYMENT.md) section 8 is answered or recorded as 要確認 with the reason.
 - Any content change is reviewed, imported on both environments with bookmarks, and `npm run check` and `npm run test:e2e` pass.
+
+Status: **complete (2026-10-25)**; every acceptance item is met ([DECISIONS.md](DECISIONS.md) "Phase 10 verification log"). Open items for later phases, each needing the owner's decision:
+- Why `AI_CLIENT_RATE_LIMITER` did not refuse requests on preview (要確認); production AI stays blocked until this is resolved (ADR-026 "Readiness for enabling AI").
+- The trial's per-request log outcomes and latencies, including the failed `en` request, were not recorded (要確認).
+- `npm audit` lists high-severity advisories in development-only dependencies (`undici` in `miniflare`, a nested `zod` in `@cloudflare/vitest-plugin`) besides the known `esbuild` one (ADR-003); `npm audit --omit=dev` reports none.
+- Still deferred from the Phase 10 prompt: production AI, images, a dated exchange-rate table, the out-of-policy Access check, other empty costs, and the pre-public-release checklist.
