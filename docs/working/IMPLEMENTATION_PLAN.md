@@ -159,7 +159,7 @@ Acceptance:
 Status: **complete (2026-10-25)**; every acceptance item is met ([DECISIONS.md](DECISIONS.md) "Phase 10 verification log"). Open items for later phases, each needing the owner's decision:
 - Why `AI_CLIENT_RATE_LIMITER` did not refuse requests on preview (要確認); production AI stays blocked until this is resolved (ADR-026 "Readiness for enabling AI").
 - The trial's per-request log outcomes and latencies, including the failed `en` request, were not recorded (要確認). *Recorded 2026-10-25 in Phase 11: four `ok`, the `en` request `invalid_output` ([DECISIONS.md](DECISIONS.md) "Phase 10 verification log").*
-- `npm audit` lists high-severity advisories in development-only dependencies (`undici` in `miniflare`, a nested `zod` in `@cloudflare/vitest-plugin`) besides the known `esbuild` one (ADR-003); `npm audit --omit=dev` reports none.
+- `npm audit` lists high-severity advisories in development-only dependencies (`undici` in `miniflare`, a nested `zod` in `@cloudflare/vitest-plugin`) besides the known `esbuild` one (ADR-003); `npm audit --omit=dev` reports none. *Resolved 2026-10-25 in Phase 11 with scoped overrides (ADR-030); the `esbuild` chain stays held.*
 - Still deferred from the Phase 10 prompt: production AI, images, a dated exchange-rate table, the out-of-policy Access check, other empty costs, and the pre-public-release checklist.
 
 ## Phase 11 — Trial log details, the AI client limiter, and development dependencies
