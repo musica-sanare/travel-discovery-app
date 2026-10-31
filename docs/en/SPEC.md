@@ -2,6 +2,8 @@ English | [日本語](../ja/SPEC.md) · [Docs index](README.md)
 
 # Product Specification — Travel Discovery
 
+This is the product specification of Travel Discovery: what the app does, for whom, and what is out of scope for the MVP. It is for anyone who changes the product or checks whether a change fits it. How the requirements are built is in [Architecture](ARCHITECTURE.md), [Data model](DATA_MODEL.md), and [Diagnostic algorithm](DIAGNOSTIC_ALGORITHM.md).
+
 - Version: 0.1
 - Status: Initial implementation baseline
 - Product type: Personal project / public web app
@@ -9,9 +11,9 @@ English | [日本語](../ja/SPEC.md) · [Docs index](README.md)
 
 ## 1. Product goal
 
-Help a user discover suitable overseas destinations through a short, varied quiz. Recommend 3–5 city/region-level destinations, explain why they fit, show indicative cost information, and provide links to flight/hotel searches.
+Help a user discover suitable overseas destinations through a short, varied quiz. The app recommends 3–5 city/region-level destinations and explains why they fit. It shows indicative cost information and links to flight/hotel searches.
 
-The experience should be visually polished and interactive while remaining understandable, testable, inexpensive to operate, and suitable for eventual public source-code release.
+The experience should be visually polished and interactive. It must also stay understandable, testable, inexpensive to operate, and suitable for eventual public source-code release.
 
 ## 2. Target users and primary journey
 
@@ -58,9 +60,11 @@ No account is required. Do not persist individual answers or diagnosis history o
 - Questions are drawn from active/published questions only.
 - Avoid repeating a question in one session.
 - Vary the combination between sessions.
-- Balance question categories and prioritize questions that distinguish currently plausible destinations or fill gaps in preference signals.
+- Balance question categories. Prioritize questions that distinguish currently plausible destinations or fill gaps in preference signals.
 - Adapt the next question based on prior answers.
-- Stop once minimum count is met and a documented stopping rule says enough useful signal exists; always stop at maximum. The documented rule is the target count ([DIAGNOSTIC_ALGORITHM.md](DIAGNOSTIC_ALGORITHM.md) §8); stopping when the results are stable was evaluated in Phase 15 and not adopted.
+- Stop once the minimum count is met and a documented stopping rule says enough useful signal exists; always stop at the maximum.
+  - The documented rule is the target count ([DIAGNOSTIC_ALGORITHM.md](DIAGNOSTIC_ALGORITHM.md) §8).
+  - Stopping when the results are stable was evaluated in Phase 15 and not adopted.
 - User can go back, edit an answer, restart, and see progress.
 - If insufficient active questions exist, gracefully ask fewer questions and show a clear message; never crash.
 - Use a seeded/randomization strategy that can be tested. Do not make tests depend on uncontrolled randomness.
@@ -69,7 +73,7 @@ No account is required. Do not persist individual answers or diagnosis history o
 - Single choice.
 - Multiple choice only if scoring semantics are clearly defined.
 - Numeric/range slider only for a clearly bounded value such as budget.
-- Free-text answers are not part of the core quiz in MVP; later AI chat must be a separate, optional capability.
+- Free-text answers are not part of the core quiz in MVP. Later AI chat must be a separate, optional capability.
 
 ## 5. Trip constraints
 
@@ -89,7 +93,7 @@ Do not treat a missing value as zero. Explain when a recommendation is based on 
 - Keep score calculation as a pure function with unit tests.
 - Apply hard filters only for explicitly supplied hard constraints; otherwise use soft fit scoring.
 - Normalize scores to a documented comparable range before displaying them.
-- Return 3–5 destinations where data permits; if fewer eligible destinations exist, return fewer with an explanation.
+- Return 3–5 destinations where data permits. If fewer eligible destinations exist, return fewer with an explanation.
 - Tie-breaking must be deterministic given the same answers and destination data.
 - Clearly label scores as relative fit based on current content data, not objective probability or guarantee.
 - AI may explain already-selected destinations but must not change order, scores, eligibility, or facts.
@@ -97,7 +101,7 @@ Do not treat a missing value as zero. Explain when a recommendation is based on 
 
 ## 7. Destination content
 
-Destination is a city or region, linked to a country. Each destination should support:
+A destination is a city or region, linked to a country. Each destination should support:
 - Stable ID / slug.
 - Display name and country reference.
 - Summary and highlights.
@@ -124,7 +128,10 @@ Do not invent current travel prices. Seed data may contain clearly labelled illu
 - Do not expose secrets, system prompts, internal stack traces, or provider errors.
 - Apply server-side request limits and graceful error handling.
 - If AI is unavailable, over quota, or returns invalid output, display the deterministic fallback and a non-blocking notice.
-- State the per-client limits next to the toggle without promising availability; when AI is off for the whole site, say so and disable the toggle; when a limit is reached, say which one and when AI can be used again.
+- Show the AI limits and availability without promising availability:
+  - State the per-client limits next to the toggle.
+  - When AI is off for the whole site, say so and disable the toggle.
+  - When a limit is reached, say which one and when AI can be used again.
 - Verify the current Cloudflare Workers AI free allowance, supported models, terms, and compatibility during implementation. Never promise that the service will remain free.
 
 ## 9. Flight/hotel search links
@@ -158,9 +165,12 @@ Admin requirements:
 ## 11. Internationalization and localization
 
 - Support Japanese (`ja`), English (`en`), and Spanish (`es`) in the MVP.
-- Default to Japanese on first visit. If locale persistence is implemented, store only the user's UI preference locally; do not require an account or send it to the server unnecessarily.
+- Default to Japanese on first visit. If locale persistence is implemented, store only the user's UI preference locally. Do not require an account or send it to the server unnecessarily.
 - Provide a visible, keyboard-accessible language selector.
-- Localize public and admin UI labels, buttons, navigation, form validation, loading/error/empty states, quiz questions/options, destination names/descriptions/highlights/cautions, cost labels, and AI explanation instructions/output.
+- Localize:
+  - public and admin UI labels, buttons, navigation, form validation, and loading/error/empty states;
+  - quiz questions/options and destination names/descriptions/highlights/cautions;
+  - cost labels and AI explanation instructions/output.
 - Use locale files and stable translation keys; do not scatter hard-coded UI strings through components.
 - Use locale-aware number/date/currency formatting.
 - Store stable IDs and slugs independently from translated labels.
