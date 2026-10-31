@@ -1341,7 +1341,8 @@ Order proposed: preview trial ([DEPLOYMENT.md](../en/DEPLOYMENT.md) 7.1) → sep
   - Local checks after removing `env.preview` (2026-10-31): `npm run check` passed (816 tests). `CLOUDFLARE_ENV=production npm run build` wrote the expected flattened configurations: names `travel-discovery` and `travel-discovery-admin`, the production database, `AI_ASSIST_ENABLED` `"false"`, rate limiters `2001` and `2002`, `workers_dev` true, `preview_urls` false.
 - Open (要確認):
   - What happens on Workers Free when the 3,000 build minutes run out: stop or charge. Treated as possibly billing until confirmed; watched monthly ([OPERATIONS.md](../en/OPERATIONS.md) section 3).
-  - The build duration (for the build-minute estimate) and the Node.js and Wrangler versions in the build log.
+  - The Node.js and Wrangler versions in the build log.
+  - Resolved 2026-11-01: build durations seen by the owner in the dashboard are 1 min 3 s for `travel-discovery` and 49 s for `travel-discovery-admin`, about 1.9 minutes per push to `main`. That allows about 1,500 pushes per month within 3,000 minutes, or 1,000 if each build is rounded up to whole minutes (rounding not documented).
   - Whether Workers Builds uses the GitHub app already installed for my-music-site, and its repository list.
   - Whether saving the connection starts a build at once.
   - Whether a narrower custom token (for example without D1, AI, storage, and zone permissions) would work; the generated token is used until the owner decides. Whether the token could create a usage-billed resource on this Workers Free account is not known; the build commands create none.
