@@ -1,4 +1,4 @@
-<!-- source: docs/en/DEPLOYMENT.md blob 2c0672b1f6e02f20318653d5a2004771e70bffb8 -->
+<!-- source: docs/en/DEPLOYMENT.md blob 035ae72dde5411cbb5ef293e3f6b14ce83c38b3d -->
 [English](../en/DEPLOYMENT.md) | 日本語 · [目次に戻る](README.md)
 
 > この文書は[英語版](../en/DEPLOYMENT.md)の翻訳です。内容が異なる場合は英語版が優先されます。
@@ -139,6 +139,7 @@ npx wrangler d1 migrations apply travel-discovery-preview --remote --env preview
 1. その環境の `vars` で `AI_ASSIST_ENABLED: "true"` を設定し、コミット、再ビルド、再デプロイする。
 2. 3 言語すべてで AI ノートを確認し、ダッシュボードで Workers AI の使用量を確認する。
 3. 監視と停止: ADR-026 E と [OPERATIONS.md](OPERATIONS.md) 4.4。
+4. 本番では 7.3 に従う（Phase 14 で用意したもので、まだ承認されていない）。
 
 ### 7.1 プレビューでの試行（別途承認）
 本番について判断する前に、クライアントごとのリミッター（ADR-026 A、前提条件 2）と AI ノートを確認する。試行そのもの、各デプロイ、その後の本番での利用は、それぞれ別のオーナーの判断である。この節は計画であり、承認ではない。
@@ -192,6 +193,29 @@ Phase 11 から、公開 Worker は停止スイッチより先に `AI_CLIENT_RAT
 6. オーナー: `travel-discovery-preview` の Observability で、実行 A と B の `rate_limited_window`（Phase 14 より前は `rate_limited`）と `disabled` の行を数える。429 と 503 の数と一致するはずである。ダッシュボードで、Durable Object のリクエストと書き込んだ行、Worker のリクエスト数に Durable Object の呼び出しが含まれるかを記録する（ADR-029、要確認）。
 
 [DECISIONS.md](../working/DECISIONS.md)（英語のみ）の「Phase 11 verification log」に、バージョン ID と、実行ごとのステータスコードと接続数の並びを記録する。アドレスは記録しない。解釈: 上限用の Durable Object があれば、1 つのオブジェクトがそのアドレスのリクエストをすべて数えるので、どちらの実行もちょうど 5 回の 503 のあとに 429 を返さなければならない。どちらかの実行で 503 が 5 回を超えるか、429 が出なければ不合格で、AI は無効のままにして記録する（Durable Object がない状態では、2026-10-25 に binding だけでは実行 A でしか 429 が出なかった: 新しい接続で届いたリクエストはまとめて数えられない）。新しい判断なしに、15 回の実行 2 回を超えて送らない。
+
+### 7.3 本番での AI の有効化（別途承認）
+オーナーの依頼により 2026-10-31（Phase 14）に用意した。この節は計画であり、承認ではない。オーナーが日付を決めてこの手順を承認するまで、本番の AI は無効のままにする。推奨は、2026 年 12 月第 1 週の、日付の決まった Workers Logs と Billing の確認（[OPERATIONS.md](OPERATIONS.md) 3 節）の後に行うことである。
+
+前提条件: ADR-026「Readiness for enabling AI」に、満たしていない項目がないこと。Billing にはドメインの登録料だけがあり、プランが Free であること（[OPERATIONS.md](OPERATIONS.md) 3 節）。プレビューの AI が無効であること。`travel-discovery` の Workers Logs が有効で、invocation logs が無効であること。本番に上限用の Durable Object がデプロイされていること（版 `cc06950d` 以降）。
+
+**利用者にとって変わること。** 本番の URL は公開されているので、プレビューでの試行と違い、短い時間だけ有効にすることはできない。誰でも上限の範囲内で AI を使える。計画の画面ではトグルが使える状態になり（`/api/ai/status` が `{"enabled":true}` を返す）、各クライアントは 60 秒に 5 回、UTC の 1 日に 30 回まで AI のリクエストを送れる（ADR-029）。決定的な結果は変わらない。
+
+**予算。** Workers Free には 1 日 10,000 Neurons が含まれ、00:00 UTC にリセットされる。超えると、課金されずに呼び出しが失敗する。プレビューと本番はこれを共有するものとして計画する（要確認）。測定した 1 回あたり 7〜14 Neurons（試行では約 11.8）なら、1 日におよそ 700〜1,400 回分である。1 つのアドレスが使えるのは最大で約 420（最悪で約 3,150）。アプリ全体の 1 日の上限はない（ADR-029「Not covered」）。多くのアドレスが合わせて割り当てをすべて使うと、00:00 UTC まで全員が AI を使えなくなる。
+
+手順:
+1. オーナー: 前提条件を確認し、その日にすでに使った Workers AI の Neurons を記録する。
+2. `env.production`（`wrangler.jsonc`）だけで `AI_ASSIST_ENABLED: "true"` を設定し、コミットする（オーナーの承認が必要）。公開用の本番 Worker についてだけ 5 節を実行する: `npm ci`、`npm run check`、`CLOUDFLARE_ENV=production npm run build`、ドライラン。ドライランには、本番のデータベース、`AI_ASSIST_ENABLED` の `"true"`、60 秒に 5 回の `AI_CLIENT_RATE_LIMITER`、`AI_CLIENT_LIMITER (AiClientLimiter)` が出ること。`travel-discovery` だけをデプロイし、プレビューと管理用の Worker はデプロイしない。版の ID と時刻を記録する。
+3. 確認（モデル呼び出しは約 3 回）: `GET /api/ai/status` が `{"enabled":true}` を返す。`scripts/check-deployment.mjs <account subdomain> production` は、AI のチェック以外はすべて合格する。AI のチェックは、AI が有効な間は設計上失敗する（状態が `{"enabled":true}` で、503 にならない）。内蔵ブラウザーで、AI のトグルをオンにして `ja`、`en`、`es` でそれぞれクイズを最後まで答える。間は 60 秒以上空ける。各ノートに AI が書いたことを示す注記があり、カードの順番と決定的な文章が AI オフのときと同じであること。オーナーは 7.1 の手順 6 と同じようにノートを確認する。
+4. 監視（オーナー）: 手順 2 から約 1 時間後、その UTC の日の終わり、最初の 1 週間は毎日、その後は毎週の定例チェックで:
+   - Workers AI: その日に使った Neurons。
+   - `travel-discovery` の Observability: `ai_explanation` の結果ごとの件数（`ok`、`reason` 付きの `invalid_output`、`timeout`、`provider_error`、`content_mismatch`、`rate_limited_window`、`rate_limited_daily`、`limiter_unavailable`）と、`ok` のレイテンシー。どの行も 5 つの項目（`invalid_output` は 6 つ）だけで、リクエストの内容を含まないこと。
+   - Worker の 1 日のリクエスト数（Workers Free の 100,000 に対して）、Durable Object のエラー、Billing。
+5. [DECISIONS.md](../working/DECISIONS.md)（英語のみ）に記録する: 日付、版の ID、手順 3 の前後の Neurons、各回の監視での結果ごとの件数、オーナーによるノートの確認結果。ノートそのものはリポジトリにコピーしない。
+
+**すぐに停止する**（他の手順を終えずに、下の方法で無効にする）条件: 12:00 UTC より前に、使った Neurons が 7,000（1 日の割り当ての 70%）を超えた。Billing に新しい請求がある、またはプランが Free でない。モデル呼び出しが 10 回以上ある日に、その 20% を超えて `invalid_output`、`timeout`、`provider_error` で終わった。ノートに価格、日付、順位、比較、旅行先の説明にない事実が含まれていた。ログの行が上の項目より多い、またはリクエストの内容を含む。`limiter_unavailable` の行が出た（上限の仕組みが失敗しており、AI はすでに安全側に止まっている）。Worker のリクエストが 1 日に 70,000 を超えた。その他、ログや Billing のページに想定外のものが現れた。診断はその間もずっと動く。
+
+**無効にする方法。** 速い方法（オーナー、ダッシュボード）: Workers & Pages → `travel-discovery` → Settings → Variables *（要確認: 正確な表示名）* で、`AI_ASSIST_ENABLED` を `false` にする。新しいリクエストにすぐ反映され、計画の画面には 1 分以内に AI の停止が表示される（状態は 60 秒キャッシュされることがある）。ダッシュボードでの編集は次の `wrangler deploy` で上書きされるので、そのあと `env.production` で `"false"` を設定し、コミット、再ビルドし、公開用の本番 Worker を再デプロイする。通常の方法: ダッシュボードで編集せず、同じコミットと再デプロイを行う。どちらの場合も、`scripts/check-deployment.mjs <account subdomain> production` で `/api/ai/status` が `{"enabled":false}`、AI のエンドポイントが 503 `ai_unavailable` を返すことを確認し、時刻を記録する。
 
 ## 8. ロールバック
 - コード: `npx wrangler rollback <VERSION_ID> --name <worker>` またはダッシュボード（Workers & Pages → Worker → Deployments → Rollback）。即座に反映され、直近 100 個のバージョンに使え、バインドしたリソースは変えない: データベースは現在のスキーマとデータのままである。静的アセットもバージョンと一緒に戻る: 2026-10-25 に公開プレビュー Worker で確認した（[DECISIONS.md](../working/DECISIONS.md) の "Phase 10 verification log"）。配信される `index.html` とクライアントバンドルは、戻す方向でも元に戻す方向でも約 20 秒以内に戻し先のバージョンのものに切り替わり、もう一方のバージョンのバンドルは配信されなくなった。代わりの方法は、直前の正常なコミットのビルドを再デプロイすることである。

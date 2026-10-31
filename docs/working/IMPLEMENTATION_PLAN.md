@@ -268,3 +268,19 @@ Acceptance:
 - Production runs the quota Durable Object with AI disabled, the 7.2 check passed on production, and the owner's dashboard readings are recorded or stay 要確認 with a reason.
 - ADR-026 "Readiness for enabling AI" is up to date, and the owner's production AI decision is recorded.
 - `npm run check` and `npm run test:e2e` pass after any change, AI is disabled in every environment unless the owner decided otherwise, and the account stays on Workers Free.
+
+Status: **complete (2026-10-31)**; every acceptance item is met ([DECISIONS.md](DECISIONS.md) "Phase 14 verification log"):
+- AI states: one "busy" notice for every 429, no hint of the limits or of AI being off for the whole site, and a footer that said answers are never sent; checked locally in 84 runs with the AI endpoint mocked.
+- Adopted and implemented (commit `b361260`): the limits next to the toggle; `GET /api/ai/status`, which disables the toggle while AI is off; a 429 that names the window or daily limit with `Retry-After`, and matching notices; a `reason` for `invalid_output` in the log line; a corrected footer (ADR-026 "Phase 14 amendments", ADR-029). Not adopted: an app-wide daily cap.
+- Deployed with AI disabled to preview (`f8b5bef7`) and production (`cc06950d`, with the Durable Object migration `v1`); the 7.2 check passed on both (five 503, then 429, on one connection and on new connections).
+- ADR-026 "Readiness for enabling AI" lists no item as not met. Owner decision: the production steps are prepared ([DEPLOYMENT.md](../en/DEPLOYMENT.md) 7.3) and AI stays disabled until the owner approves them for a date.
+- `npm run check` (760 tests) and `npm run test:e2e` (64 passed) passed; no paid plan or feature was enabled.
+
+Open items for later phases, each needing the owner's decision or check:
+- Enabling AI on production with [DEPLOYMENT.md](../en/DEPLOYMENT.md) 7.3 (recommended after the December check).
+- Durable Object dashboard readings: 22 requests shown per object where 31 checks were made, rows written, and whether the Worker's request count includes the Durable Object calls (要確認).
+- Carried over: the trial's `en` rejection and the 400 request (要確認), why the first Phase 12 preview import did not reach the database (要確認), whether preview and production share the Neuron allowance (要確認), a manual retry for AI notes, an app-wide daily cap before any move to Workers Paid, Rome's top-5 share, discrimination-based question selection and early stopping, the preview seed data, and removing the overrides (ADR-030).
+- Still deferred: images, a dated exchange-rate table, the out-of-policy Access check, other empty costs and best months, and the pre-public-release checklist.
+- Dated, outside the phases: the Workers Logs and Billing check in the first week of December 2026 ([OPERATIONS.md](../en/OPERATIONS.md) section 3 "Dated").
+- Next: no phase is planned yet; the owner chooses the next one.
+
