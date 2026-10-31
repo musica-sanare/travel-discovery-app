@@ -4,7 +4,10 @@ import { DEFAULT_LOCALE, SUPPORTED_LOCALES, isLocale } from "../../shared/locale
 import { storeLocale } from "../i18n/localePreference";
 import { GlobeIcon } from "./Decorations";
 
-/** Language picker for the navy header band. */
+/**
+ * Language picker for the navy header band. The admin console reuses it without
+ * Tailwind and styles it through the `language-switcher` class.
+ */
 export function LanguageSwitcher() {
   const { t, i18n } = useTranslation();
   const selectId = useId();
@@ -19,7 +22,7 @@ export function LanguageSwitcher() {
   };
 
   return (
-    <div className="flex items-center gap-2 text-sm">
+    <div className="language-switcher flex items-center gap-2 text-sm">
       <GlobeIcon className="size-5 text-sky-muted" />
       <label htmlFor={selectId} className="sr-only sm:not-sr-only sm:text-sky-muted">
         {t("language.label")}

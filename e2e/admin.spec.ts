@@ -328,3 +328,21 @@ test.describe("admin accessibility (axe-core)", () => {
     });
   }
 });
+
+test.describe("admin layout at phone width", () => {
+  test.use({ viewport: { width: 375, height: 812 } });
+
+  // The admin console reuses the public LanguageSwitcher without Tailwind, so its icon is sized by admin CSS.
+  for (const path of ["/destinations", "/destinations/new", "/questions", "/questions/new", "/countries", "/attributes", "/categories", "/settings", "/import"]) {
+    test(`${path} fits the screen and keeps the language icon small`, async ({ page }) => {
+      await page.goto(path);
+      await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+      await expect(page.getByRole("status").filter({ hasText: "読み込み中…" })).toHaveCount(0);
+      const layout = await page.evaluate(() => ({
+        overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
+        iconWidth: document.querySelector(".language-switcher svg")?.getBoundingClientRect().width,
+      }));
+      expect(layout).toEqual({ overflow: 0, iconWidth: 20 });
+    });
+  }
+});
