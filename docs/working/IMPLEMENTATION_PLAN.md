@@ -20,6 +20,7 @@ Each phase is started with the matching prompt file:
 | 11 — Trial log details, the AI client limiter, and development dependencies | `prompts/11-limiter-and-dependencies.md` |
 | 12 — More attributes and questions for a more varied quiz | `prompts/12-attributes-and-questions.md` |
 | 13 — More destinations | `prompts/13-more-destinations.md` |
+| 14 — AI notices and limits in the UI, and production readiness for AI | `prompts/14-ai-ux-and-production-readiness.md` |
 
 `prompts/FIRST_MESSAGE.md` is the kickoff message for a new Claude Code session.
 
@@ -251,4 +252,19 @@ Open items for later phases, each needing the owner's decision or check:
 - Carried over: why the first Phase 12 preview import did not reach the database (要確認; both Phase 13 imports reached it on the first attempt), discrimination-based question selection and early stopping, the preview seed destinations scored on 7 attributes, the Phase 11 dashboard readings (要確認), the production quota Durable Object and production AI, the trial's `en` rejection and the 400 request (要確認), an app-wide daily cap, and removing the overrides (ADR-030).
 - Still deferred: images, a dated exchange-rate table, the out-of-policy Access check, other empty costs, and the pre-public-release checklist.
 - Dated, outside the phases: the Workers Logs and Billing check in the first week of December 2026 ([OPERATIONS.md](../en/OPERATIONS.md) section 3 "Dated").
-- Next: Phase 14 (the AI notices and limits in the UI and production readiness for AI); its prompt file is written when it starts.
+- Next: Phase 14 (the AI notices and limits in the UI and production readiness for AI, `prompts/14-ai-ux-and-production-readiness.md`).
+
+## Phase 14 — AI notices and limits in the UI, and production readiness for AI
+Owner decision (2026-10-25, Phase 12 order): the AI notices and limits in the UI and production readiness for AI come after more destinations (Phase 13).
+- List every AI state the public UI can show and what it tells the user in `ja`, `en`, and `es`, checked locally with the AI endpoint mocked.
+- Propose changes to the AI notices, limits, and status (for example stating the limits before use, telling the window limit apart from the daily limit, and showing whether AI is available for the site), each with its contract, privacy, and cost impact; implement only the approved ones, with tests and a rendered review copy of the texts.
+- Deploy the quota Durable Object (ADR-029) to production with AI disabled, run the [DEPLOYMENT.md](../en/DEPLOYMENT.md) 7.2 check there, and record the owner's dashboard readings.
+- Update ADR-026 "Readiness for enabling AI" and record the owner's production AI decision; enabling AI on production needs its own written steps and approval.
+- Not in this phase: content changes, discrimination-based question selection, images, a dated exchange-rate table, the out-of-policy Access check, removing the overrides (ADR-030), and the pre-public-release checklist.
+
+Acceptance:
+- The current AI states are listed, and the owner decided on each proposed change.
+- Approved changes are implemented with tests, and the owner approved a rendered review copy of the new texts in all three locales.
+- Production runs the quota Durable Object with AI disabled, the 7.2 check passed on production, and the owner's dashboard readings are recorded or stay 要確認 with a reason.
+- ADR-026 "Readiness for enabling AI" is up to date, and the owner's production AI decision is recorded.
+- `npm run check` and `npm run test:e2e` pass after any change, AI is disabled in every environment unless the owner decided otherwise, and the account stays on Workers Free.
