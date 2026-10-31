@@ -1,4 +1,4 @@
-<!-- source: docs/en/DEPLOYMENT.md blob 10e7222e2354ada5e01572e69cf6b725b2436114 -->
+<!-- source: docs/en/DEPLOYMENT.md blob a0c94009a76fa9f16f8f92cbeeb0a8a727bc174c -->
 [English](../en/DEPLOYMENT.md) | 日本語 · [目次に戻る](README.md)
 
 > この文書は[英語版](../en/DEPLOYMENT.md)の翻訳。内容が異なる場合は英語版が優先する。
@@ -169,7 +169,8 @@ Workers Builds にもビルド変数とビルド用の秘密情報があり、�
    - Worker を新しい Worker Previews の方式に切り替えない。文書によると、この切り替えは元に戻せない（ADR-033）。
 4. API トークン: もう一方の Worker が使っているトークンを選ぶ。まだ 1 つもないときだけ、Cloudflare に作らせる。
    - 文書にある権限は、Account Settings の読み取り、Workers Scripts の編集、Workers KV Storage の編集、Workers R2 Storage の編集、全ゾーンの Workers Routes の編集、User Details の読み取り、Memberships の読み取りだ。請求、プラン、支払い、メンバーの権限はどれも含まない。
-   - オーナー: My Profile → API Tokens でトークンを開き、権限がちょうどこの一覧であることを確かめる。請求やアカウント管理の権限を持つトークンはインシデントだ。取り消して [DECISIONS.md](../working/DECISIONS.md)（英語のみ）に記録する。
+   - 自動で作られたトークンの実際の権限はこれより広く、D1、Workers AI、Secrets Store の編集なども含む。それでも請求、プラン、支払い、メンバー、API トークンの権限はない（2026-11-01 に確認、ADR-033）。
+   - オーナー: My Profile → API Tokens でトークンを開いて確かめる。そのページでは何も保存しない。請求やアカウント管理の権限を持つトークンはインシデントだ。取り消して [DECISIONS.md](../working/DECISIONS.md)（英語のみ）に記録する。
    - トークンは Cloudflare の中にとどめる。ファイル、GitHub、チャットには決してコピーしない。
 5. 保存する。保存するとすぐにブランチの先頭のビルドが始まるかもしれない *(要確認)*。だから接続の前に、`main` の先頭がデプロイしてよいコミットであることを確かめ、ビルドを手順 6 のとおり確かめる。
 6. その Worker の最初のビルドを確かめる:
@@ -306,7 +307,7 @@ flowchart TD
 - **Workers Free ではビルドは一度に 1 つ。** 2 つの Worker は順にビルドされるので、数分の間、公開 Worker と管理 Worker が別のコミットで動くことがある。スキーマの変更は後方互換で（4 節）、2 つの Worker が共有するのはデータベースだけなので、これは安全だ。
 - **ビルドに `.dev.vars` は入らない。** Workers Builds はクリーンなチェックアウトから始めるので、[DEVELOPMENT.md](DEVELOPMENT.md) にある `.dev.vars` のコピーはそこでは起きない。ローカルのビルドでは今も起きる。
 - **ダッシュボードでの変数や `workers.dev` の編集**は、これまでどおり次のビルドのデプロイで上書きされる。
-- **Worker の名前。** Workers Builds は、ダッシュボード上の Worker の名前が、ルートディレクトリの Wrangler の設定の `name` と一致することを求める。ただし、基本の名前が同じ Wrangler の環境は例外だ。Wrangler v3 以降では、Workers Builds が `WRANGLER_CI_OVERRIDE_NAME` で、つないだ Worker の名前を自分で設定する（Troubleshooting のページ、2026-10-30 更新）。ルートの `wrangler.jsonc` の名前は `travel-discovery` なので、管理 Worker はこの上書きに頼ることになる。2026-10-31 の最初のビルドで新しいバージョンができた *(要確認: `travel-discovery-admin` のバージョン ID を記録するときに確かめる)*。
+- **Worker の名前。** Workers Builds は、ダッシュボード上の Worker の名前が、ルートディレクトリの Wrangler の設定の `name` と一致することを求める。ただし、基本の名前が同じ Wrangler の環境は例外だ。Wrangler v3 以降では、Workers Builds が `WRANGLER_CI_OVERRIDE_NAME` で、つないだ Worker の名前を自分で設定する（Troubleshooting のページ、2026-10-30 更新）。ルートの `wrangler.jsonc` の名前は `travel-discovery` なので、管理 Worker はこの上書きに頼ることになる。この上書きは効いている。`b369997` のビルドは両方の Worker で成功した（2026-11-01）。
 - **ビルド時間。** Workers Free には、月 3,000 分のビルド時間、同時ビルド 1 つ、20 分のタイムアウトが含まれる。`main` への push 1 回でビルドは 2 回走り、`dev` への push では走らない。1 回のビルドが T 分なら、月に 3,000 ÷（2 × T）回 `main` に push できる。たとえば 4 分なら約 375 回だ。使い切ったときに何が起きるかは文書にない *(要確認)*。そのときは push を止めて月のリセットを待つ。プランは決して上げない。使った時間が枠の半分を超えたら、まずドキュメントだけのコミットを除外するビルドの監視パスを検討する（オーナーの判断）。
 
 **ローカルでのドライラン（任意、ログイン不要）。** push の前に平たくした設定を見たいときは、ローカルでビルドしてドライランを実行する。終わったら `npm run build` でローカルの設定に戻す（3.3）。
@@ -422,7 +423,7 @@ Phase 6（2026-10-18）時点の状態と、その後のデプロイ。詳細は
 - `content/initial-v1.json` をプレビューと本番にインポートした。本番はその時点で、公開済みの旅行先 18 件と質問 12 問になった（ADR-028）。
 
 **Workers Builds（2026-10-31）:**
-- オーナーが `travel-discovery` と `travel-discovery-admin` を `main` につないだ（3.6）。`59b754c` を `main` に push すると最初のビルドが始まり、新しいバージョンをデプロイした。コードは Phase 17 のデプロイ（`ef6d323`）と同じだ。バージョン ID とビルド時間: *(要確認: オーナーが記録する)*。
+- オーナーが `travel-discovery` と `travel-discovery-admin` を `main` につないだ（3.6）。`59b754c` を `main` に push すると最初のビルドが始まり、新しいバージョンをデプロイした。コードは Phase 17 のデプロイ（`ef6d323`）と同じだ。バージョン ID は記録していない。ビルド時間 *(要確認)*。
 - `scripts/check-deployment.mjs <account subdomain> production --watch-admin 120` が通った。4 つのロケールの公開 API、AI は無効、管理のすべてのパスが 2 分間 Access のログインにリダイレクトした。
 - プレビュー環境を設定から外した（ADR-033「Amendment 2026-10-31」）。続いてオーナーが、その 2 つの Worker、Access アプリケーション、データベースを消した（3.7）。プレビューの 2 つの URL は 404 を返す。
-- インシデント: 削除の後、本番の管理 Worker が `/` と `/destinations` で Access なしに 200 を返した。少なくともチェックの 2 分間はそのままだった。`/api/admin/me` は 403 を返したので、管理データには届かなかった。オーナーが `workers.dev` を無効にし、`travel-discovery-admin` の Access アプリケーションが新しい AUD タグで作り直されているのを確かめた。スコープは All traffic、ポリシーはオーナーの Emails ルールだ。新しい AUD は `wrangler.admin.jsonc` の `env.production` に入れた。そのコミット（`b369997`）を push すると `workers.dev` が有効に戻り、`--watch-admin 120` つきのチェックが通り、オーナーが管理コンソールにログインできた（ADR-033）。
+- インシデント: 削除の後、本番の管理 Worker が `/` と `/destinations` で Access なしに 200 を返した。少なくともチェックの 2 分間はそのままだった。`/api/admin/me` は 403 を返したので、管理データには届かなかった。オーナーが `workers.dev` を無効にし、`travel-discovery-admin` の Access アプリケーションが新しい AUD タグで作り直されているのを確かめた（オーナーの記憶では、オーナー自身がダッシュボードで作り直した）。スコープは All traffic、ポリシーはオーナーの Emails ルールだ。新しい AUD は `wrangler.admin.jsonc` の `env.production` に入れた。そのコミット（`b369997`）を push すると `workers.dev` が有効に戻り、`--watch-admin 120` つきのチェックが通り、オーナーが管理コンソールにログインできた（ADR-033）。
