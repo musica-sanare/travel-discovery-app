@@ -445,7 +445,16 @@ Local content review, official web pages and primary documents, and local simula
     - `es` (6 days, January, JPY 200,000; mountains, cool climate): results Jungfrau Region, Norway's Fjords, Queenstown, Cusco, Uyuni, with "Se excluyó 1 destino porque supera tu presupuesto máximo" and Queenstown's cost line "unos 26.900 JPY", "probablemente dentro de tu presupuesto", and its basis in Spanish.
     - `en` (4 days, October, USD 1,500; city life and late nights; one question skipped): results Bangkok, New York City, Paris, Barcelona, Seoul.
     - `ja` (5 days, February, JPY 150,000; nature, beaches, and activities): results Cairns and the Great Barrier Reef, Cancún and the Riviera Maya, Rio de Janeiro, Bali, Jungfrau Region, with 「予算の上限を超えるため 1 件を除外しました」 and Cairns' cost line 「約 ￥23,100」, 「予算内に収まる見込みです」, and its basis in Japanese.
-- *Next* (task 6): the same steps on production (owner steps, each approved).
+- *Verified* (2026-10-31, production, owner-approved Time Travel reads; task 6):
+  - Bookmarks: before `0000001a-00000001-00005115-f67f3b1576a7d8d937bb3567c59d9640` (01:11:55Z), after `0000001b-00000024-00005115-113bea9e19aa07174dba9be2d4963d05` (01:35:47Z). In between, the owner imported `content/initial-v6.json` with the update mode; the owner reported that Check listed the expected items (8 countries and 12 destinations created, the other existing items skipped, the 18 existing destinations unchanged) and that the import was complete.
+  - Before reading the bookmark after the import, `/api/diagnosis-content` (01:35:40Z) already returned the 12 new destinations.
+  - `/api/diagnosis-content` in `ja`, `en`, and `es` has 11 attributes, 29 questions, and 30 destinations and matches the bundle with no difference, using the same comparison as on preview. The settings are 6/10/12/5.
+  - `scripts/check-deployment.mjs` at 01:35:54Z: all checks passed (30 destinations in `ja`, `en`, and `es`, AI same-origin 503 `ai_unavailable`, cross-origin 403).
+  - In the built-in browser, complete 10-question quizzes were answered from the start in each locale, with AI off:
+    - `es` (no trip details; culture, street food, architecture): results Barcelona, Bangkok, Rome, Taipei, Andalusia.
+    - `en` (4 days, March; villages, spa, warm coasts, quiet evenings): results Bali, Cancún and the Riviera Maya, Honolulu, Hoi An, Santorini.
+    - `ja` (7 days, July, JPY 300,000; cool climate, mountains, slow pace): results Norway's Fjords, Jungfrau Region, Queenstown, Uyuni, Provence, with Queenstown's cost line 「約 ￥26,900」 and 「予算内に収まる見込みです」, and the best-season texts of the fjords and the Jungfrau Region under 「詳しく見る」.
+- *Next* (task 7): ADR-028, [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md), and the destination count in [DIAGNOSTIC_ALGORITHM.md](../en/DIAGNOSTIC_ALGORITHM.md) §8 and its Japanese twin.
 
 ## ADR-001: SPA and hosting
 - Status: **Accepted** (Phase 0)
