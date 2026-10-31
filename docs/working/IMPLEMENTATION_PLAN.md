@@ -313,4 +313,18 @@ Open items for later phases, each needing the owner's decision or check:
 - Carried over from Phase 14: the Durable Object dashboard readings, the trial's `en` rejection and the 400 request, the first Phase 12 preview import, Neuron sharing (all 要確認), a manual retry for AI notes, an app-wide daily cap, the preview seed data, and removing the overrides (ADR-030).
 - Still deferred: images, a dated exchange-rate table, the out-of-policy Access check, other empty costs and best months, and the pre-public-release checklist.
 - Dated, outside the phases: the Workers Logs and Billing check in the first week of December 2026 ([OPERATIONS.md](../en/OPERATIONS.md) section 3 "Dated").
-- Next: not planned yet (要確認: the owner chooses the next phase).
+- Next: Phase 16 (cost and season coverage, `prompts/16-cost-and-season-coverage.md`).
+
+## Phase 16 — Cost and season coverage
+Owner decision (2026-10-31): after Phase 15, extend the sourced cost estimates and best months, because only 8 of 30 destinations have a cost estimate and 18 have best months, so the budget and season notes are `unknown` for most destinations. Enabling AI on production follows in a later phase, after the December Workers Logs and Billing check. Documentation fixes are done separately before this phase.
+- Inventory the gaps per destination with the rule that excluded each one in Phases 8, 9, and 13.
+- Re-check sources within the current rules, time-boxed; propose rule options (for example converted `USD` and `EUR` estimates for `AUD` and `NZD` sources) for the owner's decision before adding values.
+- Add only sourced values in `content/initial-v7.json` with a rendered review copy in all three locales; import on preview, then production, with Time Travel bookmarks.
+- Not in this phase: new destinations, attributes, or questions; score or effect changes; the number of questions; production AI; images; the out-of-policy Access check; removing the overrides (ADR-030); and the pre-public-release checklist.
+
+Acceptance:
+- The gap inventory and re-check are recorded, and the owner decided on each rule option before any value was added.
+- Every new value has a cited source that meets the approved rules; items without one stay empty.
+- `content/initial-v7.json` differs from `initial-v6.json` only by the approved values, and the owner approved the rendered review copy.
+- The bundle is imported on preview and production with bookmarks, matches `/api/diagnosis-content` in all three locales, and complete quizzes with `JPY`, `USD`, and `EUR` budgets pass on both.
+- `npm run check` passes (and `npm run test:e2e` if code changed), AI is disabled in every environment, and the account stays on Workers Free.
