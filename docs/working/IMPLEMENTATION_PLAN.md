@@ -21,6 +21,9 @@ Each phase is started with the matching prompt file:
 | 12 — More attributes and questions for a more varied quiz | `prompts/12-attributes-and-questions.md` |
 | 13 — More destinations | `prompts/13-more-destinations.md` |
 | 14 — AI notices and limits in the UI, and production readiness for AI | `prompts/14-ai-ux-and-production-readiness.md` |
+| 15 — Discrimination-based question selection and early stopping | `prompts/15-question-selection-and-early-stopping.md` |
+| 16 — Cost and season coverage | `prompts/16-cost-and-season-coverage.md` |
+| 17 — French locale | `prompts/17-french-locale.md` |
 
 `prompts/FIRST_MESSAGE.md` is the kickoff message for a new Claude Code session.
 
@@ -316,15 +319,34 @@ Open items for later phases, each needing the owner's decision or check:
 - Next: Phase 16 (cost and season coverage, `prompts/16-cost-and-season-coverage.md`).
 
 ## Phase 16 — Cost and season coverage
-Owner decision (2026-10-31): after Phase 15, extend the sourced cost estimates and best months, because only 8 of 30 destinations have a cost estimate and 18 have best months, so the budget and season notes are `unknown` for most destinations. Enabling AI on production follows in a later phase, after the December Workers Logs and Billing check. Documentation fixes are done separately before this phase.
+Owner decision (2026-10-31): after Phase 15 and Phase 17 (French locale, done first by owner decision of the same day), extend the sourced cost estimates and best months, because only 8 of 30 destinations have a cost estimate and 18 have best months, so the budget and season notes are `unknown` for most destinations. Enabling AI on production follows in a later phase, after the December Workers Logs and Billing check. Documentation fixes are done separately before this phase.
 - Inventory the gaps per destination with the rule that excluded each one in Phases 8, 9, and 13.
 - Re-check sources within the current rules, time-boxed; propose rule options (for example converted `USD` and `EUR` estimates for `AUD` and `NZD` sources) for the owner's decision before adding values.
-- Add only sourced values in `content/initial-v7.json` with a rendered review copy in all three locales; import on preview, then production, with Time Travel bookmarks.
+- Add only sourced values in `content/initial-v8.json` with a rendered review copy in all four locales; import on preview, then production, with Time Travel bookmarks.
 - Not in this phase: new destinations, attributes, or questions; score or effect changes; the number of questions; production AI; images; the out-of-policy Access check; removing the overrides (ADR-030); and the pre-public-release checklist.
 
 Acceptance:
 - The gap inventory and re-check are recorded, and the owner decided on each rule option before any value was added.
 - Every new value has a cited source that meets the approved rules; items without one stay empty.
-- `content/initial-v7.json` differs from `initial-v6.json` only by the approved values, and the owner approved the rendered review copy.
-- The bundle is imported on preview and production with bookmarks, matches `/api/diagnosis-content` in all three locales, and complete quizzes with `JPY`, `USD`, and `EUR` budgets pass on both.
+- `content/initial-v8.json` differs from `initial-v7.json` only by the approved values, and the owner approved the rendered review copy.
+- The bundle is imported on preview and production with bookmarks, matches `/api/diagnosis-content` in all four locales, and complete quizzes with `JPY`, `USD`, and `EUR` budgets pass on both.
 - `npm run check` passes (and `npm run test:e2e` if code changed), AI is disabled in every environment, and the account stays on Workers Free.
+
+## Phase 17 — French locale
+Owner decision (2026-10-31): add French (`fr`) to the public UI, the admin UI, and all published content, before Phase 16. Started with the shared `add-ui-locale` task prompt; the plan below was approved by the owner on the same day (ADR-032).
+- Add `fr` to the supported locales with the fallback `fr → en → ja`, and derive every hard-coded locale list from `shared/locales.ts`.
+- Add migration `0002` that rebuilds the seven `*_translations` tables so their `locale` CHECK constraints accept `fr`, preserving all rows.
+- Add complete `fr` catalogs for the public and admin UI, and the AI prompt's language name; AI stays disabled.
+- Extend the admin Import update mode to existing countries, attributes, categories, and questions, so translations added to a bundle reach a deployed database through the admin API.
+- Build `content/initial-v7.json`: `initial-v6.json` plus curated `fr` translations of every item and cost basis, with nothing else changed, and a rendered review copy.
+- Extend locale-parameterized tests, the content bundle test, the seed check, and `scripts/check-deployment.mjs` to `fr`; check the main pages in `fr` in the built-in browser.
+- Add `fr` to `CLAUDE.md` and to every stable doc that lists locales, with their Japanese twins.
+- Not in this phase: other locales, a `docs/fr/` translation, evaluating AI output in French, new or changed content other than `fr` text, and Phase 16's cost and season work.
+
+Acceptance:
+- The owner approved the migration before it runs on preview or production, and it preserves every existing row (tested locally).
+- UI strings are complete in `fr` (compile-time check and blank-string test); content falls back `fr → en → ja` and shows the "shown in <language>" hint.
+- `content/initial-v7.json` differs from `initial-v6.json` only by `fr` translations, and the owner approved the rendered review copy.
+- The main public and admin pages work in `fr` at 375 px and desktop width without missing keys or overflow, and switching between all four locales works.
+- After the owner-approved migration and imports with Time Travel bookmarks, `/api/diagnosis-content` matches the bundle in all four locales on preview and production, and complete quizzes pass in `fr`.
+- `npm run check` and `npm run test:e2e` pass, AI is disabled in every environment, and the account stays on Workers Free.
