@@ -27,7 +27,8 @@ const options: QualityOptions = {
   policy: nextQuestion,
 };
 
-describe("evaluateQuizQuality", () => {
+// Each test runs hundreds of complete quizzes; the default 5 s is too short when the whole suite runs in parallel.
+describe("evaluateQuizQuality", { timeout: 30_000 }, () => {
   it("returns the same report for the same options", () => {
     expect(evaluateQuizQuality(content, options)).toEqual(evaluateQuizQuality(content, options));
   });

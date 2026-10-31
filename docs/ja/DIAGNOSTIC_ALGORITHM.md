@@ -1,11 +1,11 @@
-<!-- source: docs/en/DIAGNOSTIC_ALGORITHM.md blob 2e48ad113363ca661dc49e800a435e11dd14763b -->
+<!-- source: docs/en/DIAGNOSTIC_ALGORITHM.md blob 15a2087aba87c54511bab0ca78ddfc8108710332 -->
 [English](../en/DIAGNOSTIC_ALGORITHM.md) | 日本語 · [目次に戻る](README.md)
 
 > この文書は[英語版](../en/DIAGNOSTIC_ALGORITHM.md)の翻訳です。内容が異なる場合は英語版が優先されます。
 
 # 診断アルゴリズム — Travel Discovery
 
-この文書は、決定的なクイズと順位付けのエンジン（Phase 2）の仕様である。実装は `domain/diagnosis/` にあり、この文書と一致しなければならない。`domain/diagnosis/*.test.ts` のテストは、以下の例をコードにしたものである。判断と理由は [DECISIONS.md](../working/DECISIONS.md)（英語のみ） ADR-021 に記録している。
+この文書は、決定的なクイズと順位付けのエンジン（Phase 2）の仕様である。実装は `domain/diagnosis/` にあり、この文書と一致しなければならない。`domain/diagnosis/*.test.ts` のテストは、以下の例をコードにしたものである。判断と理由は [DECISIONS.md](../working/DECISIONS.md)（英語のみ） ADR-021 と ADR-031 に記録している。
 
 エンジンは純粋な TypeScript であり、React、データベース、Cloudflare のバインディング、ネットワーク、AI を使わない。同じコンテンツ、回答、条件、設定、シードを与えれば、常に同じ出力を返す。
 
@@ -133,6 +133,19 @@ novelty_q = 2 if q has an effect on any attribute with P[a] = 0, else 1
 
 `askedInCategory_q` は、`q` のカテゴリーで既に回答された質問の数である。カテゴリーの係数はカテゴリーのバランスを取る。新規性の係数は適応のルールであり、それまでの回答から見て、ユーザーがまだ表明していない好みについての質問を優先する。
 
+**判別力**（Phase 15 から。[DECISIONS.md](../working/DECISIONS.md)（英語のみ） ADR-031）を各重みに掛ける。回答によっていま有力な旅行先を分けられる質問ほど、選ばれやすくなる:
+
+```
+weight'_q = weight_q · d_q
+d_q       = mean over the active options o of q of  σ_{d ∈ pool} ( Σ_a w_o[a] · x_d[a] )
+pool      = every usable destination                      when Σ_a |P[a]| = 0
+            the top 2 · resultCount destinations by §4     otherwise (no budget filter)
+```
+
+`σ` は母標準偏差、`x_d[a]` は §3 の中心化したスコア（旅行先にその属性のスコアがなければ 0）である。範囲の旅行先は §4 の順に並べるが、旅行の条件は考えない。そのため、質問の選択は旅行の条件に左右されない。`d_q = 0` の質問は範囲の旅行先を分けられないので、重みが正の候補がほかにある間は選ばれない。すべての候補の weight' が 0 のとき（旅行先がない場合など）は、判別力を掛けない重みを使う。
+
+例: 旅行先 X（`a1, a2` について `x = (1, −1)`）と Y（`x = (−1, 1)`）があり、質問の選択肢が `p {a1: 2}` と `n {a2: 1}` だとする。`p` の値は `(2, −2)` で `σ = 2`、`n` の値は `(−1, 1)` で `σ = 1` なので、`d = 1.5` になる。どちらの旅行先もスコアを持たない属性にだけ効く質問は `d = 0` になる。
+
 **抽選**: 候補をスラッグ順に並べ、ステップごとの乱数 `r ∈ [0, 1)` を使って、重みに比例する確率で 1 つを選ぶ:
 
 ```
@@ -152,10 +165,8 @@ r        = first output of mulberry32(stepSeed)
 
 したがって `maxQuestions` は絶対的な上限である。候補が尽きたあとは、`minQuestions` は質問を続ける理由にならない。
 
-### 先送り: 判別力にもとづく選択と早期終了
-実装していない。コンテンツが小さすぎて検証できないため先送りにし、公開済みの旅行先が 15 件以上、使える質問が `2 × maxQuestions` 問以上になったら見直すことにしていた。`content/initial-v5.json`（旅行先 18 件、使える質問 29 問、`maxQuestions` 12、Phase 12）でこの条件を満たし、`content/initial-v6.json`（旅行先 30 件、Phase 13）ではさらに上回ったので、たとえば `npm run quiz:simulate` で評価できるようになった。実装するかどうかは別に決める。候補となる定義:
-- `q` の**判別力**: 有効な各選択肢 `o` について、現在の上位 `2 · resultCount` 件の旅行先にわたる `Σ_a w_o[a] · x_d[a]` の母標準偏差を求め、選択肢について平均する。上の重みに掛け合わせる。
-- **安定性**: `minQuestions` 問以上回答した後、上位 `resultCount` 件の旅行先の集合が直近 2 回の回答で変わらず、順位 `resultCount` と `resultCount + 1` の適合度の差が 5 ポイント以上なら終了する。
+### 早期終了: 評価したが採用しない
+安定性による終了ルールを Phase 15 で評価し、採用しなかった（ADR-031）。評価したのは、表示した質問が `minQuestions` 問以上になったあと、上位 `resultCount` 件の集合が直近の回答で変わらず、順位 `resultCount` と `resultCount + 1` の適合度の差が十分大きければ終える、というルールである。仮想の回答者によるシミュレーションでは、終わるのは平均で 0.1〜0.8 問早まるだけで、結果が回答者の理想の旅行先と一致する度合いは下がった。数値は [DECISIONS.md](../working/DECISIONS.md)（英語のみ）の「Phase 15 verification log」にある。そのため、候補が尽きない限り、クイズは常に `limit` 問を出す。
 
 ## 9. 制約
 

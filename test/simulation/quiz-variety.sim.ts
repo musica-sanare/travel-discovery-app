@@ -38,4 +38,4 @@ test("simulate quizzes on content bundles", () => {
       expect(report.runs).toBe(options.runs);
     }
   }
-});
+}, 120_000);

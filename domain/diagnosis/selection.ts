@@ -2,8 +2,10 @@
  * Next-question selection and stopping rule (docs/en/DIAGNOSTIC_ALGORITHM.md §7, §8).
  */
 import { compareSlugs, prepareContent, type UsableContent, type UsableQuestion } from "./content";
-import { buildPreferences } from "./preferences";
+import { buildPreferences, signalStrength } from "./preferences";
 import { stepRandom } from "./random";
+import { compareByFit } from "./ranking";
+import { centeredScore, scoreDestination } from "./scoring";
 import type { Answer, DiagnosisContent, QuizLimits } from "./types";
 
 export type StopReason = "target_reached" | "no_more_questions";
@@ -23,7 +25,7 @@ export function questionWeight(
   return (question.priorityWeight / (1 + askedInCategory)) * (novel ? NOVELTY_FACTOR : 1);
 }
 
-/** Candidates in slug order with their weights. */
+/** Candidates in slug order with the priority, category, and novelty weight (without discrimination). */
 export function candidateWeights(
   content: UsableContent,
   answers: readonly Answer[],
@@ -44,6 +46,84 @@ export function candidateWeights(
       slug: question.slug,
       weight: questionWeight(question, perCategory.get(question.category) ?? 0, values),
     }));
+}
+
+/**
+ * Destinations that discrimination is measured over: every usable destination
+ * while there is no preference signal, otherwise the top `size` in ranking
+ * order without trip constraints.
+ */
+export function discriminationPool(
+  content: UsableContent,
+  preferences: ReadonlyMap<string, number>,
+  size: number,
+): UsableContent["destinations"] {
+  if (signalStrength(preferences) === 0) {
+    return content.destinations;
+  }
+  return content.destinations
+    .map((destination) => ({
+      destination,
+      slug: destination.slug,
+      ...scoreDestination(destination, content.attributes, preferences),
+    }))
+    .sort(compareByFit)
+    .slice(0, size)
+    .map((item) => item.destination);
+}
+
+type CenteredScores = readonly ReadonlyMap<string, number>[];
+
+function centeredScores(pool: UsableContent["destinations"]): CenteredScores {
+  return pool.map(
+    (destination) => new Map(destination.attributeScores.map((item) => [item.attribute, centeredScore(item.score)])),
+  );
+}
+
+function meanOptionSpread(question: UsableQuestion, centered: CenteredScores): number {
+  if (centered.length === 0 || question.options.size === 0) {
+    return 0;
+  }
+  let total = 0;
+  for (const effects of question.options.values()) {
+    const values = centered.map((x) => {
+      let value = 0;
+      for (const [attribute, weight] of effects) {
+        value += weight * (x.get(attribute) ?? 0);
+      }
+      return value;
+    });
+    const mean = values.reduce((sum, value) => sum + value, 0) / values.length;
+    const variance = values.reduce((sum, value) => sum + (value - mean) ** 2, 0) / values.length;
+    total += Math.sqrt(variance);
+  }
+  return total / question.options.size;
+}
+
+/** Mean over the options of the population standard deviation of Σ_a w_o[a] · x_d[a] over `pool`. */
+export function discrimination(question: UsableQuestion, pool: UsableContent["destinations"]): number {
+  return meanOptionSpread(question, centeredScores(pool));
+}
+
+/**
+ * Candidates in slug order with their weights multiplied by discrimination over
+ * the top `2 · resultCount` destinations; the plain weights if every
+ * discrimination is 0.
+ */
+export function selectionWeights(
+  content: UsableContent,
+  answers: readonly Answer[],
+  resultCount: number,
+): { slug: string; weight: number }[] {
+  const base = candidateWeights(content, answers);
+  const centered = centeredScores(
+    discriminationPool(content, buildPreferences(content, answers).values, 2 * resultCount),
+  );
+  const weighted = base.map((candidate) => {
+    const question = content.questions.get(candidate.slug);
+    return { slug: candidate.slug, weight: question ? candidate.weight * meanOptionSpread(question, centered) : 0 };
+  });
+  return weighted.some((candidate) => candidate.weight > 0) ? weighted : base;
 }
 
 /** Picks the candidate whose cumulative weight first exceeds r · total. */
@@ -84,7 +164,10 @@ export function nextQuestion(
   if (asked.length >= limit) {
     return { done: true, reason: "target_reached", insufficientQuestions: false };
   }
-  const question = drawWeighted(candidateWeights(usable, answers), stepRandom(seed, asked.length));
+  const question = drawWeighted(
+    selectionWeights(usable, answers, limits.resultCount),
+    stepRandom(seed, asked.length),
+  );
   if (question === undefined) {
     return {
       done: true,

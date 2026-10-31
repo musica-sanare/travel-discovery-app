@@ -33,6 +33,14 @@ export interface RankingResult {
   ignoredAnswers: readonly IgnoredAnswer[];
 }
 
+/** Ranking order: fit descending, then coverage descending, then slug ascending. */
+export function compareByFit(
+  a: { slug: string; fit: number; coverage: number },
+  b: { slug: string; fit: number; coverage: number },
+): number {
+  return b.fit - a.fit || b.coverage - a.coverage || compareSlugs(a.slug, b.slug);
+}
+
 /**
  * @param constraints validated trip constraints
  * @param limits validated quiz settings (resultCount 3-5)
@@ -74,7 +82,7 @@ export function rankDestinations(
     });
   }
 
-  candidates.sort((a, b) => b.fit - a.fit || b.coverage - a.coverage || compareSlugs(a.slug, b.slug));
+  candidates.sort(compareByFit);
   const results = candidates.slice(0, limits.resultCount).map((item, index) => ({ ...item, rank: index + 1 }));
 
   const notices: RankingNotice[] = [];

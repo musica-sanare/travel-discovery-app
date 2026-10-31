@@ -1,8 +1,17 @@
 import { describe, expect, it } from "vitest";
 import { prepareContent } from "./content";
 import { mulberry32, stepRandom } from "./random";
-import { drawWeighted, nextQuestion, plannedQuestionCount, questionWeight } from "./selection";
-import { LIMITS, attributes, content, option, question } from "./test-fixtures";
+import {
+  candidateWeights,
+  discrimination,
+  discriminationPool,
+  drawWeighted,
+  nextQuestion,
+  plannedQuestionCount,
+  questionWeight,
+  selectionWeights,
+} from "./selection";
+import { LIMITS, attributes, content, destination, option, question } from "./test-fixtures";
 import type { Answer, DiagnosisContent, QuizLimits } from "./types";
 
 const ATTRS = ["a1", "a2", "a3", "a4", "a5", "a6"];
@@ -148,6 +157,53 @@ describe("questionWeight", () => {
   it("doubles the weight when the question touches an attribute without signal (C5)", () => {
     expect(questionWeight(q, 0, new Map([["a1", 1], ["a2", 0]]))).toBe(12);
     expect(questionWeight(q, 1, new Map())).toBe(6);
+  });
+});
+
+describe("discrimination", () => {
+  // x = (1, -1) for x-city and (-1, 1) for y-city on (a1, a2); neither scores a3.
+  const data = content({
+    attributes: attributes("a1", "a2", "a3"),
+    questions: [
+      question("q", [option("p", { a1: 2 }), option("n", { a2: 1 })]),
+      question("r", [option("u", { a3: 2 }), option("v", { a3: -1 })]),
+    ],
+    destinations: [destination("x-city", { a1: 5, a2: 0 }), destination("y-city", { a1: 0, a2: 5 })],
+  });
+  const usable = prepareContent(data);
+  const q = usable.questions.get("q");
+  const r = usable.questions.get("r");
+  if (!q || !r) throw new Error("fixture");
+
+  it("averages the population standard deviation of each option's effect over the pool", () => {
+    // p: values (2, -2), deviation 2; n: values (-1, 1), deviation 1; mean 1.5.
+    expect(discrimination(q, usable.destinations)).toBe(1.5);
+    expect(discrimination(r, usable.destinations)).toBe(0);
+    expect(discrimination(q, usable.destinations.slice(0, 1))).toBe(0);
+    expect(discrimination(q, [])).toBe(0);
+  });
+
+  it("uses every destination without signal and the top destinations with signal", () => {
+    const all = discriminationPool(usable, new Map([["a1", 0], ["a2", 0], ["a3", 0]]), 1);
+    expect(all.map((d) => d.slug)).toEqual(["x-city", "y-city"]);
+    const top = discriminationPool(usable, new Map([["a1", 0], ["a2", 3], ["a3", 0]]), 1);
+    expect(top.map((d) => d.slug)).toEqual(["y-city"]);
+  });
+
+  it("multiplies the weights by discrimination and never draws a question that cannot separate the pool", () => {
+    const base = candidateWeights(usable, []);
+    expect(selectionWeights(usable, [], 1)).toEqual(
+      base.map((c) => ({ slug: c.slug, weight: c.slug === "q" ? c.weight * 1.5 : 0 })),
+    );
+    for (let seed = 0; seed < 50; seed += 1) {
+      const step = nextQuestion(data, [], { ...LIMITS, resultCount: 1 }, seed);
+      expect(step).toEqual({ done: false, question: "q" });
+    }
+  });
+
+  it("falls back to the plain weights when no question discriminates", () => {
+    const empty = prepareContent({ ...data, destinations: [] });
+    expect(selectionWeights(empty, [], 3)).toEqual(candidateWeights(empty, []));
   });
 });
 

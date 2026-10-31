@@ -2,7 +2,7 @@ English | [日本語](../ja/DIAGNOSTIC_ALGORITHM.md) · [Docs index](README.md)
 
 # Diagnostic Algorithm — Travel Discovery
 
-This document is the specification for the deterministic quiz and ranking engine (Phase 2). The implementation lives in `domain/diagnosis/` and must match this document; tests in `domain/diagnosis/*.test.ts` encode the examples below. Decisions and rationale are recorded in [DECISIONS.md](../working/DECISIONS.md) ADR-021.
+This document is the specification for the deterministic quiz and ranking engine (Phase 2). The implementation lives in `domain/diagnosis/` and must match this document; tests in `domain/diagnosis/*.test.ts` encode the examples below. Decisions and rationale are recorded in [DECISIONS.md](../working/DECISIONS.md) ADR-021 and ADR-031.
 
 The engine is pure TypeScript: no React, database, Cloudflare bindings, network, or AI. Given the same content, answers, constraints, settings, and seed, it always returns the same output.
 
@@ -130,6 +130,19 @@ novelty_q = 2 if q has an effect on any attribute with P[a] = 0, else 1
 
 `askedInCategory_q` is the number of already answered questions in `q`'s category. The category factor balances categories; the novelty factor is the adaptive rule: it favours questions about preferences the user has not expressed yet, based on the answers so far.
 
+**Discrimination** (since Phase 15, [DECISIONS.md](../working/DECISIONS.md) ADR-031) multiplies each weight, so questions whose answers would separate the currently likely destinations are drawn more often:
+
+```
+weight'_q = weight_q · d_q
+d_q       = mean over the active options o of q of  σ_{d ∈ pool} ( Σ_a w_o[a] · x_d[a] )
+pool      = every usable destination                      when Σ_a |P[a]| = 0
+            the top 2 · resultCount destinations by §4     otherwise (no budget filter)
+```
+
+`σ` is the population standard deviation and `x_d[a]` the centered score of §3 (0 when the destination has no score for `a`). The pool is ordered as in §4 but ignores trip constraints, so selection does not depend on them. A question with `d_q = 0` cannot separate the pool and is not drawn while another candidate has a positive weight; if every candidate's weight' is 0 (for example, with no destinations), the weights without discrimination are used.
+
+Example: destinations X (`x = (1, −1)` on `a1, a2`) and Y (`x = (−1, 1)`); a question with options `p {a1: 2}` and `n {a2: 1}`. The values of `p` are `(2, −2)` with `σ = 2`, those of `n` are `(−1, 1)` with `σ = 1`, so `d = 1.5`. A question that only affects an attribute neither destination scores has `d = 0`.
+
 **Draw**: candidates are sorted by slug, then one is drawn with probability proportional to its weight using the step random number `r ∈ [0, 1)`:
 
 ```
@@ -149,10 +162,8 @@ Deriving each step's random number from `(seed, step)` makes the sequence reprod
 
 `maxQuestions` is therefore a hard cap. `minQuestions` is not a reason to keep asking once candidates run out.
 
-### Deferred: discrimination-based selection and early stopping
-Not implemented. They were deferred because the content was too small to validate them, with the condition to revisit them once there are at least 15 published destinations and at least `2 × maxQuestions` usable questions. Since `content/initial-v5.json` (18 destinations, 29 usable questions, `maxQuestions` 12; Phase 12) the condition is met, and `content/initial-v6.json` (30 destinations; Phase 13) exceeds it further, so they can now be evaluated, for example with `npm run quiz:simulate`; implementing them is a separate decision. Candidate definitions:
-- **Discrimination** of `q`: for each active option `o`, the population standard deviation of `Σ_a w_o[a] · x_d[a]` over the current top `2 · resultCount` destinations; averaged over options. It would multiply the weight above.
-- **Stability**: after at least `minQuestions` answers, stop when the set of the top `resultCount` destinations has not changed over the last two answers and the fit gap between rank `resultCount` and `resultCount + 1` is at least 5 points.
+### Early stopping: evaluated, not adopted
+A stability rule was evaluated in Phase 15 and not adopted (ADR-031): after at least `minQuestions` shown questions, stop when the top `resultCount` set has not changed over the last answers and the fit gap between ranks `resultCount` and `resultCount + 1` is large enough. With simulated respondents it ended quizzes only 0.1–0.8 questions earlier on average and lowered how well the results matched the respondents' ideal destinations; the figures are in the "Phase 15 verification log" of [DECISIONS.md](../working/DECISIONS.md). The quiz therefore always asks `limit` questions unless candidates run out.
 
 ## 9. Limitations
 

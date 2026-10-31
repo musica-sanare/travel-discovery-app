@@ -60,7 +60,7 @@ No account is required. Do not persist individual answers or diagnosis history o
 - Vary the combination between sessions.
 - Balance question categories and prioritize questions that distinguish currently plausible destinations or fill gaps in preference signals.
 - Adapt the next question based on prior answers.
-- Stop once minimum count is met and a documented stopping rule says enough useful signal exists; always stop at maximum.
+- Stop once minimum count is met and a documented stopping rule says enough useful signal exists; always stop at maximum. The documented rule is the target count ([DIAGNOSTIC_ALGORITHM.md](DIAGNOSTIC_ALGORITHM.md) §8); stopping when the results are stable was evaluated in Phase 15 and not adopted.
 - User can go back, edit an answer, restart, and see progress.
 - If insufficient active questions exist, gracefully ask fewer questions and show a clear message; never crash.
 - Use a seeded/randomization strategy that can be tested. Do not make tests depend on uncontrolled randomness.

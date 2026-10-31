@@ -12,6 +12,7 @@ import {
   cappedPolicy,
   currentPolicy,
   discrimination,
+  phase14Policy,
   discriminationPolicy,
   earlyStoppingPolicy,
   isStable,
@@ -39,7 +40,8 @@ describe("discrimination", () => {
   });
 });
 
-describe("candidate policies", () => {
+// Each test runs hundreds of complete quizzes; the default 5 s is too short when the whole suite runs in parallel.
+describe("candidate policies", { timeout: 30_000 }, () => {
   const policies: [string, SelectionPolicy][] = [
     ["plain", discriminationPolicy({ mode: { kind: "plain" }, pool: "top" })],
     ["floor", discriminationPolicy({ mode: { kind: "floor", floor: 0.25 }, pool: "topOrAll" })],
@@ -50,6 +52,16 @@ describe("candidate policies", () => {
   it.each(policies)("%s gives the same quiz for the same seed and differs between seeds", (_, policy) => {
     expect(quiz(policy, 11)).toEqual(quiz(policy, 11));
     expect(quiz(policy, 11).map((a) => a.question)).not.toEqual(quiz(policy, 12).map((a) => a.question));
+  });
+
+  it("matches the app's rule with D-plain and differs from the Phase 14 rule", () => {
+    const plain = discriminationPolicy({ mode: { kind: "plain" }, pool: "topOrAll" });
+    let differs = 0;
+    for (let seed = 0; seed < 20; seed++) {
+      expect(quiz(currentPolicy, seed)).toEqual(quiz(plain, seed));
+      if (JSON.stringify(quiz(phase14Policy, seed)) !== JSON.stringify(quiz(plain, seed))) differs++;
+    }
+    expect(differs).toBeGreaterThan(0);
   });
 
   it("asks the target number of questions with discrimination alone", () => {

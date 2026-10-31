@@ -12,7 +12,7 @@ import { expect, test } from "vitest";
 import { DEFAULT_QUIZ_SETTINGS } from "../../shared/quiz-settings";
 import {
   cappedPolicy,
-  currentPolicy,
+  phase14Policy,
   discriminationPolicy,
   earlyStoppingPolicy,
   type DiscriminationOptions,
@@ -41,8 +41,8 @@ const stabilityLabel = (s: StabilityOptions) =>
   `S-gap${String(s.gap)}-w${String(s.window)}-${s.cap}${s.countSkips ? "-skips" : ""}`;
 
 function candidates(): Candidate[] {
-  const list: Candidate[] = [{ label: "current", policy: currentPolicy, reference: currentPolicy }];
-  const selections: [string, SelectionPolicy][] = [["current", currentPolicy]];
+  const list: Candidate[] = [{ label: "phase14", policy: phase14Policy, reference: phase14Policy }];
+  const selections: [string, SelectionPolicy][] = [["phase14", phase14Policy]];
   for (const [label, options] of DISCRIMINATION) {
     const policy = discriminationPolicy(options);
     selections.push([label, policy]);
@@ -62,8 +62,8 @@ function candidates(): Candidate[] {
   for (const stability of stabilities) {
     list.push({
       label: stabilityLabel(stability),
-      policy: earlyStoppingPolicy(currentPolicy, stability),
-      reference: cappedPolicy(currentPolicy, stability.cap),
+      policy: earlyStoppingPolicy(phase14Policy, stability),
+      reference: cappedPolicy(phase14Policy, stability.cap),
     });
   }
   const combined: StabilityOptions[] = [

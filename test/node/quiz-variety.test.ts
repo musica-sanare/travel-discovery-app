@@ -19,7 +19,8 @@ const bundle = readBundle("initial-v4.json");
 const content = toSimulationContent(bundle);
 const options = { runs: 200, masterSeed: 1, skipRate: 0, limits: DEFAULT_QUIZ_SETTINGS };
 
-describe("simulateQuizzes", () => {
+// Each test runs hundreds of complete quizzes; the default 5 s is too short when the whole suite runs in parallel.
+describe("simulateQuizzes", { timeout: 30_000 }, () => {
   it("returns the same report for the same options", () => {
     expect(simulateQuizzes(content, options)).toEqual(simulateQuizzes(content, options));
   });

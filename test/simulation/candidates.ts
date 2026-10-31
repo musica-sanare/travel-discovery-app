@@ -3,7 +3,9 @@
  * (prompts/15-question-selection-and-early-stopping.md), evaluated in
  * simulation only. Each candidate is a pure function of content, answers,
  * settings, and seed with the signature of `nextQuestion`; nothing here is
- * used by the app.
+ * used by the app. `D-plain` (`discriminationPolicy` with the plain mode and the
+ * `topOrAll` pool) was adopted in `domain/diagnosis/selection.ts`; the
+ * comparison now uses `phase14Policy` as its baseline.
  */
 import { prepareContent, type UsableContent } from "../../domain/diagnosis/content";
 import { buildPreferences, signalStrength } from "../../domain/diagnosis/preferences";
@@ -168,4 +170,19 @@ function cappedLimits(limits: QuizLimits, cap: StabilityOptions["cap"]): QuizLim
   return cap === "max" ? { ...limits, targetQuestions: limits.maxQuestions } : limits;
 }
 
+/** The rule in the app (discrimination-weighted since Phase 15). */
 export const currentPolicy: SelectionPolicy = nextQuestion;
+
+/** The rule before Phase 15: priority, category balance, and novelty only, kept to reproduce the comparison. */
+export const phase14Policy: SelectionPolicy = (content, answers, limits, seed) => {
+  const usable = prepareContent(content);
+  const { asked } = buildPreferences(usable, answers);
+  if (asked.length >= Math.min(limits.targetQuestions, limits.maxQuestions)) {
+    return { done: true, reason: "target_reached", insufficientQuestions: false };
+  }
+  const question = drawWeighted(candidateWeights(usable, answers), stepRandom(seed, asked.length));
+  if (question === undefined) {
+    return { done: true, reason: "no_more_questions", insufficientQuestions: asked.length < limits.minQuestions };
+  }
+  return { done: false, question };
+};
