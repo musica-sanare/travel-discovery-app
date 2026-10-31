@@ -93,7 +93,7 @@ export function toSimulationContent(bundle: SimulationBundle): DiagnosisContent 
 }
 
 /** A stream of numbers in [0, 1) from consecutive mulberry32 states. */
-function randomStream(seed: number): () => number {
+export function randomStream(seed: number): () => number {
   let state = seed >>> 0;
   return () => {
     const value = mulberry32(state);
@@ -111,6 +111,34 @@ function pickOptions(type: QuestionType, values: readonly string[], random: () =
     const picked = values.filter(() => random() < 0.5);
     if (picked.length > 0) return picked;
   }
+}
+
+export interface QuestionVariety {
+  distinctQuestionSets: number;
+  /** Mean number of questions two sessions have in common. */
+  meanSharedQuestions: number;
+  meanJaccard: number;
+}
+
+/** @param sets the question slugs shown in each session, each sorted */
+export function questionVariety(sets: readonly (readonly string[])[]): QuestionVariety {
+  let shared = 0;
+  let jaccard = 0;
+  let pairs = 0;
+  for (const [i, set] of sets.entries()) {
+    const first = new Set(set);
+    for (const second of sets.slice(i + 1)) {
+      const common = second.filter((slug) => first.has(slug)).length;
+      shared += common;
+      jaccard += common / (first.size + second.length - common);
+      pairs++;
+    }
+  }
+  return {
+    distinctQuestionSets: new Set(sets.map((set) => set.join(","))).size,
+    meanSharedQuestions: pairs === 0 ? 0 : shared / pairs,
+    meanJaccard: pairs === 0 ? 0 : jaccard / pairs,
+  };
 }
 
 const ANSWER_SEED_SALT = 0xa5a5a5a5;
@@ -143,19 +171,6 @@ export function simulateQuizzes(content: DiagnosisContent, options: SimulationOp
     }
   }
 
-  let shared = 0;
-  let jaccard = 0;
-  let pairs = 0;
-  for (const [i, set] of sets.entries()) {
-    const first = new Set(set);
-    for (const second of sets.slice(i + 1)) {
-      const common = second.filter((slug) => first.has(slug)).length;
-      shared += common;
-      jaccard += common / (first.size + second.length - common);
-      pairs++;
-    }
-  }
-
   const share = (counts: ReadonlyMap<string, number>, slugs: readonly string[]) =>
     Object.fromEntries(slugs.map((slug) => [slug, (counts.get(slug) ?? 0) / options.runs]));
   const usableQuestions = [...prepareContent(content).questions.keys()];
@@ -163,9 +178,7 @@ export function simulateQuizzes(content: DiagnosisContent, options: SimulationOp
   return {
     runs: options.runs,
     usableQuestions: usableQuestions.length,
-    distinctQuestionSets: new Set(sets.map((set) => set.join(","))).size,
-    meanSharedQuestions: pairs === 0 ? 0 : shared / pairs,
-    meanJaccard: pairs === 0 ? 0 : jaccard / pairs,
+    ...questionVariety(sets),
     questionShownShare: share(shown, usableQuestions),
     topResultShare: share(top, destinations),
     neverInTopResults: destinations.filter((slug) => !top.has(slug)),
