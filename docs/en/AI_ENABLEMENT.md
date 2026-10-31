@@ -19,7 +19,7 @@ Preconditions (ADR-026 A):
 - The owner has reviewed the Gemma terms of use and prohibited-use policy.
 
 Steps:
-1. In the environment's `vars`, set `AI_ASSIST_ENABLED: "true"`, commit, rebuild, and redeploy.
+1. In the environment's `vars`, set `AI_ASSIST_ENABLED: "true"` and commit. The owner's push of the environment's branch deploys it ([DEPLOYMENT.md](DEPLOYMENT.md) section 5): `dev` for preview, `main` for production.
 2. Check the AI notes in all four languages and the Workers AI usage in the dashboard.
 3. Monitoring and stopping: ADR-026 E and [OPERATIONS.md](OPERATIONS.md) 4.4.
 4. For production, follow section 4 (prepared in Phase 14, not yet approved).
@@ -46,10 +46,10 @@ The trial verifies the per-client limiter (ADR-026 A, precondition 2) and the AI
 Steps:
 1. Owner: in the dashboard, note the Workers AI Neurons already used today, so the trial's usage can be read as the difference.
 2. Enable AI on the public preview Worker only:
-   - Set `AI_ASSIST_ENABLED: "true"` in `env.preview` only (`wrangler.jsonc`) and commit (owner-approved).
-   - Run `CLOUDFLARE_ENV=preview npm run build`.
-   - Check the dry run: preview database, `AI_ASSIST_ENABLED` `"true"`, `AI_CLIENT_RATE_LIMITER` 5 per 60 s.
-   - Deploy only the public preview Worker ([DEPLOYMENT.md](DEPLOYMENT.md) section 5). Production and the admin Workers are not deployed.
+   - Set `AI_ASSIST_ENABLED: "true"` in `env.preview` only (`wrangler.jsonc`) and commit on `dev` (owner-approved).
+   - Optional: check the local dry run ([DEPLOYMENT.md](DEPLOYMENT.md) section 5): preview database, `AI_ASSIST_ENABLED` `"true"`, `AI_CLIENT_RATE_LIMITER` 5 per 60 s.
+   - Owner: push `dev`. This is the moment AI is enabled. Workers Builds deploys both preview Workers; the admin preview Worker gets the same commit without any change of its own. `main` is not pushed, so production is not deployed.
+   - Check the same values in the public preview Worker's build log.
 3. Notes (about 6 model calls): in the built-in browser, answer one complete quiz in each of `ja`, `en`, `es`, and `fr` from the start with the AI toggle on. Then switch the language of one results page twice.
    - Each step sends one request; returning to a language already shown sends none (ADR-026 C4).
    - Wait at least 60 s between quizzes so the limiter does not refuse them.
@@ -76,7 +76,7 @@ Steps:
    - Each note is labelled as AI-written; the deterministic explanation, costs, and season notes are unchanged; the card order is the same as with AI off.
    - Record the result per locale in [DECISIONS.md](../working/DECISIONS.md) without copying the notes into the repository.
 7. Owner: read the Workers AI Neurons again and record the difference.
-8. Disable: set `AI_ASSIST_ENABLED` back to `"false"`, commit, rebuild, and redeploy the public preview Worker. Confirm 503 `ai_unavailable` and `{"enabled":false}` from `/api/ai/status` with `scripts/check-deployment.mjs <account subdomain> preview`. While AI is enabled, its AI checks fail by design.
+8. Disable: set `AI_ASSIST_ENABLED` back to `"false"`, commit on `dev`, and push `dev` (owner). Confirm 503 `ai_unavailable` and `{"enabled":false}` from `/api/ai/status` with `scripts/check-deployment.mjs <account subdomain> preview`. While AI is enabled, its AI checks fail by design.
 
 **Stop at once** (step 8, without finishing the other steps) when:
 - the Neurons used by the trial exceed 1,000;
@@ -85,7 +85,7 @@ Steps:
 - a note contains a price, date, ranking, or other forbidden content;
 - anything unexpected appears in the logs or the Billing page.
 
-The diagnosis keeps working throughout. A dashboard edit of the variable is faster than a redeployment but is overwritten by the next `wrangler deploy`, so commit `"false"` before deploying again.
+The diagnosis keeps working throughout. A dashboard edit of the variable is faster than a push but is overwritten by the next build's deployment. So push the commit with `"false"` before any other push to `dev`.
 
 **Record** in [DECISIONS.md](../working/DECISIONS.md): the date, version IDs, model calls made, Neurons before and after, the 400/429 counts of step 4, the outcome counts and latencies of step 5, and the owner's review of step 6.
 
@@ -110,8 +110,8 @@ The limiters can be checked on a deployment with `AI_ASSIST_ENABLED` `"false"`: 
 - The deployment and the check each need the owner's approval. Production is not deployed for this check.
 
 Steps:
-1. Deploy the commit to check to the public preview Worker only ([DEPLOYMENT.md](DEPLOYMENT.md) section 5), with `AI_ASSIST_ENABLED` `"false"`.
-   - Confirm in the dry run that `AI_CLIENT_RATE_LIMITER` (5 per 60 s) and the Durable Object `AI_CLIENT_LIMITER` (`AiClientLimiter`) are present.
+1. Deploy the commit to check to preview with `AI_ASSIST_ENABLED` `"false"`: the owner pushes `dev` ([DEPLOYMENT.md](DEPLOYMENT.md) section 5), which deploys both preview Workers.
+   - Confirm in the build log (or the local dry run) that `AI_CLIENT_RATE_LIMITER` (5 per 60 s) and the Durable Object `AI_CLIENT_LIMITER` (`AiClientLimiter`) are present.
    - The first deployment with the Durable Object applies its migration `v1` (`new_sqlite_classes`). Removing the class later needs a `deleted_classes` migration.
 2. Wait at least 60 s after any other AI request from the same address (including `scripts/check-deployment.mjs`).
 3. Run A, one connection: 15 requests in one `curl` call, which reuses the connection (`num_connects` is 1 for the first request and 0 for the others). `-4` keeps the requests on IPv4, so they share one key:
@@ -162,10 +162,11 @@ AI stays disabled on production until the owner approves these steps for a date.
 Steps:
 1. Owner: confirm the preconditions, and note the Workers AI Neurons already used today.
 2. Enable AI on the public production Worker only:
-   - Set `AI_ASSIST_ENABLED: "true"` in `env.production` only (`wrangler.jsonc`) and commit (owner-approved).
-   - Run [DEPLOYMENT.md](DEPLOYMENT.md) section 5 for the public production Worker only: `npm ci`, `npm run check`, `CLOUDFLARE_ENV=production npm run build`, and the dry run.
-   - The dry run must show the production database, `AI_ASSIST_ENABLED` `"true"`, `AI_CLIENT_RATE_LIMITER` 5 per 60 s, and `AI_CLIENT_LIMITER (AiClientLimiter)`.
-   - Deploy only `travel-discovery`; preview and the admin Workers are not deployed. Record the version ID and the time.
+   - Set `AI_ASSIST_ENABLED: "true"` in `env.production` only (`wrangler.jsonc`) and commit on `dev` (owner-approved).
+   - Run `npm run check` locally, and optionally the local dry run with `CLOUDFLARE_ENV=production` ([DEPLOYMENT.md](DEPLOYMENT.md) section 5). It must show the production database, `AI_ASSIST_ENABLED` `"true"`, `AI_CLIENT_RATE_LIMITER` 5 per 60 s, and `AI_CLIENT_LIMITER (AiClientLimiter)`.
+   - Owner: push `dev`. The preview Workers are redeployed, still with AI disabled, because `env.preview` is unchanged. Run the preview checks.
+   - Owner: fast-forward `main` to that commit and push it ([DEPLOYMENT.md](DEPLOYMENT.md) section 5, step 7). This is the moment AI is enabled on production. Both production Workers are deployed; the admin Worker gets the same commit without any change of its own.
+   - Check the same values in the build log of `travel-discovery`. Record the version ID and the time.
 3. Check (about 4 model calls):
    - `GET /api/ai/status` answers `{"enabled":true}`.
    - `scripts/check-deployment.mjs <account subdomain> production` passes except its AI checks, which fail by design while AI is enabled (status `{"enabled":true}` and no 503).
@@ -193,6 +194,6 @@ The diagnosis keeps working throughout.
 **Disable.**
 - **Fast path** (owner, dashboard): Workers & Pages → `travel-discovery` → Settings → Variables *(要確認: exact labels)*, set `AI_ASSIST_ENABLED` to `false`.
   - It applies to new requests immediately. The plan page shows AI as off within a minute (the status may be cached for 60 s).
-  - A dashboard edit is overwritten by the next `wrangler deploy`. So then set `"false"` in `env.production`, commit, rebuild, and redeploy the public production Worker.
-- **Normal path:** the same commit and redeployment without the dashboard edit.
+  - A dashboard edit is overwritten by the next build's deployment, and any push to `main` starts one. So then set `"false"` in `env.production`, commit on `dev`, and push `dev` and then `main` before anything else is pushed to `main`. Until that commit is on `main`, a push of any other commit to `main` re-enables AI.
+- **Normal path:** the same commit and pushes without the dashboard edit.
 - Either way, confirm with `scripts/check-deployment.mjs <account subdomain> production` that `/api/ai/status` answers `{"enabled":false}` and the AI endpoint 503 `ai_unavailable`, and record the time.

@@ -1,4 +1,4 @@
-<!-- source: docs/en/OPERATIONS.md blob a204c3ba111468e51ceb3e6e7a2158c069f2ab3a -->
+<!-- source: docs/en/OPERATIONS.md blob 32b8a1c637bae4b4f46549e0bb259d977a235cf5 -->
 [English](../en/OPERATIONS.md) | 日本語 · [目次に戻る](README.md)
 
 > この文書は[英語版](../en/OPERATIONS.md)の翻訳。内容が異なる場合は英語版が優先する。
@@ -8,17 +8,18 @@
 デプロイしたアプリの運用をまとめる。どこを見るか、定期と日付の決まったチェック、インシデント、バックアップ、ログ、コンテンツの公開、課金が始まる操作を扱う。オーナーと、運用を手伝う人向けの文書だ。デプロイ、マイグレーション、ロールバックは [DEPLOYMENT.md](DEPLOYMENT.md)、AI の有効化は [AI_ENABLEMENT.md](AI_ENABLEMENT.md)、各ルールの根拠となる事実は [DECISIONS.md](../working/DECISIONS.md)（英語のみ）にある。
 
 > [!WARNING]
-> リモートでの Wrangler のコマンド、デプロイ、ロールバック、復元、アカウントや Access の変更は、どれもその時点でオーナーの承認が要る。ダッシュボードでの作業はオーナーがする。
+> `main` への push は本番に、`dev` への push はプレビューにデプロイする（[DEPLOYMENT.md](DEPLOYMENT.md) 5 節）。リモートでの Wrangler のコマンド、ロールバック、復元、アカウントや Access の変更は、どれもオーナーの手順だ。ダッシュボードでの作業と、`npx wrangler logout` で終えるオーナーのセッション（[DEPLOYMENT.md](DEPLOYMENT.md) 3.1）で行う。Claude は用意するが、自分では実行しない。
 
-最終確認日: 2026-10-24。
+最終確認日: 2026-10-31。
 
 ## 1. 何がどこで動いているか
 
-| 環境 | 公開 Worker | 管理 Worker | D1 データベース |
-|---|---|---|---|
-| `preview` | `travel-discovery-preview` | `travel-discovery-admin-preview` | `travel-discovery-preview`（シードデータ） |
-| `production` | `travel-discovery` | `travel-discovery-admin` | `travel-discovery-production` |
+| 環境 | デプロイする push 先 | 公開 Worker | 管理 Worker | D1 データベース |
+|---|---|---|---|---|
+| `preview` | `dev` | `travel-discovery-preview` | `travel-discovery-admin-preview` | `travel-discovery-preview`（シードデータ） |
+| `production` | `main` | `travel-discovery` | `travel-discovery-admin` | `travel-discovery-production` |
 
+- 4 つの Worker はどれも Workers Builds でこのリポジトリにつながっている（[DEPLOYMENT.md](DEPLOYMENT.md) 3.6）。
 - 4 つの Worker はどれも `workers.dev`（`<worker>.<account subdomain>.workers.dev`）を使う。
 - アカウントは Workers Free と Zero Trust Free。AI はすべての環境で無効。
 - 無料枠の上限はアカウント全体で共有するので、プレビューを大量に使うと本番にも響く（[DEPLOYMENT.md](DEPLOYMENT.md) 9 節）。
@@ -32,7 +33,9 @@
 | D1 の使用量 | ダッシュボード: その D1 データベース → Metrics *(要確認: 正確な場所)* | アカウントが D1 の 1 日の上限に達すると、Cloudflare からメールも届く。 |
 | Workers AI の使用量 | ダッシュボード: Workers AI | AI を有効にしてから関係する。 |
 | AI の上限用 Durable Object の使用量 | ダッシュボード: Durable Objects *(要確認: 正確な場所)* | `AiClientLimiter` のリクエスト数、書き込んだ行数、実行時間を、Workers Free の 1 日の割り当てと比べる（ADR-029）。 |
-| アカウントの変更 | ダッシュボード: Manage Account → Audit Log | Wrangler のデプロイは、アップロード、デプロイ、"Update Worker Script Subdomain" の 3 つとして出る。 |
+| ビルドとデプロイ | ダッシュボード: Workers & Pages → その Worker → Deployments または Builds *(要確認: 正確なタブ)* | ビルドのログ、デプロイしたコミット、バージョン ID。90 日間残る。 |
+| ビルド時間 | ダッシュボード *(要確認: 月のビルド時間がどこに出るか)* | Workers Free ではアカウントで月 3,000 分まで（[DEPLOYMENT.md](DEPLOYMENT.md) 9 節）。 |
+| アカウントの変更 | ダッシュボード: Manage Account → Audit Log | デプロイは、アップロード、デプロイ、"Update Worker Script Subdomain" の 3 つとして出る。 |
 
 アプリのログの行は JSON で、1 行に 1 つ。2 種類ある。
 
@@ -72,6 +75,11 @@ AI が無効でもレート制限の行が出ることがある。Phase 11 か�
 - 固定している GitHub Actions の新しいリリース。SHA とバージョンのコメントは一緒に更新する（ADR-027）。
 - [DEPLOYMENT.md](DEPLOYMENT.md) 9 節の無料枠のページに変更がないか。
 - Billing（オーナー、ダッシュボード）: Manage Account → Billing にドメインの登録だけがあり、他のサブスクリプションがなく、Workers のプランが Free のまま。それ以外ならインシデントだ。支払いもアップグレードもせず、見つけたことを [DECISIONS.md](../working/DECISIONS.md)（英語のみ）に記録する（課金が始まる操作は 10 節にある）。
+- Workers Builds（オーナー、ダッシュボード）:
+  - 今月使ったビルド時間を 3,000 分と比べる。1,500 分を超えたら、ビルドの監視パスを決める（[DEPLOYMENT.md](DEPLOYMENT.md) 5 節「ビルド時間」）。
+  - 各 Worker のブランチ、ビルドコマンド、デプロイコマンドが [DEPLOYMENT.md](DEPLOYMENT.md) 5 節のままで、プレビュービルドが無効になっている。
+  - Workers Builds の API トークン（My Profile → API Tokens）の権限が、[DEPLOYMENT.md](DEPLOYMENT.md) 3.6 の一覧のままだ。
+- このマシン: `npx wrangler whoami` がログイン中のアカウントを出さない。オーナーのセッションのログインが残っていたら、すぐにログアウトする。
 
 **日付の決まったもの:**
 - **2026 年 12 月第 1 週（2026-12-01〜2026-12-07）**: 2026-12-01 に Workers Logs が Cloudflare Observability の料金体系に移った（7 節）。12 月の毎月のチェックと一緒にする:
@@ -88,17 +96,16 @@ AI が無効でもレート制限の行が出ることがある。Phase 11 か�
 1. 公開 Worker の Metrics と `api_error` の行を見る。
 2. Error 1027 か、Worker へのリクエストがまったくない: アカウントの 1 日 100,000 リクエストを使い切った。00:00 UTC まで打つ手はない。静的なページは読み込める。
 3. `service_unavailable` の `api_error`: D1 の失敗。Cloudflare から D1 の 1 日の上限のメールが来ていれば、00:00 UTC にクエリが再開する。データには影響しない。
-4. デプロイの直後に始まった: ロールバックする（[DEPLOYMENT.md](DEPLOYMENT.md) 8 節）か、前の正常なコミットを再デプロイする。
+4. デプロイの直後に始まった: ダッシュボードでロールバックするか、コミットを打ち消してブランチを push する（[DEPLOYMENT.md](DEPLOYMENT.md) 8 節）。
 5. 上限から抜けるために、オーナーの判断なしにプランをアップグレードしない（ADR-015）。
 
 ### 4.2 管理 Worker に Access なしで到達できる
 管理用の URL が、認証なしで 200 を返した場合だ。有効なトークンがなければ管理 API は 403 を返し続けるが、管理 UI は公開されてはならない。
-1. すぐに URL を消す。方法は 2 つ:
-   - その環境で `"workers_dev": false` にして Worker を再デプロイする（`CLOUDFLARE_ENV=<env>` で再ビルドし、`--config dist-admin/admin_worker/wrangler.json` でデプロイ）。
-   - または、ダッシュボードで `workers.dev` を無効にする（Settings → Domains & Routes）。こちらのほうが速いが、次のデプロイで元に戻る。
-2. Access タブのスコープとポリシー（3 節）を確かめ、Audit Log で何が変わったかを見る。
-3. `workers_dev` を有効に戻して再デプロイし、リダイレクトを直後と 2 分間確かめる。
-4. インシデントを [DECISIONS.md](../working/DECISIONS.md)（英語のみ）に記録する。
+1. すぐに URL を消す（オーナー）: ダッシュボードで `workers.dev` を無効にする（Settings → Domains & Routes）。
+2. その環境のブランチにほかのものを push する前に、`wrangler.admin.jsonc` のその環境で `"workers_dev": false` にしたコミットを `dev` に作って push する。本番なら、続けて `main` をそこまで早送りして push する（[DEPLOYMENT.md](DEPLOYMENT.md) 5 節の手順 7）。こうしないと、次のビルドで URL が戻ってしまう。どの push でも、その環境の公開 Worker も同じコミットで再デプロイされる。
+3. Access タブのスコープとポリシー（3 節）を確かめ、Audit Log で何が変わったかを見る。
+4. `"workers_dev": true` に戻したコミットを push し、リダイレクトを直後と 2 分間確かめる（`--watch-admin 120`）。
+5. インシデントを [DECISIONS.md](../working/DECISIONS.md)（英語のみ）に記録する。
 
 ### 4.3 誤ったコンテンツを公開した
 管理コンソールでアーカイブするか直す。大きな誤りを取り消すには、Time Travel でデータベースを復元する（5 節）。
@@ -108,8 +115,15 @@ AI が無効でもレート制限の行が出ることがある。Phase 11 か�
 - 12:00 UTC より前に、Neurons が 1 日の割り当ての約 70% を超えた。
 - レート制限（`rate_limited_window`、`rate_limited_daily`）や `provider_error` の結果が急に増えた。
 
+### 4.5 ビルドが失敗する、またはビルドが始まらない
+前のバージョンが配信され続けるので、利用者には何も壊れていない。
+1. ビルドのログを読む（[DEPLOYMENT.md](DEPLOYMENT.md) 5 節の手順 4）。
+2. `npm run build` かデプロイの段階で失敗した: `dev` で直して、もう一度 push する。失敗するチェックを通すためにビルドの設定を変えない。
+3. 2 つの Worker のうち片方だけがデプロイされた: 2 つが別のコミットで動いている。ダッシュボードで失敗したビルドをやり直すか、もう片方をロールバックする（[DEPLOYMENT.md](DEPLOYMENT.md) 8 節）。
+4. ビルドが始まらない、またはビルド時間を使い切った: push を止める。ビルドを取り戻すためにプランを上げることは決してしない。月のリセットを待つか、オーナーの判断でだけローカルからデプロイする（[DEPLOYMENT.md](DEPLOYMENT.md) 5 節「ローカルからのデプロイ」）。[DECISIONS.md](../working/DECISIONS.md)（英語のみ）に記録する。
+
 ## 5. バックアップと復元
-- D1 の Time Travel は、Workers Free では 7 日分を保持する。コンテンツをまとめて変える前に、ブックマークを記録する: `npx wrangler d1 time-travel info travel-discovery-production`（リモートの読み取り。承認が要る）。
+- D1 の Time Travel は、Workers Free では 7 日分を保持する。コンテンツをまとめて変える前に、オーナーのセッション（[DEPLOYMENT.md](DEPLOYMENT.md) 3.1）でブックマークを記録する: `npx wrangler d1 time-travel info travel-discovery-production`。
 - 復元はデータベース全体を置き換える破壊的な操作だ（[DEPLOYMENT.md](DEPLOYMENT.md) 8 節）。必ずオーナーの承認が要る。
 - 任意の SQL のエクスポート（`npx wrangler d1 export … --remote --output <file>`）は、リポジトリの外に置く。
 
@@ -189,6 +203,7 @@ AI が無効でもレート制限の行が出ることがある。Phase 11 か�
 ## 10. 課金が始まる操作
 アカウントは Workers Free のままにする。受け入れている課金は、既存のドメインの登録だけだ。以下のダッシュボードの操作は、どれもオーナーの判断なしにはしない。判断は、見込みの月額費用とともに [DECISIONS.md](../working/DECISIONS.md)（英語のみ）に記録する。2026-10-24 にリンク先のページで確認した。
 - **Workers Paid へのアップグレード:** アカウントあたり月 5 米ドル以上。含まれる割り当て（D1、Workers Logs、Queues など）を超えた利用は、失敗する代わりに課金されるようになる（https://developers.cloudflare.com/workers/platform/pricing/、2026-10-02 更新）。2026-12-01 以降は、有料のログの取り込みも、含まれる量を超えて自動的に続く（https://developers.cloudflare.com/observability/pricing/）。
+- **Workers Paid での Workers Builds:** 月 6,000 分のビルド時間で、その後は 1 分あたり 0.005 米ドル。Free で 3,000 分に達したときに何が起きるかは書かれていない *(要確認)*。ビルドを増やすためにプランを上げることは決してしない（https://developers.cloudflare.com/workers/ci-cd/builds/limits-and-pricing/、2026-10-28 更新）。
 - **Workers Logpush:** Workers Paid でだけ使える（https://developers.cloudflare.com/workers/observability/logs/logpush/、2026-10-12 更新）。
 - **R2 の有効化:** 無料枠は Standard ストレージ 10 GB-月、月あたり Class A 操作 100 万回と Class B 操作 1,000 万回。それを超えると単価で課金される（https://developers.cloudflare.com/r2/pricing/、2026-10-01 更新）。R2 の有効化に支払い方法が要るかは、ページに書かれていない *(要確認)*。
 - **Images Paid の購入:** 画像の保存（月あたり保存 100,000 枚ごとに 5 米ドル）と配信（100,000 回ごとに 1 米ドル）が使えるようになり、月 5,000 回を超える変換が課金される。Free プランでは、上限を超えた変換はエラー 9422 で失敗し、課金されない（https://developers.cloudflare.com/images/pricing/、2026-10-19 更新）。

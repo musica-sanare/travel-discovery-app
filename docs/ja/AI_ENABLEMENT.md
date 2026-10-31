@@ -1,4 +1,4 @@
-<!-- source: docs/en/AI_ENABLEMENT.md blob 7b72ec493266865c891d5bc905536329b7d2c5c3 -->
+<!-- source: docs/en/AI_ENABLEMENT.md blob 8968c41a3c4a445b4d55f4a712268b01c8f58037 -->
 [English](../en/AI_ENABLEMENT.md) | 日本語 · [目次に戻る](README.md)
 
 > この文書は[英語版](../en/AI_ENABLEMENT.md)の翻訳。内容が異なる場合は英語版が優先する。
@@ -22,7 +22,7 @@ AI はすべての環境で無効になっている。AI が ON でも OFF で�
 - オーナーが Gemma の利用規約と禁止用途のポリシーを確認済み。
 
 手順:
-1. その環境の `vars` で `AI_ASSIST_ENABLED: "true"` にして、コミット、再ビルド、再デプロイする。
+1. その環境の `vars` で `AI_ASSIST_ENABLED: "true"` にしてコミットする。オーナーがその環境のブランチに push するとデプロイされる（[DEPLOYMENT.md](DEPLOYMENT.md) 5 節）。プレビューは `dev`、本番は `main` だ。
 2. 4 言語すべてで AI ノートを確かめ、ダッシュボードで Workers AI の使用量を見る。
 3. 監視と停止: ADR-026 E と [OPERATIONS.md](OPERATIONS.md) 4.4。
 4. 本番では 4 節に従う（Phase 14 で用意したが、まだ承認されていない）。
@@ -49,10 +49,10 @@ AI はすべての環境で無効になっている。AI が ON でも OFF で�
 手順:
 1. オーナー: ダッシュボードで、その日すでに使った Workers AI の Neurons を控える。試行の使用量を差分で読むためだ。
 2. 公開のプレビュー Worker だけで AI を有効にする:
-   - `env.preview`（`wrangler.jsonc`）だけで `AI_ASSIST_ENABLED: "true"` にして、コミットする（オーナー承認済み）。
-   - `CLOUDFLARE_ENV=preview npm run build` を実行する。
-   - ドライランを確かめる: プレビューのデータベース、`AI_ASSIST_ENABLED` が `"true"`、`AI_CLIENT_RATE_LIMITER` が 60 秒に 5 回。
-   - 公開のプレビュー Worker だけをデプロイする（[DEPLOYMENT.md](DEPLOYMENT.md) 5 節）。本番と管理 Worker はデプロイしない。
+   - `env.preview`（`wrangler.jsonc`）だけで `AI_ASSIST_ENABLED: "true"` にして、`dev` にコミットする（オーナー承認済み）。
+   - 任意: ローカルのドライランを確かめる（[DEPLOYMENT.md](DEPLOYMENT.md) 5 節）。プレビューのデータベース、`AI_ASSIST_ENABLED` が `"true"`、`AI_CLIENT_RATE_LIMITER` が 60 秒に 5 回。
+   - オーナー: `dev` に push する。この時点で AI が有効になる。Workers Builds はプレビューの両方の Worker をデプロイする。管理のプレビュー Worker は、自分の変更なしで同じコミットになる。`main` には push しないので、本番はデプロイされない。
+   - 公開のプレビュー Worker のビルドのログでも、同じ値を確かめる。
 3. ノート（モデル呼び出し約 6 回）: 組み込みブラウザーで、AI のトグルを ON にして、`ja`、`en`、`es`、`fr` でそれぞれクイズを最初から最後まで 1 回答える。その後、1 つの結果ページで言語を 2 回切り替える。
    - 各手順でリクエストは 1 回。すでに表示した言語に戻すときは送らない（ADR-026 C4）。
    - リミッターに拒否されないよう、クイズの間は 60 秒以上空ける。
@@ -79,7 +79,7 @@ AI はすべての環境で無効になっている。AI が ON でも OFF で�
    - 各ノートに AI が書いたというラベルがある。決定的な説明、費用、季節の注記は変わらない。カードの順番は AI が OFF のときと同じ。
    - ロケールごとの結果を [DECISIONS.md](../working/DECISIONS.md)（英語のみ）に記録する。ノートの文章はリポジトリにコピーしない。
 7. オーナー: Workers AI の Neurons をもう一度読み、差分を記録する。
-8. 無効化: `AI_ASSIST_ENABLED` を `"false"` に戻し、コミット、再ビルドして、公開のプレビュー Worker を再デプロイする。`scripts/check-deployment.mjs <account subdomain> preview` で、503 `ai_unavailable` と、`/api/ai/status` の `{"enabled":false}` を確かめる。AI を有効にしている間は、このスクリプトの AI のチェックは意図どおり失敗する。
+8. 無効化: `AI_ASSIST_ENABLED` を `"false"` に戻して `dev` にコミットし、`dev` に push する（オーナー）。`scripts/check-deployment.mjs <account subdomain> preview` で、503 `ai_unavailable` と、`/api/ai/status` の `{"enabled":false}` を確かめる。AI を有効にしている間は、このスクリプトの AI のチェックは意図どおり失敗する。
 
 **すぐに止める**（他の手順を終えずに手順 8 へ）のは、次のどれかのとき:
 - 試行で使った Neurons が 1,000 を超えた。
@@ -88,7 +88,7 @@ AI はすべての環境で無効になっている。AI が ON でも OFF で�
 - ノートに価格、日付、順位など、禁じた内容が入っていた。
 - ログや Billing のページに予期しないものが出た。
 
-その間も診断は動き続ける。ダッシュボードで変数を変えるほうが再デプロイより早いが、次の `wrangler deploy` で上書きされる。だから再デプロイの前に `"false"` をコミットする。
+その間も診断は動き続ける。ダッシュボードで変数を変えるほうが push より早いが、次のビルドのデプロイで上書きされる。だから `dev` にほかのものを push する前に、`"false"` にしたコミットを push する。
 
 **記録する**もの（[DECISIONS.md](../working/DECISIONS.md)、英語のみ）: 日付、バージョン ID、モデルを呼んだ回数、前後の Neurons、手順 4 の 400／429 の数、手順 5 の結果の件数とレイテンシー、手順 6 のオーナーの確認結果。
 
@@ -113,8 +113,8 @@ AI はすべての環境で無効になっている。AI が ON でも OFF で�
 - デプロイと確認は、それぞれオーナーの承認が要る。この確認のために本番はデプロイしない。
 
 手順:
-1. 確かめるコミットを、公開のプレビュー Worker だけにデプロイする（[DEPLOYMENT.md](DEPLOYMENT.md) 5 節）。`AI_ASSIST_ENABLED` は `"false"`。
-   - ドライランで、`AI_CLIENT_RATE_LIMITER`（60 秒に 5 回）と Durable Object の `AI_CLIENT_LIMITER`（`AiClientLimiter`）があることを確かめる。
+1. 確かめるコミットを、`AI_ASSIST_ENABLED` が `"false"` のままプレビューにデプロイする。オーナーが `dev` に push すると（[DEPLOYMENT.md](DEPLOYMENT.md) 5 節）、プレビューの両方の Worker がデプロイされる。
+   - ビルドのログ（またはローカルのドライラン）で、`AI_CLIENT_RATE_LIMITER`（60 秒に 5 回）と Durable Object の `AI_CLIENT_LIMITER`（`AiClientLimiter`）があることを確かめる。
    - Durable Object を含む最初のデプロイで、そのマイグレーション `v1`（`new_sqlite_classes`）が適用される。後でクラスを外すには `deleted_classes` のマイグレーションが要る。
 2. 同じアドレスからの他の AI リクエスト（`scripts/check-deployment.mjs` を含む）から、60 秒以上待つ。
 3. 実行 A、接続 1 本: 1 回の `curl` で 15 リクエストを送り、接続を使い回す（`num_connects` は最初のリクエストが 1、残りは 0）。`-4` でリクエストを IPv4 にそろえ、同じキーを共有させる:
@@ -165,10 +165,11 @@ AI はすべての環境で無効になっている。AI が ON でも OFF で�
 手順:
 1. オーナー: 前提条件を確かめ、その日すでに使った Workers AI の Neurons を控える。
 2. 公開の本番 Worker だけで AI を有効にする:
-   - `env.production`（`wrangler.jsonc`）だけで `AI_ASSIST_ENABLED: "true"` にして、コミットする（オーナー承認済み）。
-   - 公開の本番 Worker だけについて [DEPLOYMENT.md](DEPLOYMENT.md) 5 節を実行する: `npm ci`、`npm run check`、`CLOUDFLARE_ENV=production npm run build`、ドライラン。
-   - ドライランには、本番のデータベース、`AI_ASSIST_ENABLED` が `"true"`、`AI_CLIENT_RATE_LIMITER` が 60 秒に 5 回、`AI_CLIENT_LIMITER (AiClientLimiter)` が出ていなければならない。
-   - `travel-discovery` だけをデプロイする。プレビューと管理 Worker はデプロイしない。バージョン ID と時刻を記録する。
+   - `env.production`（`wrangler.jsonc`）だけで `AI_ASSIST_ENABLED: "true"` にして、`dev` にコミットする（オーナー承認済み）。
+   - ローカルで `npm run check` を実行し、任意で `CLOUDFLARE_ENV=production` のローカルのドライランも実行する（[DEPLOYMENT.md](DEPLOYMENT.md) 5 節）。本番のデータベース、`AI_ASSIST_ENABLED` が `"true"`、`AI_CLIENT_RATE_LIMITER` が 60 秒に 5 回、`AI_CLIENT_LIMITER (AiClientLimiter)` が出ていなければならない。
+   - オーナー: `dev` に push する。`env.preview` は変わらないので、プレビューの Worker は AI が無効のまま再デプロイされる。プレビューのチェックを実行する。
+   - オーナー: `main` をそのコミットまで早送りして push する（[DEPLOYMENT.md](DEPLOYMENT.md) 5 節の手順 7）。この時点で本番の AI が有効になる。本番の両方の Worker がデプロイされ、管理 Worker は自分の変更なしで同じコミットになる。
+   - `travel-discovery` のビルドのログでも同じ値を確かめる。バージョン ID と時刻を記録する。
 3. 確認（モデル呼び出し約 4 回）:
    - `GET /api/ai/status` が `{"enabled":true}` を返す。
    - `scripts/check-deployment.mjs <account subdomain> production` が、AI のチェック以外は通る。AI のチェックは、AI を有効にしている間は意図どおり失敗する（状態が `{"enabled":true}` で、503 が出ない）。
@@ -196,6 +197,6 @@ AI はすべての環境で無効になっている。AI が ON でも OFF で�
 **無効化。**
 - **速い方法**（オーナー、ダッシュボード）: Workers & Pages → `travel-discovery` → Settings → Variables *(要確認: 正確な表示名)* で、`AI_ASSIST_ENABLED` を `false` にする。
   - 新しいリクエストにはすぐ効く。計画の画面は 1 分以内に AI を OFF と表示する（状態は 60 秒キャッシュされることがある）。
-  - ダッシュボードでの変更は次の `wrangler deploy` で上書きされる。だからその後、`env.production` で `"false"` にして、コミット、再ビルドし、公開の本番 Worker を再デプロイする。
-- **通常の方法:** ダッシュボードを使わずに、同じコミットと再デプロイをする。
+  - ダッシュボードでの変更は次のビルドのデプロイで上書きされ、`main` への push はどれもビルドを始める。だからその後、`env.production` で `"false"` にして `dev` にコミットし、`main` にほかのものを push する前に、`dev`、続いて `main` に push する。そのコミットが `main` に届くまでは、ほかのコミットを `main` に push すると AI がまた有効になる。
+- **通常の方法:** ダッシュボードを使わずに、同じコミットと push をする。
 - どちらの場合も、`scripts/check-deployment.mjs <account subdomain> production` で、`/api/ai/status` が `{"enabled":false}` を、AI エンドポイントが 503 `ai_unavailable` を返すことを確かめ、時刻を記録する。

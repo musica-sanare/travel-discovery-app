@@ -5,17 +5,18 @@ English | [日本語](../ja/OPERATIONS.md) · [Docs index](README.md)
 This runbook covers running the deployed app: where to look, routine and dated checks, incidents, backups, logs, publishing content, and actions that start charges. It is for the owner and anyone helping operate the app. How to deploy, migrate, and roll back is in [DEPLOYMENT.md](DEPLOYMENT.md); enabling AI is in [AI_ENABLEMENT.md](AI_ENABLEMENT.md); the facts behind each rule are in [DECISIONS.md](../working/DECISIONS.md).
 
 > [!WARNING]
-> Every remote Wrangler command, deployment, rollback, restore, and account or Access change needs the owner's approval at that time. Dashboard steps are the owner's.
+> A push to `main` deploys production, and a push to `dev` deploys preview ([DEPLOYMENT.md](DEPLOYMENT.md) section 5). Every remote Wrangler command, rollback, restore, and account or Access change is an owner step: dashboard steps and owner sessions ([DEPLOYMENT.md](DEPLOYMENT.md) 3.1) that end with `npx wrangler logout`. Claude prepares them but never runs them.
 
-Last reviewed: 2026-10-24.
+Last reviewed: 2026-10-31.
 
 ## 1. What runs where
 
-| Environment | Public Worker | Admin Worker | D1 database |
-|---|---|---|---|
-| `preview` | `travel-discovery-preview` | `travel-discovery-admin-preview` | `travel-discovery-preview` (seed data) |
-| `production` | `travel-discovery` | `travel-discovery-admin` | `travel-discovery-production` |
+| Environment | Deployed by a push to | Public Worker | Admin Worker | D1 database |
+|---|---|---|---|---|
+| `preview` | `dev` | `travel-discovery-preview` | `travel-discovery-admin-preview` | `travel-discovery-preview` (seed data) |
+| `production` | `main` | `travel-discovery` | `travel-discovery-admin` | `travel-discovery-production` |
 
+- All four Workers are connected to this repository in Workers Builds ([DEPLOYMENT.md](DEPLOYMENT.md) 3.6).
 - All four Workers use `workers.dev` (`<worker>.<account subdomain>.workers.dev`).
 - The account is on Workers Free and Zero Trust Free. AI is disabled everywhere.
 - Free-tier limits are shared by the whole account, so heavy use of preview also affects production ([DEPLOYMENT.md](DEPLOYMENT.md) section 9).
@@ -29,7 +30,9 @@ Last reviewed: 2026-10-24.
 | D1 usage | Dashboard: the D1 database → Metrics *(要確認: exact path)* | Cloudflare also emails when the account reaches a D1 daily limit. |
 | Workers AI usage | Dashboard: Workers AI | Only relevant once AI is enabled. |
 | AI quota Durable Object usage | Dashboard: Durable Objects *(要確認: exact path)* | Requests, rows written, and duration of `AiClientLimiter` against the Workers Free daily allowances (ADR-029). |
-| Account changes | Dashboard: Manage Account → Audit Log | Every Wrangler deployment appears as an upload, a deployment, and "Update Worker Script Subdomain". |
+| Builds and deployments | Dashboard: Workers & Pages → the Worker → Deployments or Builds *(要確認: exact tab)* | Build logs, the deployed commit, and the version IDs. Kept for 90 days. |
+| Build minutes | Dashboard *(要確認: where the monthly build minutes are shown)* | Workers Free includes 3,000 per month for the account ([DEPLOYMENT.md](DEPLOYMENT.md) section 9). |
+| Account changes | Dashboard: Manage Account → Audit Log | Every deployment appears as an upload, a deployment, and "Update Worker Script Subdomain". |
 
 App log lines are JSON, one per line. There are two kinds.
 
@@ -69,6 +72,11 @@ Rate-limit lines can also appear while AI is disabled, because since Phase 11 th
 - New releases of the pinned GitHub Actions. Update the SHA and version comment together (ADR-027).
 - The free-tier pages in [DEPLOYMENT.md](DEPLOYMENT.md) section 9 for changes.
 - Billing (owner, in the dashboard): Manage Account → Billing lists only the domain registration and no other subscription, and the Workers plan is still Free. Anything else is an incident: do not pay or upgrade, and record what was found in [DECISIONS.md](../working/DECISIONS.md) (section 10 lists the actions that start charges).
+- Workers Builds (owner, in the dashboard):
+  - Build minutes used this month, against 3,000. Above 1,500, decide on build watch paths ([DEPLOYMENT.md](DEPLOYMENT.md) section 5 "Build minutes").
+  - Each Worker still has its branch, build command, and deploy command from [DEPLOYMENT.md](DEPLOYMENT.md) section 5, and preview builds are disabled.
+  - The Workers Builds API token (My Profile → API Tokens) still has only the permissions listed in [DEPLOYMENT.md](DEPLOYMENT.md) 3.6.
+- This machine: `npx wrangler whoami` shows no logged-in account. A login left over from an owner session is logged out at once.
 
 **Dated:**
 - **First week of December 2026 (2026-12-01 to 2026-12-07)**: Workers Logs moved to Cloudflare Observability pricing on 2026-12-01 (section 7). Do this together with the December monthly checks:
@@ -85,17 +93,16 @@ Rate-limit lines can also appear while AI is disabled, because since Phase 11 th
 1. Check Metrics of the public Worker and its `api_error` lines.
 2. Error 1027 or no Worker requests at all: the account's 100,000 requests/day are used up. Nothing to do until 00:00 UTC; static pages still load.
 3. `api_error` with `service_unavailable`: a D1 failure. If Cloudflare sent a D1 daily-limit email, queries resume at 00:00 UTC; data is not affected.
-4. Started right after a deployment: roll back ([DEPLOYMENT.md](DEPLOYMENT.md) section 8) or redeploy the previous good commit.
+4. Started right after a deployment: roll back in the dashboard, or revert the commit and push the branch ([DEPLOYMENT.md](DEPLOYMENT.md) section 8).
 5. Never upgrade the plan to get out of a limit without the owner's decision (ADR-015).
 
 ### 4.2 Admin Worker reachable without Access
 This is any unauthenticated 200 from an admin URL. The admin API still answers 403 without a valid token, but the admin UI must not be public.
-1. Remove the URL at once, in one of two ways:
-   - Redeploy that Worker with `"workers_dev": false` in its environment (rebuild with `CLOUDFLARE_ENV=<env>`, deploy with `--config dist-admin/admin_worker/wrangler.json`).
-   - Or disable `workers.dev` in the dashboard (Settings → Domains & Routes). This is faster but is reverted by the next deployment.
-2. Check the Access tab scope and the policy (section 3), and the Audit Log for what changed.
-3. Re-enable `workers_dev`, redeploy, and check the redirect immediately and for two minutes.
-4. Record the incident in [DECISIONS.md](../working/DECISIONS.md).
+1. Remove the URL at once (owner): disable `workers.dev` in the dashboard (Settings → Domains & Routes).
+2. Before anything else is pushed to that environment's branch, commit `"workers_dev": false` in that environment of `wrangler.admin.jsonc` on `dev` and push it; for production, then fast-forward `main` to it and push ([DEPLOYMENT.md](DEPLOYMENT.md) section 5, step 7). Otherwise the next build re-enables the URL. Each push also redeploys the public Worker of that environment with the same commit.
+3. Check the Access tab scope and the policy (section 3), and the Audit Log for what changed.
+4. Commit `"workers_dev": true` again, push the branch, and check the redirect immediately and for two minutes (`--watch-admin 120`).
+5. Record the incident in [DECISIONS.md](../working/DECISIONS.md).
 
 ### 4.3 Wrong content published
 Archive or correct it in the admin console. To undo a larger mistake, restore the database with Time Travel (section 5).
@@ -105,8 +112,15 @@ Stop AI with the kill switch ([AI_ENABLEMENT.md](AI_ENABLEMENT.md), ADR-026 E); 
 - Neurons exceed about 70% of the daily allocation before 12:00 UTC, or
 - rate-limit (`rate_limited_window`, `rate_limited_daily`) or `provider_error` outcomes spike.
 
+### 4.5 A build fails, or no build starts
+The previous version keeps serving; nothing is broken for users.
+1. Read the build log ([DEPLOYMENT.md](DEPLOYMENT.md) section 5, step 4).
+2. A failure in `npm run build` or the deploy step: fix it on `dev` and push again. Do not change the build settings to get past a failing check.
+3. Only one Worker of a pair deployed: the two Workers run different commits. Retry the failed build in the dashboard, or roll the other one back ([DEPLOYMENT.md](DEPLOYMENT.md) section 8).
+4. No build starts, or the build minutes are used up: stop pushing. Never upgrade the plan to get builds back. Wait for the monthly reset, or deploy locally only by owner decision ([DEPLOYMENT.md](DEPLOYMENT.md) section 5 "Local deployment"). Record it in [DECISIONS.md](../working/DECISIONS.md).
+
 ## 5. Backups and restore
-- D1 Time Travel keeps 7 days on Workers Free. Before bulk content changes, record a bookmark: `npx wrangler d1 time-travel info travel-discovery-production` (remote read; approval).
+- D1 Time Travel keeps 7 days on Workers Free. Before bulk content changes, record a bookmark in an owner session ([DEPLOYMENT.md](DEPLOYMENT.md) 3.1): `npx wrangler d1 time-travel info travel-discovery-production`.
 - A restore replaces the whole database and is destructive ([DEPLOYMENT.md](DEPLOYMENT.md) section 8). It always needs the owner's approval.
 - Optional SQL exports (`npx wrangler d1 export … --remote --output <file>`) stay outside the repository.
 
@@ -186,6 +200,7 @@ After:
 ## 10. Actions that start charges
 The account stays on Workers Free; the only accepted charge is the existing domain registration. None of the dashboard actions below is taken without the owner's decision, recorded in [DECISIONS.md](../working/DECISIONS.md) together with the expected monthly cost. Checked 2026-10-24 on the linked pages.
 - **Upgrading to Workers Paid:** at least USD 5 per month per account. Usage above the included allotments (D1, Workers Logs, Queues, and others) is then billed instead of failing (https://developers.cloudflare.com/workers/platform/pricing/, updated 2026-10-02). After 2026-12-01 paid log ingestion also continues automatically above the included amount (https://developers.cloudflare.com/observability/pricing/).
+- **Workers Builds on Workers Paid:** 6,000 build minutes per month, then USD 0.005 per minute. On Free, what happens at 3,000 minutes is not stated *(要確認)*; never upgrade to get more builds (https://developers.cloudflare.com/workers/ci-cd/builds/limits-and-pricing/, updated 2026-10-28).
 - **Workers Logpush:** available only on Workers Paid (https://developers.cloudflare.com/workers/observability/logs/logpush/, updated 2026-10-12).
 - **Enabling R2:** free tier of 10 GB-month of Standard storage, 1 million Class A and 10 million Class B operations per month, per-unit prices above it (https://developers.cloudflare.com/r2/pricing/, updated 2026-10-01). Whether enabling R2 requires a payment method is not stated on the page *(要確認)*.
 - **Purchasing Images Paid:** enables image storage (USD 5 per 100,000 stored per month) and delivery (USD 1 per 100,000), and bills transformations above 5,000 per month. On the Free plan, transformations above the limit fail with error 9422 and are not charged (https://developers.cloudflare.com/images/pricing/, updated 2026-10-19).

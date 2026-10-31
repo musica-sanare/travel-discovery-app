@@ -2,12 +2,12 @@ English | [日本語](../ja/DEPLOYMENT.md) · [Docs index](README.md)
 
 # Deployment Runbook
 
-This runbook describes how to set up, migrate, build, deploy, check, and roll back the preview and production Workers on Cloudflare. It is for the owner and anyone preparing a deployment for the owner's approval. Enabling AI is in [AI_ENABLEMENT.md](AI_ENABLEMENT.md), and running the deployed app is in [OPERATIONS.md](OPERATIONS.md).
+This runbook describes how to set up, migrate, build, deploy, check, and roll back the preview and production Workers on Cloudflare. Code reaches Cloudflare only through Workers Builds, Cloudflare's Git integration: the owner's push to `dev` deploys preview, and the owner's push to `main` deploys production. It is for the owner and anyone preparing a deployment for the owner. Enabling AI is in [AI_ENABLEMENT.md](AI_ENABLEMENT.md), and running the deployed app is in [OPERATIONS.md](OPERATIONS.md).
 
 > [!WARNING]
-> Every step that logs in, creates resources, changes account settings, or deploys requires the owner's explicit approval at that time.
+> A push to `main` deploys production, and a push to `dev` deploys preview. Every other remote step (D1 migrations, Time Travel, rollbacks by command, secrets, Access, dashboard settings) is an owner step. Claude prepares the commands and checks but never runs them, even with approval.
 
-Commands were checked against current official documentation in Phase 6 (2026-10-18; "Phase 6 verification log" in [DECISIONS.md](../working/DECISIONS.md)). Items marked *(要確認)* are not covered by the documentation and are confirmed at the step where they occur. What has been deployed so far is in section 11.
+Commands were checked against current official documentation in Phase 6 (2026-10-18; "Phase 6 verification log" in [DECISIONS.md](../working/DECISIONS.md)). Workers Builds was checked on 2026-10-31 (ADR-033). Items marked *(要確認)* are not covered by the documentation and are confirmed at the step where they occur. What has been deployed so far is in section 11.
 
 ## 1. Target setup
 
@@ -21,43 +21,61 @@ Commands were checked against current official documentation in Phase 6 (2026-10
 
 There are two environments, `preview` (for verification) and `production`, each with its own D1 database. A named environment deploys as a separate Worker called `<name>-<environment>` unless the environment sets its own `name`:
 
-| Environment | Public Worker | Admin Worker | D1 database |
-|---|---|---|---|
-| `preview` | `travel-discovery-preview` | `travel-discovery-admin-preview` | `travel-discovery-preview` |
-| `production` | `travel-discovery` (`env.production` sets `name`; owner decision 2026-10-18) | `travel-discovery-admin` (likewise) | `travel-discovery-production` |
+| Environment | Git branch that deploys it | Public Worker | Admin Worker | D1 database |
+|---|---|---|---|---|
+| `preview` | `dev` | `travel-discovery-preview` | `travel-discovery-admin-preview` | `travel-discovery-preview` |
+| `production` | `main` | `travel-discovery` (`env.production` sets `name`; owner decision 2026-10-18) | `travel-discovery-admin` (likewise) | `travel-discovery-production` |
 
+- Each of the four Workers is connected to this repository in Workers Builds with its own branch, build command, and deploy command (section 5).
 - The Worker name determines the `workers.dev` URL (`<worker>.<account subdomain>.workers.dev`).
 - The top-level configuration stays local-only. It is what `npm run dev`, the tests, and E2E use.
 - `env.e2e` in `wrangler.admin.jsonc` is for local tests and must never be deployed.
 
-## 2. Approvals needed, in order
+## 2. Who does what
 
-1. Confirming the account plan in the dashboard (Workers Free; whether a payment method is attached).
-2. Logging in to Cloudflare from the owner's terminal (3.1).
-3. Creating each D1 database.
-4. The configuration change C5 (3.3), committed before the first deployment.
-5. Applying migrations to each remote database.
-6. Enabling Cloudflare Zero Trust and creating the Access policy for each admin Worker.
-7. Each deployment, `preview` first.
-8. Enabling AI later is a separate decision ([AI_ENABLEMENT.md](AI_ENABLEMENT.md)).
+- **Claude** prepares commits, commands, expected output, and checks. It never deploys, never runs a command that needs a Cloudflare login, never logs in or out, and never opens the dashboard.
+- **The owner** pushes `dev` and `main` (each push deploys), takes every dashboard step, and runs every owner session (3.1).
+- Each of these is a separate owner decision, in this order for a new environment:
+  1. Confirming the account plan in the dashboard (Workers Free; whether a payment method is attached).
+  2. Creating each D1 database (3.2).
+  3. The configuration change C5 (3.3), committed before the first deployment.
+  4. Applying migrations to each remote database (section 4).
+  5. Enabling Cloudflare Zero Trust and creating the Access policy for each admin Worker (3.4).
+  6. Connecting each Worker to Workers Builds (3.6).
+  7. Each push that deploys, `dev` first.
+  8. Enabling AI later is a separate decision ([AI_ENABLEMENT.md](AI_ENABLEMENT.md)).
 
 ## 3. One-time setup
 
-### 3.1 Login
-The owner runs these in their own terminal. Login uses OAuth in the browser, and the credential is stored in the user's home directory, never in the repository.
+### 3.1 Owner sessions with Wrangler
+Remote commands that Workers Builds cannot run (D1 creation and migrations, Time Travel, `wrangler rollback`, secrets, the first deployment of a new Worker) run in an owner session. The owner runs it in their own terminal and logs out at the end, so no Cloudflare login stays on the machine.
 
-```bash
-npx wrangler login
-```
+1. Log in. Login uses OAuth in the browser; the credential is stored in the user's home directory, never in the repository.
 
-```bash
-npx wrangler whoami
-```
+   ```bash
+   npx wrangler login
+   ```
 
-Do not create an API token for deployment, and never put one in `.dev.vars`, `.env`, or any file in the repository. The evaluation token from Phase 4 is not for deployment and should already be deleted (section 10).
+   ```bash
+   npx wrangler whoami
+   ```
+
+2. Run the prepared commands of the step, one at a time.
+3. Verify the result as the step describes.
+4. Log out, and confirm that no account is shown any more *(要確認: the exact `whoami` wording when logged out)*.
+
+   ```bash
+   npx wrangler logout
+   ```
+
+   ```bash
+   npx wrangler whoami
+   ```
+
+Never put an API token in `.dev.vars`, `.env`, or any file in the repository, and never add one to GitHub Actions. The only deploy credential is the Workers Builds token, which stays in Cloudflare (3.6). The evaluation token from Phase 4 should already be deleted (section 10).
 
 ### 3.2 D1 databases
-Create one database per environment:
+Create one database per environment, in an owner session (3.1):
 
 ```bash
 npx wrangler d1 create travel-discovery-preview
@@ -103,27 +121,91 @@ Checks for C5 (local, no login; all passed for `env.preview` on 2026-10-18):
 An admin Worker must never be reachable without Access, but Worker-level Access can only be applied to a Worker that exists. So the first deployment has no URL:
 
 1. Deploy the admin Worker the first time with `"workers_dev": false` (and `"preview_urls": false`) in that environment, so it has no URL. The Access tab is available for such a Worker (checked 2026-10-18).
+   - Workers Builds can only connect to a Worker that exists, so this first deployment is an owner session (3.1) with a local build: `CLOUDFLARE_ENV=<env> npm run build`, then `npx wrangler deploy --config dist-admin/admin_worker/wrangler.json`.
+   - Connect the Worker to Workers Builds (3.6) only after step 5 below has passed.
 2. Enable Zero Trust if needed (dashboard), choosing the team name. Confirm the Free plan's seat limit and login methods (for example One-time PIN) there *(要確認: not stated in the documentation)*.
 3. Protect the Worker and restrict the policy to the owner:
    1. Workers & Pages → the admin Worker → Access → "Protect this Worker behind Access" → scope **All traffic**.
    2. The quick setup offers only "Cloudflare account" and "Email domain" policies (checked 2026-10-18). Choose **Cloudflare account** (members of this account only) and apply.
    3. Open Zero Trust → Access controls → Policies, edit the generated reusable policy (`<worker> - Production`), and change its Include rule to the **Emails** selector with the owner's full address.
    4. Never choose "Email domain" for a public mail provider (it admits every address there), the "Everyone" selector, or a "Login Methods: One-time PIN" Include rule, which admits anyone who can receive a PIN.
-4. Copy the AUD tag and the team domain into `ACCESS_POLICY_AUD` and `ACCESS_TEAM_DOMAIN` of that environment, set `"workers_dev": true`, commit, rebuild, and redeploy. Without the two values every admin API request is answered with 403 (fail closed).
+4. Copy the AUD tag and the team domain into `ACCESS_POLICY_AUD` and `ACCESS_TEAM_DOMAIN` of that environment, set `"workers_dev": true`, commit, and deploy: in the same owner session before the Worker is connected, or by pushing the environment's branch after 3.6. Without the two values every admin API request is answered with 403 (fail closed).
    - AUD tag: Zero Trust → Access controls → Applications → the Worker's application. The documentation names Configure → Additional settings → "Application Audience (AUD) Tag", but the dashboard may differ.
    - Team domain: `https://<team>.cloudflareaccess.com`, from Zero Trust → Settings or derived from the team name chosen when enabling Zero Trust.
 5. After any change on the Access tab or the policy, check both the scope (**All traffic**) and the Worker's `workers.dev` URL (Settings → Domains & Routes). On 2026-10-18 the scope was once found on "Previews only", and the URL was once found disabled after Access settings were saved.
    - Right after the deployment that enables `workers_dev`, send an unauthenticated request to `/` and `/api/admin/me`. Both must redirect to `https://<team>.cloudflareaccess.com/...`.
-   - If `/` returns 200, redeploy at once with `workers_dev: false`.
+   - If `/` returns 200, remove the URL at once as in [OPERATIONS.md](OPERATIONS.md) 4.2.
 6. Do not create hostname or path Access applications with a Bypass policy that match admin hostnames (ADR-004 invariant 4). Do not use account-wide Worker protection either: it would also protect the public site.
 
 Repeat for the production admin Worker; it has its own Access setting and AUD.
 
 ### 3.5 Secrets
-The Workers currently need no secrets: the AI binding needs none, and the Access values are not secret. If a secret is added later, set it with `npx wrangler secret put <NAME>` targeting the environment's Worker, or in the dashboard; never in files, `.dev.vars`, or `.env`. Deployments never delete secrets.
+The Workers currently need no secrets: the AI binding needs none, and the Access values are not secret. If a secret is added later, the owner sets it in the dashboard (Settings → Variables & Secrets) or with `npx wrangler secret put <NAME>` in an owner session (3.1); never in files, `.dev.vars`, `.env`, or GitHub. Deployments never delete secrets.
+
+Workers Builds also has build variables and secrets, available only during the build. This project uses none: `CLOUDFLARE_ENV` is part of the build command, so it shows in the settings and in each build log (3.6).
+
+### 3.6 Connecting the Workers to Workers Builds
+Each of the four Workers is connected to this repository once, in the dashboard, by the owner. Do it in the order below, one Worker at a time, and check each one before the next. Status: not yet done *(owner decision, ADR-033)*.
+
+**Before:**
+- Billing (owner): the Workers plan is Free and Billing lists only the domain registration ([OPERATIONS.md](OPERATIONS.md) section 3).
+- The commit that adds this section is on `dev` and `main`, and CI is green on it.
+- All four Workers already exist (section 11), so nothing is deployed locally.
+
+**For each Worker** (Workers & Pages → the Worker → Settings → Build → Connect):
+1. Git provider: GitHub, this repository.
+   - If Cloudflare asks to install or extend its GitHub app, give it access to **only selected repositories** and add this repository. The app that my-music-site uses may already be installed *(要確認: whether Workers Builds uses the same app and repository list)*.
+2. Settings, from the table in section 5:
+   - Git branch: `dev` for the two preview Workers, `main` for the two production Workers *(要確認: the documentation says the branch can be changed in a dropdown, but does not show a non-default branch such as `dev` as production branch; check that `dev` can be selected)*.
+   - Build command and deploy command exactly as in section 5. If the `CLOUDFLARE_ENV=<env>` prefix is not applied, the build uses the top-level configuration and the deployment fails on the placeholder database `local-travel-discovery` (ADR-018). Then remove the prefix and set `CLOUDFLARE_ENV` as a build variable of that Worker instead *(要確認, ADR-033)*.
+   - Root directory: empty (the repository root, where both Wrangler configs are).
+   - Build variables and secrets: none.
+   - Build watch paths: leave the default (every change) unless the owner decides otherwise (section 5 "Build minutes").
+3. Branch control: **disable preview builds** (builds for non-production branches).
+   - Otherwise a push to any other branch would create a public Preview with its own URL, outside the reviewed `workers_dev` and Access setup.
+   - Do not switch the Worker to the new Worker Previews model: the documentation says the switch cannot be reversed (ADR-033).
+4. API token: let Cloudflare create one, and select the same token for the other three Workers.
+   - The documented permissions are Account Settings read, Workers Scripts edit, Workers KV Storage edit, Workers R2 Storage edit, Workers Routes edit on all zones, User Details read, and Memberships read. None of them is a billing, plan, payment, or member permission.
+   - Owner: check the token in My Profile → API Tokens and confirm exactly that list. A token with any billing or account-admin permission is an incident: revoke it and record it in [DECISIONS.md](../working/DECISIONS.md).
+   - The token stays in Cloudflare. Never copy it into a file, GitHub, or a chat.
+5. Save. Saving may start a build of the branch head at once *(要確認)*. So before connecting, make sure the head of that branch is a commit that is ready to deploy there, and check the build as in step 6.
+6. Check the first build of the Worker:
+   - The build log shows the Node.js version from `.nvmrc` (24) *(要確認: the build image's Node.js selection)* and the Wrangler version from `package.json`.
+   - The deploy step names the expected Worker and lists the expected bindings: that environment's D1 database, `AI_ASSIST_ENABLED` `"false"` on public Workers, and the rate limiters with that environment's `namespace_id`.
+   - Note the build duration (section 5 "Build minutes").
+   - Run section 6 for that environment. After an admin Worker, add `--watch-admin 120`.
+
+**Order:** `travel-discovery-preview`, then `travel-discovery-admin-preview`, then a push to `dev` that deploys both. After the preview checks pass: `travel-discovery`, then `travel-discovery-admin`, then a push to `main`.
+
+**After:**
+- Record the date, build durations, and version IDs in [DECISIONS.md](../working/DECISIONS.md) and in section 11.
+- The login left on this machine by the earlier local deployments is no longer needed. Log out now and confirm it (3.1, step 4):
+
+  ```bash
+  npx wrangler logout
+  ```
+
+  ```bash
+  npx wrangler whoami
+  ```
+
+- From now on every owner session ends with `npx wrangler logout`, so no step in this runbook leaves a Cloudflare login on the machine.
 
 ## 4. Database migrations
-Migrations are applied only through the admin config, preview first:
+Migrations are applied only through the admin config, preview first, each in an owner session (3.1). Workers Builds never applies them.
+
+> [!WARNING]
+> A push deploys at once. Apply a migration to an environment's database **before** pushing the branch whose code needs the new schema.
+
+The order for a commit that needs a schema change:
+
+1. The migration is backward compatible with the code deployed now (section 8), and `npm run check` and `npm run test:e2e` pass locally on the commit.
+2. Owner session: apply the migration to `travel-discovery-preview`, verify, log out.
+3. Owner: push `dev`. Workers Builds deploys both preview Workers. Run section 6.
+4. Owner session: record a Time Travel bookmark, apply the migration to `travel-discovery-production`, verify, log out.
+5. Owner: push `main`. Workers Builds deploys both production Workers. Run section 6.
+
+The preview command:
 
 ```bash
 npx wrangler d1 migrations apply travel-discovery-preview --remote --env preview --config wrangler.admin.jsonc
@@ -137,46 +219,86 @@ npx wrangler d1 migrations apply travel-discovery-preview --remote --env preview
 - `db/seed/dev.sql` is local test data. Whether to load it into the preview database is an owner decision at that step *(要確認)*. Never load it into production; production content is entered through the admin console.
 
 ## 5. Build and deploy
+Workers Builds builds and deploys every push to `dev` and `main`. Each Worker has these settings (3.6):
+
+| Worker | Git branch | Build command | Deploy command |
+|---|---|---|---|
+| `travel-discovery-preview` | `dev` | `CLOUDFLARE_ENV=preview npm run build` | `npx wrangler deploy --config dist/worker/wrangler.json` |
+| `travel-discovery-admin-preview` | `dev` | `CLOUDFLARE_ENV=preview npm run build` | `npx wrangler deploy --config dist-admin/admin_worker/wrangler.json` |
+| `travel-discovery` | `main` | `CLOUDFLARE_ENV=production npm run build` | `npx wrangler deploy --config dist/worker/wrangler.json` |
+| `travel-discovery-admin` | `main` | `CLOUDFLARE_ENV=production npm run build` | `npx wrangler deploy --config dist-admin/admin_worker/wrangler.json` |
+
+All four: root directory empty, no build variables, preview builds disabled. `npm run build` builds both Workers every time, so the type check and the bundle checks (ADR-004) run in every build.
 
 ```mermaid
 flowchart TD
-  prep["Clean checkout, npm ci, npm run check (steps 1-2)"] --> build["CLOUDFLARE_ENV=env npm run build (step 3)"]
-  build --> dry["Dry run: confirm bindings and vars (step 4)"]
-  dry --> deploy["Deploy with explicit --config (step 5)"]
-  deploy --> checks["Checks after deployment (section 6)"]
-  checks -->|"Fails"| rollback["Rollback (section 8)"]
-  checks -->|"Preview passes"| prod["Owner approves production, then repeat"]
+  local["Commit passes check and E2E locally (step 1)"] --> mig["Schema change: owner session migrates preview DB (step 2)"]
+  mig --> dev["Owner pushes dev (step 3)"]
+  dev --> pbuild["Workers Builds deploys both preview Workers"]
+  pbuild --> pcheck["Build logs and section 6 for preview (steps 4-5)"]
+  pcheck -->|"Fails"| rollback["Rollback (section 8)"]
+  pcheck -->|"Passes and CI green"| pmig["Schema change: owner session migrates production DB (step 6)"]
+  pmig --> main["Owner fast-forwards and pushes main (step 7)"]
+  main --> mbuild["Workers Builds deploys both production Workers"]
+  mbuild --> mcheck["Build logs and section 6 for production (step 8)"]
+  mcheck -->|"Fails"| rollback
 ```
 
-1. Make sure no `.dev.vars` exists on the build machine, or that it holds only local test values. The build copies it into `dist/` and `dist-admin/` ([DEVELOPMENT.md](DEVELOPMENT.md)).
-2. Check out the commit to deploy, with a clean `git status`, then run `npm ci` and `npm run check`.
-3. Build both Workers for the environment:
+1. Before pushing `dev`, run `npm run check` and `npm run test:e2e` locally on the commit. GitHub Actions CI runs on the same push, but Workers Builds does not wait for it.
+2. If the commit needs a schema change, apply the migration to the preview database first (section 4).
+3. Owner: push `dev`. This deploys `travel-discovery-preview` and `travel-discovery-admin-preview`.
+4. Read the two build logs in the dashboard (the Worker → Deployments or Builds *(要確認: exact tab)*):
+   - The build ran the expected command, and `npm run build` passed, including the type check and the bundle checks.
+   - The deploy step names the expected Worker and lists the expected bindings and `vars`: the environment's D1 database, `AI_ASSIST_ENABLED`, and the rate limiters with that environment's `namespace_id`.
+   - This check matters because Workers Builds sets the deployed Worker's name itself ("Worker name" below). A wrong `CLOUDFLARE_ENV` in a build command would deploy the other environment's bindings under the right name.
+5. Run section 6 for preview, after **both** builds have finished.
+6. If the commit needs a schema change, apply the migration to the production database (section 4).
+7. Owner: bring `main` to the tested commit and push it. This deploys `travel-discovery` and `travel-discovery-admin`. Push only a commit whose CI is green and whose preview checks passed, with nothing new on top.
 
    ```bash
-   CLOUDFLARE_ENV=preview npm run build
-   ```
-
-   - `CLOUDFLARE_ENV` is read by the Vite plugin at build time; `wrangler deploy` ignores it.
-   - The build writes a configuration flattened to that environment.
-   - `npm run build` also runs the type check and the bundle checks.
-
-4. Inspect what would be deployed without deploying (no login needed; checked 2026-10-18):
-
-   ```bash
-   npx wrangler deploy --dry-run --config dist/worker/wrangler.json
+   git switch main
    ```
 
    ```bash
-   npx wrangler deploy --dry-run --config dist-admin/admin_worker/wrangler.json
+   git merge --ff-only dev
    ```
 
-   - Confirm the bindings and `vars` in the output. The dry run does not print the Worker name, which is the `name` field of the same `wrangler.json`.
-   - Always deploy with the explicit `--config` paths above. Each build also writes a redirect file: `.wrangler/deploy/config.json` for the public build, and `admin/.wrangler/deploy/config.json` for the admin build (the admin Vite root is `admin/`). Checked 2026-10-18 with Wrangler 4.151.1:
-     - A plain `npx wrangler deploy` from the repository root follows the redirect and deploys **only the public Worker**.
-     - With `--config <generated wrangler.json>`, the redirect is not used.
-     - `--cwd admin` fails, because the redirect file does not sit next to a user configuration.
-5. Deploy each Worker with the same command without `--dry-run`: admin first during the initial setup (3.4), preview first in general.
-6. Run section 6, then repeat with `production` after its approval.
+   ```bash
+   git push origin main
+   ```
+
+8. Read the build logs as in step 4 and run section 6 for production. Record the version IDs in section 11 when the deployment is worth recording.
+
+**Notes:**
+- **Every push deploys**, also commits that change only docs. A build that fails deploys nothing, and the previous version keeps serving.
+- **One build at a time** on Workers Free. The two Workers of a branch build one after the other, so for a few minutes the public and admin Workers can run different commits. This is safe because schema changes are backward compatible (section 4) and the two Workers share only the database.
+- **No `.dev.vars` in the build.** Workers Builds starts from a clean checkout, so the `.dev.vars` copy described in [DEVELOPMENT.md](DEVELOPMENT.md) does not happen there. It still happens in local builds.
+- **Dashboard edits** of variables or `workers.dev` are overwritten by the next build's deployment, as before.
+- **Worker name.** Workers Builds requires the dashboard name of the Worker to match the `name` in the Wrangler configuration of the root directory, except for Wrangler environments with the same base name. On Wrangler v3 and later it sets the name of the connected Worker itself, through `WRANGLER_CI_OVERRIDE_NAME` (Troubleshooting page, updated 2026-10-30). The root `wrangler.jsonc` is named `travel-discovery`, so the admin Workers rely on that override *(要確認: confirmed by the first admin build)*.
+- **Build minutes.** Workers Free includes 3,000 build minutes per month, one concurrent build, and a 20-minute timeout. A release (a push to `dev` and then to `main`) runs four builds. At T minutes per build that is 3,000 / (4 × T) releases per month, for example about 190 at 4 minutes. What happens when the minutes run out is not documented *(要確認)*. The plan is to stop pushing and wait for the monthly reset, never to upgrade. If usage passes half of the allowance, build watch paths that skip docs-only commits are the first measure (owner decision).
+
+**Local dry run (optional, no login).** To see the flattened configuration before pushing, build locally and run a dry run. Return to the local configuration afterwards with `npm run build` (3.3).
+
+```bash
+CLOUDFLARE_ENV=preview npm run build
+```
+
+```bash
+npx wrangler deploy --dry-run --config dist/worker/wrangler.json
+```
+
+```bash
+npx wrangler deploy --dry-run --config dist-admin/admin_worker/wrangler.json
+```
+
+- The dry run prints the bindings and `vars`, but not the Worker name, which is the `name` field of the same `wrangler.json`.
+- Always use the explicit `--config` paths. Each build also writes a redirect file: `.wrangler/deploy/config.json` for the public build, and `admin/.wrangler/deploy/config.json` for the admin build (the admin Vite root is `admin/`). Checked 2026-10-18 with Wrangler 4.151.1:
+  - A plain `npx wrangler deploy` from the repository root follows the redirect and deploys **only the public Worker**.
+  - With `--config <generated wrangler.json>`, the redirect is not used.
+  - `--cwd admin` fails, because the redirect file does not sit next to a user configuration.
+- `CLOUDFLARE_ENV` is read by the Vite plugin at build time; `wrangler deploy` ignores it.
+
+**Local deployment (exception).** Deploying from this machine is only for a new Worker that cannot be connected yet (3.4), or when Workers Builds cannot deploy (for example an outage or no build minutes left) and the owner decides so, recorded in [DECISIONS.md](../working/DECISIONS.md). It is an owner session (3.1): build as above, deploy with the same commands without `--dry-run`, verify (section 6), and log out.
 
 ## 6. Checks after each deployment
 The unauthenticated checks below are automated:
@@ -190,7 +312,8 @@ Add `--watch-admin 120` after an admin deployment. Ongoing monitoring, routine c
 These can only be checked on a deployed Worker (from "Admin authentication status" and the verification logs in [DECISIONS.md](../working/DECISIONS.md)):
 - Every admin URL (`workers.dev`, routes, custom domains) redirects to the Access login when not signed in. The admin static assets are not reachable without login.
 - After login, the admin API accepts the request: the `Cf-Access-Jwt-Assertion` header reaches the Worker through the static-assets router and the token validates (RS256, issuer, audience).
-- Version URLs are disabled for both Workers (`npx wrangler versions list --name <worker>` lists the deployed versions).
+- Version URLs are disabled for both Workers. The dashboard (the Worker → Deployments) lists the deployed versions without a login on this machine.
+- No Preview was created: preview builds are disabled for the Worker (3.6), and the Worker has no Previews listed *(要確認: where the dashboard lists Previews)*.
 - The public and admin Workers see the same D1 data (publish in admin, then check the public API).
 - The public site works end to end in `ja`, `en`, `es`, and `fr`. The AI toggle shows the "unavailable" notice while AI is disabled.
 - The Rate Limiting bindings deploy without errors (availability on the account is unconfirmed, ADR-026). If the deployment rejects them, remove them from that environment, record the result, and keep AI disabled (ADR-026 A, precondition 2).
@@ -205,12 +328,13 @@ Enabling AI has its own runbook: [AI_ENABLEMENT.md](AI_ENABLEMENT.md). The forme
 - 7.3 Enabling AI on production: [AI_ENABLEMENT.md](AI_ENABLEMENT.md) section 4.
 
 ## 8. Rollback
-- **Code:** `npx wrangler rollback <VERSION_ID> --name <worker>`, or the dashboard (Workers & Pages → the Worker → Deployments → Rollback).
+- **Code, fast (owner, dashboard):** Workers & Pages → the Worker → Deployments → Rollback. `npx wrangler rollback <VERSION_ID> --name <worker>` in an owner session (3.1) does the same.
   - It takes effect immediately and works for the 100 most recent versions.
   - It does not change bound resources: the database stays at its current schema and data.
   - Static assets roll back with the version. Checked on the public preview Worker on 2026-10-25 ("Phase 10 verification log" in [DECISIONS.md](../working/DECISIONS.md)): the served `index.html` and client bundle switched to those of the target version within about 20 s in both directions, and the other version's bundle was no longer served.
-  - Redeploying the build of the previous good commit is the alternative.
-- **Data:** `npx wrangler d1 time-travel restore <database> --timestamp <unix|RFC3339>` (or `--bookmark`) restores a point within 7 days on Workers Free. It is **destructive**: it replaces all data, cancels in-flight queries, and prints a bookmark to undo it. Get the owner's approval for every restore.
+  - The next push to that Worker's branch deploys the branch head again. So follow a rollback with a fix or a revert on the branch before the next push.
+- **Code, through Git:** revert the bad commit (`git revert <commit>`), check it locally, and push the branch. Workers Builds deploys both Workers of the environment. This takes a build per Worker, so it is slower than the dashboard.
+- **Data:** `npx wrangler d1 time-travel restore <database> --timestamp <unix|RFC3339>` (or `--bookmark`) restores a point within 7 days on Workers Free, in an owner session (3.1). It is **destructive**: it replaces all data, cancels in-flight queries, and prints a bookmark to undo it. Every restore is an owner decision.
 - **AI problems:** use the kill switch ([AI_ENABLEMENT.md](AI_ENABLEMENT.md)) instead of a rollback.
 
 ## 9. Free-tier assumptions (re-check before deploying)
@@ -223,6 +347,7 @@ Checked 2026-10-18 ("Phase 6 verification log" in [DECISIONS.md](../working/DECI
   - Checked 2026-10-19 and re-checked 2026-10-24 and 2026-10-25, unchanged ("Phase 7 verification log", "Phase 8 verification log", and "Phase 9 verification log" in [DECISIONS.md](../working/DECISIONS.md)).
   - The account's daily volume, read on 2026-10-24, is a few percent of the allowance at most. The first check after the change is a dated task ([OPERATIONS.md](OPERATIONS.md) sections 3 and 7).
   - https://developers.cloudflare.com/workers/observability/logs/workers-logs/, https://developers.cloudflare.com/observability/pricing/
+- **Workers Builds:** on Free 3,000 build minutes per month, 1 concurrent build, 20-minute timeout; on Paid 6,000 minutes, then USD 0.005 per minute. What happens on Free when the minutes run out (stop or charge) is not stated *(要確認; treated as possibly billing until confirmed, so the minutes are watched monthly)*. Checked 2026-10-31. https://developers.cloudflare.com/workers/ci-cd/builds/limits-and-pricing/ (updated 2026-10-28)
 - **Rate Limiting binding:** availability and price on Workers Free are not documented; confirmed only by an approved preview deployment. https://developers.cloudflare.com/workers/runtime-apis/bindings/rate-limit/
 - **Cloudflare Zero Trust Free:** seat limit, price, and login methods are not stated on the plans page; confirm in the dashboard. https://www.cloudflare.com/plans/zero-trust-services/
 
@@ -241,7 +366,7 @@ Checked 2026-10-18 ("Phase 6 verification log" in [DECISIONS.md](../working/DECI
 
 ## 11. Deployment history
 
-Status as of Phase 6 (2026-10-18) and later deployments. Details are in the verification logs of [DECISIONS.md](../working/DECISIONS.md).
+Status as of Phase 6 (2026-10-18) and later deployments. Details are in the verification logs of [DECISIONS.md](../working/DECISIONS.md). Every deployment below was made from the owner's local Wrangler login, before the move to Workers Builds (3.6).
 
 **Preview (2026-10-18):**
 - The preview D1 database `travel-discovery-preview` was created (region APAC). `env.preview` (C5) is configured in both Wrangler configs with its ID.

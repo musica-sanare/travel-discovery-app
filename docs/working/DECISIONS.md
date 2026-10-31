@@ -1285,6 +1285,51 @@ Order proposed: preview trial ([DEPLOYMENT.md](../en/DEPLOYMENT.md) 7.1) → sep
   - `npm run check` passed after each commit, and `npm run test:e2e` after the first two (the third adds only the bundle, which `npm run check` validates). In the built-in browser, home, trip details, quiz, results, and 404 in `fr` at 375 px and desktop width, and the admin import page in `fr`, showed no missing keys or overflow caused by `fr`; switching between locales worked both ways.
   - French currency formatting with real cost data was checked after the import on preview and production ("Phase 17 verification log").
 
+## ADR-033: Deploy through Cloudflare Workers Builds
+- Status: **Needs owner decision** (proposed 2026-10-31). The docs describe the target state; the connection itself is an owner step ([DEPLOYMENT.md](../en/DEPLOYMENT.md) 3.6) and is not done yet.
+- Context: the shared rules `deployment.md` and `paid-services.md` (2026-10-31) require that production changes reach users only through the owner's push via the hosting provider's Git integration, that no deploy credential lives in CI, that no Cloudflare login stays on the machine, and that billing is never possible. Until now the owner deployed all four Workers from a local Wrangler login ([DEPLOYMENT.md](../en/DEPLOYMENT.md) section 11). my-music-site already deploys through Cloudflare Pages Git integration.
+- Decision (proposed): **design A**, four connected Workers with branch mapping.
+  - Each of the four existing Workers is connected to this repository in Workers Builds: the two preview Workers on `dev`, the two production Workers on `main`.
+  - Build command `CLOUDFLARE_ENV=<env> npm run build`; deploy command `npx wrangler deploy --config <generated wrangler.json>`; root directory the repository root; no build variables; preview builds disabled.
+  - D1 migrations, Time Travel, secrets, command-line rollbacks, and the first deployment of a new Worker stay owner sessions ("log in, run, verify, log out"). A migration is applied before the push that deploys code needing it.
+  - The Cloudflare-generated Workers Builds token, shared by the four Workers, is the only deploy credential. It stays in Cloudflare; GitHub Actions keeps no Cloudflare secret.
+- Verified facts (official docs, read 2026-10-31):
+  - One repository can be connected to several Workers, each with its own root directory and its own build and deploy commands; for Wrangler environments, "connect your repository to each of the Workers" ([Advanced setups](https://developers.cloudflare.com/workers/ci-cd/builds/advanced-setups/), updated 2026-09-22).
+  - Each Worker has its own Git branch setting (default `main`); the production branch "can be changed in the dropdown"; preview builds for other branches can be enabled or disabled per Worker under Branch control ([Build branches](https://developers.cloudflare.com/workers/ci-cd/builds/build-branches/), updated 2026-10-01; [Configuration](https://developers.cloudflare.com/workers/ci-cd/builds/configuration/), updated 2026-09-22).
+  - Default deploy command `npx wrangler deploy`, default Preview command `npx wrangler preview`; build variables exist only during the build; injected variables include `CI`, `WORKERS_CI`, `WORKERS_CI_COMMIT_SHA`, and `WORKERS_CI_BRANCH`; the Wrangler version comes from `package.json` (Configuration). Neither `CLOUDFLARE_ENV` nor `--config` is mentioned there, and no example shows a variable prefix such as `CLOUDFLARE_ENV=preview npm run build`.
+  - The Vite plugin selects the environment with `CLOUDFLARE_ENV` at build time and writes a flattened configuration; `CLOUDFLARE_ENV` has no effect on `wrangler deploy` ([Vite plugin: Cloudflare environments](https://developers.cloudflare.com/workers/vite-plugin/reference/cloudflare-environments/), updated 2026-10-12). This repository's deployments since Phase 6 used exactly these commands.
+  - Worker name: the dashboard name must match `name` in the Wrangler configuration of the root directory, except for environments with the same base name; on Wrangler v3 and later Workers Builds overrides the name with the connected Worker's name (`WRANGLER_CI_OVERRIDE_NAME`) ([Troubleshooting](https://developers.cloudflare.com/workers/ci-cd/builds/troubleshoot/), updated 2026-10-30). Not documented for `--config` with a generated configuration.
+  - Workers Builds overall: production-branch builds deploy; builds and logs are kept 90 days ([Builds](https://developers.cloudflare.com/workers/ci-cd/builds/), updated 2026-10-28).
+  - Limits: Free 3,000 build minutes per month, 1 concurrent build, 20-minute timeout, 2 vCPU, 8 GB memory; Paid 6,000 minutes "then, +$0.005 per minute", 6 concurrent builds. The page does not say what happens on Free when the minutes run out ([Limits & pricing](https://developers.cloudflare.com/workers/ci-cd/builds/limits-and-pricing/), updated 2026-10-28). The [Workers pricing](https://developers.cloudflare.com/workers/platform/pricing/) page (updated 2026-10-02) does not cover builds.
+  - Auto-generated build token: a user token with Account Settings read, Workers Scripts edit, Workers KV Storage edit, Workers R2 Storage edit, Workers Routes edit (all zones), User Details read, Memberships read (Configuration). No billing, plan, payment, or member permission.
+  - Worker Previews: each branch gets a Preview under the same Worker with its own settings from a `previews` block; Preview URLs are public by default; D1 and other resources are isolated only when the Preview binds separate resources; a new Durable Object namespace is provisioned per Preview; Free allows 100 Previews per Worker ([Previews](https://developers.cloudflare.com/workers/previews/), updated 2026-09-24). Existing Workers keep the older preview model until a one-time switch that "cannot be reversed" (Build branches).
+- Alternatives considered:
+  - **B. Production through Workers Builds, preview through Worker Previews.** Connect only `travel-discovery` and `travel-discovery-admin` to `main`, and let pushes to `dev` create Previews. Rejected for now:
+    - Previews are public by default, and the admin Previews would need Access for Previews as well. The Access scope was once found on "Previews only" (2026-10-18), so a second scope adds risk to ADR-004.
+    - Every binding, variable, and the preview D1 database would move into a `previews` block, and every secret would need setting per Preview. That duplicates `env.preview` in a second form.
+    - Each Preview gets a new Durable Object namespace, so the AI quota (ADR-029) would not be shared with what was tested.
+    - The switch to Worker Previews cannot be reversed, and the existing preview Workers, their Access applications, and the checks in `scripts/check-deployment.mjs` would be replaced.
+    - The 1 concurrent build and the build minutes are the same as in A.
+  - **C. GitHub Actions with a Cloudflare API token.** Rejected: `deployment.md` forbids deploy credentials in CI.
+  - **D. Production through Workers Builds, preview still from a local login.** Rejected: it keeps a regular local login, which the rules aim to remove, and two deploy paths.
+- Effects of A:
+  - **Cloudflare Access:** unchanged. The Worker-level Access applications ("All traffic") stay on the same two admin Workers. Disabling preview builds keeps Previews from creating new public URLs. A new admin Worker still has its first deployment in an owner session with `workers_dev: false` ([DEPLOYMENT.md](../en/DEPLOYMENT.md) 3.4).
+  - **D1:** bindings come from the committed configs as before. The build never runs migrations; the order is migration first, then the push.
+  - **Secrets:** none today. Runtime secrets would be set by the owner in the dashboard or an owner session; build variables stay unused.
+  - **Rollback:** the dashboard rollback is unchanged, but the next push to the branch deploys the branch head again, so a revert on the branch follows. `git revert` and a push is the slower alternative.
+  - **Gating:** Workers Builds does not wait for GitHub Actions CI. Local `npm run check` and `npm run test:e2e` before pushing `dev`, and pushing `main` only for a commit with green CI and passed preview checks, take its place.
+  - **Build minutes:** two builds per push, four per release (`dev` then `main`); each build runs `npm run build` for both Workers, so the bundle checks always run. The duration per build is measured at the first builds.
+  - **Kill switch:** a dashboard edit of `AI_ASSIST_ENABLED` is overwritten by the next build, so the `"false"` commit must reach the branch before anything else is pushed ([AI_ENABLEMENT.md](../en/AI_ENABLEMENT.md) section 4).
+- Open (要確認):
+  - What happens on Workers Free when the 3,000 build minutes run out: stop or charge. Treated as possibly billing until confirmed; watched monthly ([OPERATIONS.md](../en/OPERATIONS.md) section 3).
+  - Whether `dev` can be selected as the production branch of the preview Workers (the dropdown suggests it).
+  - Whether the build command accepts the `CLOUDFLARE_ENV=<env>` prefix. If it does not, the fallback is a build variable `CLOUDFLARE_ENV` per Worker (Configuration: build variables), shown in the settings instead of the command.
+  - Whether the admin Workers deploy without a name error, given that the root `wrangler.jsonc` is named `travel-discovery`; expected to work through `WRANGLER_CI_OVERRIDE_NAME`.
+  - Whether Workers Builds uses the GitHub app already installed for my-music-site, and its repository list.
+  - The Node.js version the build image selects (`.nvmrc` is 24), and whether saving the connection starts a build at once.
+  - Whether a narrower custom token (without KV, R2, and Routes edit) would work; the generated token is used until then.
+  - A local check of the flattened configs for both environments (Worker name and D1 database) was blocked in this session by the billing guard hook and is left to the owner ([DEPLOYMENT.md](../en/DEPLOYMENT.md) section 5 "Local dry run").
+
 ## Admin authentication status (2026-10-17)
 
 Separates what exists today from what is only designed, so nothing is claimed as protected before it is.
