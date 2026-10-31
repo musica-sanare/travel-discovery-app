@@ -2,6 +2,8 @@ English | [日本語](../ja/DEVELOPMENT.md) · [Docs index](README.md)
 
 # Local Development
 
+This guide is for contributors who run, change, and test Travel Discovery on their own machine. It covers setup, the npm commands, the project layout, common tasks (database, admin app, UI text), tests and CI, and environment variables. Deploying is in [DEPLOYMENT.md](DEPLOYMENT.md).
+
 ## Prerequisites
 - Node.js `>=22.22.0` (`.nvmrc` pins 24)
 - npm (bundled with Node; the committed `package-lock.json` is authoritative)
@@ -15,13 +17,7 @@ npm ci
 npm run db:reset:local
 ```
 
-`.npmrc` sets:
-- `engine-strict=true`: installs fail on an unsupported Node version.
-- `strict-allow-scripts=true`: installs fail if any dependency has install scripts not listed in `package.json` `allowScripts`. The scripts of `esbuild`, `fsevents`, and `workerd` are explicitly denied because they are not needed (ADR-016 in [DECISIONS.md](../working/DECISIONS.md)).
-
-If `npm ci` fails with `ESTRICTALLOWSCRIPTS`, a dependency update introduced a new install script. Review what it does, then record a decision with `npm deny-scripts <pkg>` (preferred) or `npm approve-scripts <pkg>` (version-pinned). Never use `--dangerously-allow-all-scripts` or `npm approve-scripts --all`.
-
-Do not install with `--omit=optional`: the `workerd` and `esbuild` binaries come from platform-specific optional dependencies.
+If `npm ci` fails, see "Install settings and troubleshooting".
 
 ## Commands
 
@@ -36,7 +32,7 @@ Do not install with `--omit=optional`: the `workerd` and `esbuild` binaries come
 | `npm test` | Vitest: `unit` project (Node/jsdom) and `workers` project (Workers runtime with a migrated local D1). |
 | `npm run check` | Lint, type-check, tests, and build in sequence. |
 | `npm run test:e2e` | Playwright end-to-end tests against a production build (see "End-to-end tests"). Not part of `check`. |
-| `npm run ai:eval` | Opt-in model evaluation against real Workers AI models; consumes Neurons and needs explicit confirmation and credentials ([AI_EVALUATION.md](../working/AI_EVALUATION.md)). Never part of `check`. |
+| `npm run ai:eval` | Opt-in model evaluation against real Workers AI models. It consumes Neurons and needs explicit confirmation and credentials ([AI_EVALUATION.md](../working/AI_EVALUATION.md)). Never part of `check`. |
 | `npm run quiz:simulate` | Deterministic quiz-variety simulation on content bundles (`test/simulation/`): distinct question sets, shared questions, and how often each question and destination appears. Set `QUIZ_SIMULATE_BUNDLES` to comma-separated file names in `content/` (default: the newest bundle). Local only, no network. Never part of `check`. |
 | `npm run e2e:db` | Recreate the isolated E2E database in `.wrangler/e2e/state` (migrate and seed). Run automatically by `test:e2e`. |
 | `npm run db:generate` | Generate a SQL migration from `server/db/schema.ts` into `migrations/` (drizzle-kit). Review the SQL before applying. |
@@ -44,7 +40,10 @@ Do not install with `--omit=optional`: the `workerd` and `esbuild` binaries come
 | `npm run db:seed:local` | Load `db/seed/dev.sql` into the local database (expects an empty, migrated database). |
 | `npm run db:reset:local` | Delete local D1 state, then migrate and seed. |
 
-There is intentionally no deploy script and no remote database command. Do not run `wrangler deploy` or any `--remote` command without the owner's approval. `scripts/check-deployment.mjs` only sends anonymous requests to the deployed Workers ([OPERATIONS.md](OPERATIONS.md) "3. Routine checks").
+> [!WARNING]
+> There is intentionally no deploy script and no remote database command. Do not run `wrangler deploy` or any `--remote` command without the owner's approval.
+
+`scripts/check-deployment.mjs` only sends anonymous requests to the deployed Workers ([OPERATIONS.md](OPERATIONS.md) "3. Routine checks").
 
 ## Project layout
 
@@ -74,7 +73,7 @@ ESLint (`no-restricted-imports`) and `test/node/boundary.test.ts` keep admin cod
 
 ## Database
 
-Both Workers bind the same D1 database (`travel-discovery`). For local development both configs use the placeholder `database_id` `local-travel-discovery` so they share one local database under `.wrangler/state` (git-ignored). Migrations are applied only through `wrangler.admin.jsonc`.
+Both Workers bind the same D1 database (`travel-discovery`). For local development both configs use the placeholder `database_id` `local-travel-discovery`, so they share one local database under `.wrangler/state` (git-ignored). Migrations are applied only through `wrangler.admin.jsonc`.
 
 Schema changes:
 1. Edit `server/db/schema.ts`.
@@ -88,12 +87,18 @@ Cloudflare Access does not run locally, so the admin API returns 403 by default.
 
 ```bash
 cp .dev.vars.example .dev.vars
+```
+
+```bash
 npm run dev:admin
 ```
 
 `.dev.vars` (git-ignored) sets `ADMIN_DEV_IDENTITY_EMAIL`. It only works in the Vite dev server: production builds do not contain the code that reads it (checked by `npm run build`). Run `npm run dev` at the same time to see published changes in the public API.
 
 ### `.dev.vars` and build output
+
+> [!WARNING]
+> A build copies `.dev.vars` into `dist/` and `dist-admin/`. Never share, upload, or publish those directories while a `.dev.vars` file exists.
 
 Verified in this repository (2026-10-17, `@cloudflare/vite-plugin` 1.64.0):
 - When a `.dev.vars` file exists, `npm run build` copies it to `dist/worker/.dev.vars` and `dist-admin/admin_worker/.dev.vars`.
@@ -102,12 +107,12 @@ Verified in this repository (2026-10-17, `@cloudflare/vite-plugin` 1.64.0):
 Documented by Cloudflare, not verified here (no deployment has been made): the copy is "only used when running `vite preview` and is not deployed with your Worker" ([Vite plugin: Secrets](https://developers.cloudflare.com/workers/vite-plugin/reference/secrets/)).
 
 Recommendations:
-- Never share, upload, or publish `dist/` or `dist-admin/` (for example as CI artifacts, in archives, or on a static host) while a `.dev.vars` file exists; delete the copied `.dev.vars` files or rebuild without `.dev.vars` first.
-- Keep only local, non-sensitive test values in `.dev.vars`; real secrets for deployed Workers are set with `wrangler secret put` or the dashboard.
+- Never share, upload, or publish `dist/` or `dist-admin/` (for example as CI artifacts, in archives, or on a static host) while a `.dev.vars` file exists. Delete the copied `.dev.vars` files or rebuild without `.dev.vars` first.
+- Keep only local, non-sensitive test values in `.dev.vars`. Real secrets for deployed Workers are set with `wrangler secret put` or the dashboard.
 - Re-check the copy behavior after upgrading `@cloudflare/vite-plugin`.
 
 ## Routing between assets and the Worker
-Each Worker's config sets `assets.run_worker_first: ["/api/*"]`. Only `/api/*` requests invoke the Worker; other paths are served from static assets, and unknown paths fall back to `index.html` (`not_found_handling: "single-page-application"`).
+Each Worker's config sets `assets.run_worker_first: ["/api/*"]`. Only `/api/*` requests invoke the Worker. Other paths are served from static assets, and unknown paths fall back to `index.html` (`not_found_handling: "single-page-application"`).
 
 ```bash
 curl "http://localhost:5173/api/destinations?locale=en"
@@ -120,11 +125,18 @@ curl "http://localhost:5173/api/destinations?locale=en"
 
 ## Accessibility checks
 
-`src/app/accessibility.test.tsx` runs axe-core (dev dependency) on every public page state in ja/en/es, including validation errors, the error state, and expanded result details. jsdom cannot compute colors, so `color-contrast` is disabled there; check contrast in a real browser (light and dark color schemes) when changing colors. Keyboard behavior and screen-reader output still need manual checks.
+`src/app/accessibility.test.tsx` runs axe-core (dev dependency) on every public page state in ja/en/es, including validation errors, the error state, and expanded result details.
+
+- jsdom cannot compute colors, so `color-contrast` is disabled there. Check contrast in a real browser (light and dark color schemes) when changing colors.
+- Keyboard behavior and screen-reader output still need manual checks.
 
 ## End-to-end tests
 
-`npm run test:e2e` runs the specs in `e2e/` with Playwright (`playwright.config.ts`): the public specs in a desktop and a mobile (Pixel 7) project, then `e2e/admin.spec.ts` in an `admin` project (desktop) that runs after them, because it publishes and archives content in the shared database. Playwright starts three servers, all with `E2E_STATE_DIR=.wrangler/e2e/state`, so development data in `.wrangler/state` is never touched:
+`npm run test:e2e` runs the specs in `e2e/` with Playwright (`playwright.config.ts`):
+- The public specs run in a desktop and a mobile (Pixel 7) project.
+- Then `e2e/admin.spec.ts` runs in an `admin` project (desktop). It runs after the public specs because it publishes and archives content in the shared database.
+
+Playwright starts three servers, all with `E2E_STATE_DIR=.wrangler/e2e/state`, so development data in `.wrangler/state` is never touched:
 
 | Port | Server | Purpose |
 |---|---|---|
@@ -132,17 +144,61 @@ curl "http://localhost:5173/api/destinations?locale=en"
 | 4181 | Admin dev server with `CLOUDFLARE_ENV=e2e` | Allowed admin paths, using the local identity `e2e-admin@example.test` from `env.e2e` in `wrangler.admin.jsonc` (dev builds only; never deploy that environment) |
 | 4182 | Admin production build (`vite preview`) | Denied admin paths: without an Access JWT every admin API request must be 403 |
 
-The admin servers wait for the public server (`scripts/wait-for-url.mjs`) so that the database is recreated before they open it, and run without a debugger port so they can start together.
+The admin servers wait for the public server (`scripts/wait-for-url.mjs`), so that the database is recreated before they open it. They run without a debugger port so they can start together.
 
-Browsers: by default the tests use the locally installed Google Chrome (`channel: "chrome"`), so nothing is downloaded. To use Playwright's bundled Chromium instead (for example in CI), run `npx playwright install chromium` (downloads a few hundred MB from Microsoft's CDN; get the owner's approval first) and set `PLAYWRIGHT_CHANNEL=bundled`.
+**Browsers.** By default the tests use the locally installed Google Chrome (`channel: "chrome"`), so nothing is downloaded. To use Playwright's bundled Chromium instead (for example in CI), run `npx playwright install chromium` and set `PLAYWRIGHT_CHANNEL=bundled`. The install downloads a few hundred MB from Microsoft's CDN; get the owner's approval first.
 
-The admin spec covers authorization on the production build (403 for every request without a token, also with only a cookie, and the localized error in the UI), the content workflow on the dev server (draft → published → archived, checked through the public API and the diagnosis snapshot, plus a rejected invalid slug), admin language switching with document metadata and the stored choice after a reload, and axe-core on every admin page. The public specs cover the core journey without AI, optional AI notes (off: no request; on: one request to the real preview server, which has no AI configured and answers 503, and a mocked success; no model is ever called), back/edit/restart, reload behavior and storage, language detection and switching, API errors and empty content, security headers and CSP errors, horizontal overflow, a keyboard-only run (desktop), and axe-core checks in light and dark mode. The axe test disables CSP for its own context only, because axe is injected as an inline script.
+**What the admin spec covers:**
+- Authorization on the production build: 403 for every request without a token, also with only a cookie, and the localized error in the UI.
+- The content workflow on the dev server: draft → published → archived, checked through the public API and the diagnosis snapshot, plus a rejected invalid slug.
+- Admin language switching with document metadata and the stored choice after a reload.
+- axe-core on every admin page.
+
+**What the public specs cover:**
+- The core journey without AI.
+- Optional AI notes. Off: no request. On: one request to the real preview server, which has no AI configured and answers 503, and a mocked success. No model is ever called.
+- Back/edit/restart, reload behavior and storage, and language detection and switching.
+- API errors and empty content, security headers and CSP errors, and horizontal overflow.
+- A keyboard-only run (desktop) and axe-core checks in light and dark mode. The axe test disables CSP for its own context only, because axe is injected as an inline script.
 
 ## Continuous integration
 
-`.github/workflows/ci.yml` runs two jobs on pushes to `main` and `dev` and on pull requests ([DECISIONS.md](../working/DECISIONS.md) ADR-027): `check` (`npm ci`, `npm run check`) and `e2e` (`npm ci`, `npm run test:e2e` with the Google Chrome preinstalled on the runner image, so nothing is downloaded). Failed E2E runs upload `test-results/` (traces with local seed data only) as an artifact kept for 7 days. Neither job needs secrets. A full local E2E run took about 1 minute on 2026-10-24.
+`.github/workflows/ci.yml` runs two jobs on pushes to `main` and `dev` and on pull requests ([DECISIONS.md](../working/DECISIONS.md) ADR-027). Neither job needs secrets.
+- `check`: `npm ci`, `npm run check`.
+- `e2e`: `npm ci`, `npm run test:e2e` with the Google Chrome preinstalled on the runner image, so nothing is downloaded. Failed E2E runs upload `test-results/` (traces with local seed data only) as an artifact kept for 7 days.
+
+A full local E2E run took about 1 minute on 2026-10-24.
 
 ## Environment variables
-- Local: `.dev.vars` (see "Admin locally"). `.env.example` lists all variables.
-- Deployed admin Worker (set only after the owner approves the Access setup): `ACCESS_TEAM_DOMAIN`, `ACCESS_POLICY_AUD`. Without them every admin API request is rejected with 403. Optional Rate Limiting binding `ADMIN_RATE_LIMITER` (keyed by the Access email; not configured yet, [DECISIONS.md](../working/DECISIONS.md) ADR-020).
-- Public Worker, AI explanations ([DECISIONS.md](../working/DECISIONS.md) ADR-026; none is configured yet): `AI_ASSIST_ENABLED` (`"true"` enables the endpoint; anything else, including unset, disables it and no model is called), `AI_MODEL` (one of the model IDs in `server/ai/workers-ai.ts`), the `AI` binding, the optional per-client rate-limit binding `AI_CLIENT_RATE_LIMITER` (there is deliberately no global limiter, ADR-026), and the Durable Object binding `AI_CLIENT_LIMITER` (strict per-client quota, ADR-029; also configured at the top level of `wrangler.jsonc`, where it runs locally only; without it AI never runs). To disable AI, set `AI_ASSIST_ENABLED` to anything other than `"true"` or remove it; the diagnosis keeps working. Tests use fakes and never call Workers AI. These settings belong only in a named deployment environment, never in the top-level `wrangler.jsonc` used by `npm run dev`, tests, and E2E, because an `ai` binding always connects to Cloudflare ([DECISIONS.md](../working/DECISIONS.md) ADR-026, C). Real-model runs use only the opt-in evaluation procedure in [AI_EVALUATION.md](../working/AI_EVALUATION.md); never put a Cloudflare API token in `.dev.vars`, because the build copies that file into `dist/`.
+
+Local values go in `.dev.vars` (see "Admin locally"). `.env.example` lists all variables.
+
+**Deployed admin Worker** (set only after the owner approves the Access setup):
+- `ACCESS_TEAM_DOMAIN`, `ACCESS_POLICY_AUD`. Without them every admin API request is rejected with 403.
+- Optional Rate Limiting binding `ADMIN_RATE_LIMITER`, keyed by the Access email. Not configured yet ([DECISIONS.md](../working/DECISIONS.md) ADR-020).
+
+**Public Worker, AI explanations** ([DECISIONS.md](../working/DECISIONS.md) ADR-026; none is configured yet):
+
+| Setting | Meaning |
+|---|---|
+| `AI_ASSIST_ENABLED` | `"true"` enables the endpoint. Anything else, including unset, disables it and no model is called. |
+| `AI_MODEL` | One of the model IDs in `server/ai/workers-ai.ts`. |
+| `AI` binding | The Workers AI binding. |
+| `AI_CLIENT_RATE_LIMITER` | Optional per-client rate-limit binding. There is deliberately no global limiter (ADR-026). |
+| `AI_CLIENT_LIMITER` | Durable Object binding for the strict per-client quota (ADR-029). Also configured at the top level of `wrangler.jsonc`, where it runs locally only. Without it AI never runs. |
+
+- To disable AI, set `AI_ASSIST_ENABLED` to anything other than `"true"` or remove it. The diagnosis keeps working.
+- Tests use fakes and never call Workers AI.
+- These settings belong only in a named deployment environment, never in the top-level `wrangler.jsonc` used by `npm run dev`, tests, and E2E. An `ai` binding always connects to Cloudflare ([DECISIONS.md](../working/DECISIONS.md) ADR-026, C).
+- Real-model runs use only the opt-in evaluation procedure in [AI_EVALUATION.md](../working/AI_EVALUATION.md).
+- Never put a Cloudflare API token in `.dev.vars`, because the build copies that file into `dist/`.
+
+## Install settings and troubleshooting
+
+`.npmrc` sets:
+- `engine-strict=true`: installs fail on an unsupported Node version.
+- `strict-allow-scripts=true`: installs fail if any dependency has install scripts not listed in `package.json` `allowScripts`. The scripts of `esbuild`, `fsevents`, and `workerd` are explicitly denied because they are not needed (ADR-016 in [DECISIONS.md](../working/DECISIONS.md)).
+
+If `npm ci` fails with `ESTRICTALLOWSCRIPTS`, a dependency update introduced a new install script. Review what it does, then record a decision with `npm deny-scripts <pkg>` (preferred) or `npm approve-scripts <pkg>` (version-pinned). Never use `--dangerously-allow-all-scripts` or `npm approve-scripts --all`.
+
+Do not install with `--omit=optional`: the `workerd` and `esbuild` binaries come from platform-specific optional dependencies.
