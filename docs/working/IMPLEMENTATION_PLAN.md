@@ -282,5 +282,19 @@ Open items for later phases, each needing the owner's decision or check:
 - Carried over: the trial's `en` rejection and the 400 request (要確認), why the first Phase 12 preview import did not reach the database (要確認), whether preview and production share the Neuron allowance (要確認), a manual retry for AI notes, an app-wide daily cap before any move to Workers Paid, Rome's top-5 share, discrimination-based question selection and early stopping, the preview seed data, and removing the overrides (ADR-030).
 - Still deferred: images, a dated exchange-rate table, the out-of-policy Access check, other empty costs and best months, and the pre-public-release checklist.
 - Dated, outside the phases: the Workers Logs and Billing check in the first week of December 2026 ([OPERATIONS.md](../en/OPERATIONS.md) section 3 "Dated").
-- Next: no phase is planned yet; the owner chooses the next one.
+- Next: Phase 15 (discrimination-based question selection and early stopping, `prompts/15-question-selection-and-early-stopping.md`).
 
+## Phase 15 — Discrimination-based question selection and early stopping
+Owner decision (2026-10-31): after Phase 14, evaluate the deferred discrimination-based selection and early stopping ([DIAGNOSTIC_ALGORITHM.md](../en/DIAGNOSTIC_ALGORITHM.md) §8), whose content condition is met; enabling AI on production ([DEPLOYMENT.md](../en/DEPLOYMENT.md) 7.3) is planned for after the December Workers Logs and Billing check.
+- Record the baseline with `npm run quiz:simulate` on `content/initial-v6.json`.
+- Propose an opt-in, local, deterministic evaluation with simulated respondents who answer consistently with a hidden preference profile, and agree on the measures with the owner before comparing.
+- Compare the §8 candidates (and justified variants) with the baseline; recommend one option, which may be "change nothing".
+- Implement only the approved option with tests and a rendered review copy of any new texts; deploy to preview, then production, with complete quizzes in all three locales.
+- Not in this phase: content changes, new attributes, production AI, a manual AI retry, an app-wide AI cap, images, a dated exchange-rate table, the out-of-policy Access check, removing the overrides (ADR-030), and the pre-public-release checklist.
+
+Acceptance:
+- The baseline and the evaluation method are recorded, and the owner approved the method before the candidates were compared.
+- The candidates are compared on the agreed measures, and the owner decided on the recommended option.
+- Approved changes are implemented with tests, selection stays deterministic, and the owner approved a rendered review copy of any new texts in all three locales.
+- If code changed, it is deployed to preview and production with complete quizzes checked in all three locales and recorded in the "Phase 15 verification log".
+- `npm run check` and `npm run test:e2e` pass after any change, AI is disabled in every environment, and the account stays on Workers Free.
