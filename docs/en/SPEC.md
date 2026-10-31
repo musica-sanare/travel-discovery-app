@@ -124,6 +124,7 @@ Do not invent current travel prices. Seed data may contain clearly labelled illu
 - Do not expose secrets, system prompts, internal stack traces, or provider errors.
 - Apply server-side request limits and graceful error handling.
 - If AI is unavailable, over quota, or returns invalid output, display the deterministic fallback and a non-blocking notice.
+- State the per-client limits next to the toggle without promising availability; when AI is off for the whole site, say so and disable the toggle; when a limit is reached, say which one and when AI can be used again.
 - Verify the current Cloudflare Workers AI free allowance, supported models, terms, and compatibility during implementation. Never promise that the service will remain free.
 
 ## 9. Flight/hotel search links

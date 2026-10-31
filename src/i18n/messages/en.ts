@@ -54,7 +54,7 @@ export const en: Messages = {
     delayed: "DELAYED",
   },
   footer: {
-    privacy: "Your answers stay in this browser; they are not sent to or stored on our server.",
+    privacy: "Your answers stay in this browser and are not stored on our server. Only when you turn on AI assistance are they sent once to create the AI notes.",
     costs: "All costs shown are indicative estimates with a source, not current prices.",
   },
   common: {
@@ -80,6 +80,8 @@ export const en: Messages = {
     budgetAmount: "Amount",
     ai: "Use AI assistance",
     aiHint: "When on, your answers and trip conditions are sent once to this site's server to check the results. Only a summary of your preferences and the recommended destinations' descriptions are sent to Cloudflare Workers AI to write the explanation. Neither is saved. AI never decides the ranking.",
+    aiLimits: "AI notes can be created up to {{perWindow}} times per minute and {{perDay}} times per day (days start at 00:00 UTC). AI assistance may also be turned off for the whole site.",
+    aiOff: "AI assistance is not offered on this site right now. You can still use the full diagnosis.",
     submit: "Continue to questions",
     invalidDays: "Enter a whole number of days from 1 to 365.",
     invalidBudget: "Enter a whole number of 1 or more.",
@@ -129,7 +131,9 @@ export const en: Messages = {
       ready: "AI notes have been added to each destination.",
       unavailable: "AI assistance is not available right now. The explanation below is based on our content data.",
       contentChanged: "Our content changed during your quiz, so AI notes can't be shown. Restart to use the latest content.",
-      rateLimited: "AI assistance is busy right now. Please try again later. The explanation below is based on our content data.",
+      rateLimited: "You have reached the limit for AI notes. Please try again later. The explanation below is based on our content data.",
+      rateLimitedWindow: "You have reached the per-minute limit for AI notes. You can use them again in about a minute. The explanation below is based on our content data.",
+      rateLimitedDaily: "You have reached today's limit for AI notes (days start at 00:00 UTC). You can use them again from {{date}}, {{time}}. The explanation below is based on our content data.",
     },
     excluded_one: "{{count}} destination was excluded because it exceeds your maximum budget.",
     excluded_other: "{{count}} destinations were excluded because they exceed your maximum budget.",

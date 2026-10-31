@@ -14,6 +14,8 @@ import { MAX_SLUG_LENGTH, SLUG_PATTERN } from "./slug";
 import { MAX_BUDGET, MAX_TRIP_DAYS } from "./trip-constraints";
 
 export const AI_EXPLANATIONS_PATH = "/api/ai/explanations";
+/** `GET`: whether this deployment offers AI explanations at all (`{ enabled }`), not any client's quota. */
+export const AI_STATUS_PATH = "/api/ai/status";
 /** Upper bound for one explanation text, enforced on model output and responses. */
 export const MAX_EXPLANATION_LENGTH = 400;
 
@@ -55,3 +57,7 @@ export const aiExplanationResponseSchema = z.object({
 });
 
 export type AiExplanationResponse = z.infer<typeof aiExplanationResponseSchema>;
+
+export const aiStatusResponseSchema = z.object({ enabled: z.boolean() });
+
+export type AiStatusResponse = z.infer<typeof aiStatusResponseSchema>;

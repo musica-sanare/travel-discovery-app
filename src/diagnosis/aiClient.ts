@@ -9,19 +9,39 @@ import {
   aiExplanationResponseSchema,
   type AiExplanationRequest,
 } from "../../shared/ai-explanation";
+import { aiRateLimitedBodySchema } from "../../shared/ai-quota";
 
 export const AI_CLIENT_TIMEOUT_MS = 12_000;
 
-export type AiFailure = "content_changed" | "rate_limited" | "unavailable";
+/**
+ * `rate_limited` is a 429 without the documented body; `rate_limited_daily`
+ * carries when the client's daily quota resets (epoch ms, 00:00 UTC).
+ */
+export type AiFailure =
+  | { reason: "content_changed" | "rate_limited" | "rate_limited_window" | "unavailable" }
+  | { reason: "rate_limited_daily"; retryAt: number };
 
-export type AiExplanationResult =
-  | { ok: true; texts: ReadonlyMap<string, string> }
-  | { ok: false; reason: AiFailure };
+export type AiExplanationResult = { ok: true; texts: ReadonlyMap<string, string> } | ({ ok: false } & AiFailure);
 
-function failureFor(status: number): AiFailure {
-  if (status === 409) return "content_changed";
-  if (status === 429) return "rate_limited";
-  return "unavailable";
+const MINUTE_MS = 60_000;
+
+async function rateLimitFailure(response: Response): Promise<AiFailure> {
+  const parsed = aiRateLimitedBodySchema.safeParse(await response.json().catch(() => null));
+  if (!parsed.success) {
+    return { reason: "rate_limited" };
+  }
+  if (parsed.data.limit === "window") {
+    return { reason: "rate_limited_window" };
+  }
+  // The daily reset is at a whole minute (00:00 UTC); rounding hides small clock differences.
+  const retryAt = Math.round((Date.now() + parsed.data.retryAfter * 1000) / MINUTE_MS) * MINUTE_MS;
+  return { reason: "rate_limited_daily", retryAt };
+}
+
+async function failureFor(response: Response): Promise<AiFailure> {
+  if (response.status === 409) return { reason: "content_changed" };
+  if (response.status === 429) return rateLimitFailure(response);
+  return { reason: "unavailable" };
 }
 
 /**
@@ -49,7 +69,7 @@ export async function fetchAiExplanations(
       signal: controller.signal,
     });
     if (!response.ok) {
-      return { ok: false, reason: failureFor(response.status) };
+      return { ok: false, ...(await failureFor(response)) };
     }
     const parsed = aiExplanationResponseSchema.safeParse(await response.json());
     if (!parsed.success) {

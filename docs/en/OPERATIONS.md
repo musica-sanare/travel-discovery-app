@@ -26,12 +26,12 @@ All four Workers use `workers.dev` (`<worker>.<account subdomain>.workers.dev`).
 
 App log lines (JSON, one per line):
 - `{"event":"api_error","context":…,"code":…,"errorName":…}`: a request ended with 500 or 503 (`server/http/errors.ts`). `service_unavailable` means a D1 failure, including the daily limits.
-- `{"event":"ai_explanation","outcome":…,"model":…,"latencyMs":…,"destinationCount":…}`: one per AI request. Outcomes: `ok`, `content_mismatch`, `provider_error`, `timeout`, `invalid_output`, `disabled`, `rate_limited`, `limiter_unavailable`. Since Phase 11 the limiters run before the kill switch, so `rate_limited` lines can also appear while AI is disabled. `limiter_unavailable` means the quota Durable Object failed or is missing (for example a Workers Free daily limit); no model is called and the client gets 503 (ADR-029).
+- `{"event":"ai_explanation","outcome":…,"model":…,"latencyMs":…,"destinationCount":…}`: one per AI request. Outcomes: `ok`, `content_mismatch`, `provider_error`, `timeout`, `invalid_output`, `disabled`, `rate_limited_window`, `rate_limited_daily`, `limiter_unavailable` (before Phase 14 one `rate_limited` instead of the two). An `invalid_output` line also has `reason`, the failed check (`json`, `shape`, `too_long`, `duplicate_id`, `id_set`, `too_short`, `digit`, `link`, `markup`, or `script`; ADR-026 "Phase 14 amendments"). Since Phase 11 the limiters run before the kill switch, so rate-limit lines can also appear while AI is disabled; since Phase 14 the plan page disables the AI toggle while AI is off, so such requests come only from clients other than the UI. `limiter_unavailable` means the quota Durable Object failed or is missing (for example a Workers Free daily limit); no model is called and the client gets 503 (ADR-029).
 
 ## 3. Routine checks
 
 Weekly, and after any change on the Access tab, a Zero Trust policy, or the account subdomain:
-- Run the unauthenticated checks for both environments. They cover the public API in all locales, the security headers, the AI endpoint while AI is disabled, and the Access redirect (302 to `https://<team>.cloudflareaccess.com/...`) of `/`, `/destinations`, and `/api/admin/me` on the admin Worker; the script exits 1 on any failure:
+- Run the unauthenticated checks for both environments. They cover the public API in all locales, the security headers, the AI endpoint and the AI status (`{"enabled":false}`) while AI is disabled, and the Access redirect (302 to `https://<team>.cloudflareaccess.com/...`) of `/`, `/destinations`, and `/api/admin/me` on the admin Worker; the script exits 1 on any failure:
 
   ```bash
   node scripts/check-deployment.mjs <account subdomain> production
@@ -74,7 +74,7 @@ Any unauthenticated 200 from an admin URL. The admin API still answers 403 witho
 Archive or correct it in the admin console. To undo a larger mistake, restore the database with Time Travel (section 5).
 
 ### 4.4 AI problems or abuse (once AI is enabled)
-Stop AI with the kill switch ([DEPLOYMENT.md](DEPLOYMENT.md) section 7, ADR-026 E); the diagnosis keeps working. Stop when Neurons exceed about 70% of the daily allocation before 12:00 UTC, or when `rate_limited` or `provider_error` outcomes spike.
+Stop AI with the kill switch ([DEPLOYMENT.md](DEPLOYMENT.md) section 7, ADR-026 E); the diagnosis keeps working. Stop when Neurons exceed about 70% of the daily allocation before 12:00 UTC, or when rate-limit (`rate_limited_window`, `rate_limited_daily`) or `provider_error` outcomes spike.
 
 ## 5. Backups and restore
 - D1 Time Travel keeps 7 days on Workers Free. Before bulk content changes, record a bookmark: `npx wrangler d1 time-travel info travel-discovery-production` (remote read; approval).

@@ -1,4 +1,4 @@
-<!-- source: docs/en/DEPLOYMENT.md blob 6c9e346c964e5be26c8bc0ac778d2f66a34c4e3d -->
+<!-- source: docs/en/DEPLOYMENT.md blob 2c0672b1f6e02f20318653d5a2004771e70bffb8 -->
 [English](../en/DEPLOYMENT.md) | 日本語 · [目次に戻る](README.md)
 
 > この文書は[英語版](../en/DEPLOYMENT.md)の翻訳です。内容が異なる場合は英語版が優先されます。
@@ -153,26 +153,26 @@ npx wrangler d1 migrations apply travel-discovery-preview --remote --env preview
 1. オーナー: ダッシュボードで、その日に既に使った Workers AI の Neurons を記録しておき、試行での使用量を差分として読めるようにする。
 2. `env.preview`（`wrangler.jsonc`）だけで `AI_ASSIST_ENABLED: "true"` を設定し、コミットし（オーナー承認）、`CLOUDFLARE_ENV=preview npm run build` を実行し、dry run を確認し（プレビューのデータベース、`AI_ASSIST_ENABLED` が `"true"`、`AI_CLIENT_RATE_LIMITER` が 60 秒あたり 5）、公開プレビュー Worker だけをデプロイする（5 節）。本番と管理 Worker はデプロイしない。
 3. ノート（モデル呼び出し約 5 回）: 内蔵ブラウザーで、AI トグルを ON にして、`ja`、`en`、`es` のそれぞれで最初からクイズを 1 回ずつ最後まで回答し、その後 1 つの結果ページで言語を 2 回切り替える。各ステップでリクエストが 1 回送られる。既に表示した言語に戻っても送られない（ADR-026 C4）。リミッターに拒否されないよう、クイズの間は 60 秒以上空ける。
-4. リミッター（モデル呼び出しなし）: 60 秒待ってから、1 つのアドレスから、空のオブジェクトを本文にした同一オリジンのリクエストを送る。ハンドラーの処理順はメソッド → オリジン → リミッター → 停止スイッチ → 本文なので（Phase 11 からリミッターが停止スイッチより先）、最初のリクエストは 400 `invalid_request`、その後は 429 `rate_limited` を返す:
+4. リミッター（モデル呼び出しなし）: 60 秒待ってから、1 つのアドレスから、空のオブジェクトを本文にした同一オリジンのリクエストを送る。ハンドラーの処理順はメソッド → オリジン → リミッター → 停止スイッチ → 本文なので（Phase 11 からリミッターが停止スイッチより先）、最初のリクエストは 400 `invalid_request`、その後は 429 `rate_limited` を返す（Phase 14 から `limit` と `retryAfter` 付き。ADR-026「Phase 14 amendments」）:
 
    ```bash
    for i in $(seq 1 15); do curl -s -o /dev/null -w "%{http_code}\n" -X POST -H "Origin: https://travel-discovery-preview.<account subdomain>.workers.dev" -H "Content-Type: application/json" --data "{}" https://travel-discovery-preview.<account subdomain>.workers.dev/api/ai/explanations; done
    ```
 
    400 と 429 の応答の数を記録する。カウンターは Cloudflare のロケーションごとで、結果整合なので、最初の 429 は 5 回を超えてから来ることがある。15 回送っても 429 が来なければ、このチェックは不合格である（それ以上送り続けない）。
-5. ログ（オーナー、`travel-discovery-preview` の Observability）: すべての `ai_explanation` の行が `event`、`outcome`、`model`、`latencyMs`、`destinationCount` をちょうど持ち、アドレス、回答、条件、プロンプト、ノートの文章を含まないこと。期待する結果: 手順 3 のリクエストごとに `ok` の行が 1 つあり、`model` が `@cf/google/gemma-4-26b-a4b-it`、`destinationCount` が表示したカードの数（既定は 5）、`latencyMs` が 8,000 未満。手順 4 については `latencyMs` が 0 の `rate_limited` の行。`invalid_output`、`timeout`、`provider_error`、`content_mismatch` の行があれば数える。
+5. ログ（オーナー、`travel-discovery-preview` の Observability）: すべての `ai_explanation` の行が `event`、`outcome`、`model`、`latencyMs`、`destinationCount` をちょうど持ち（Phase 14 から、`invalid_output` の行は落ちた検査を示す固定のコード `reason` も持つ）、アドレス、回答、条件、プロンプト、ノートの文章を含まないこと。期待する結果: 手順 3 のリクエストごとに `ok` の行が 1 つあり、`model` が `@cf/google/gemma-4-26b-a4b-it`、`destinationCount` が表示したカードの数（既定は 5）、`latencyMs` が 8,000 未満。手順 4 については `latencyMs` が 0 の `rate_limited_window` の行（Phase 14 より前は `rate_limited`）。`invalid_output`、`timeout`、`provider_error`、`content_mismatch` の行があれば数える。
 6. `ja`、`en`、`es` のノートのオーナーによる確認: 選択した言語で書かれており、`ja` では UI と同じ丁寧な文体であること。順位、スコア、旅行先同士の比較がないこと。旅行先の人が書いたテキストにない価格、費用、日付、季節、営業時間、ビザや入国の規則、安全性の主張、名前の挙がった施設・イベント・事業者がないこと。決定的な説明と矛盾する内容がないこと。あわせて、各ノートに AI が書いたことを示すラベルがあること、決定的な説明・費用・季節の注記が変わっていないこと、カードの順序が AI OFF のときと同じであることも確認する。結果はロケールごとに [DECISIONS.md](../working/DECISIONS.md)（英語のみ）に記録し、ノートそのものはリポジトリにコピーしない。
 7. オーナー: Workers AI の Neurons を再び読み、差分を記録する。
-8. 無効化: `AI_ASSIST_ENABLED` を `"false"` に戻し、コミット、再ビルドし、公開プレビュー Worker を再デプロイし、`scripts/check-deployment.mjs <account subdomain> preview` で 503 `ai_unavailable` を確認する（AI が有効な間は、その AI のチェックは設計上失敗する）。
+8. 無効化: `AI_ASSIST_ENABLED` を `"false"` に戻し、コミット、再ビルドし、公開プレビュー Worker を再デプロイし、`scripts/check-deployment.mjs <account subdomain> preview` で 503 `ai_unavailable` と `/api/ai/status` の `{"enabled":false}` を確認する（AI が有効な間は、その AI のチェックは設計上失敗する）。
 
-**すぐに停止する**（他の手順を終えずに手順 8 へ）条件: 試行で使った Neurons が 1,000 を超えた。モデル呼び出しが 10 回に達した。2 つの応答が `ok` か `rate_limited` 以外で終わった。ノートに価格、日付、順位、その他の禁止された内容が含まれていた。ログや Billing のページに想定外のものが現れた。診断はその間もずっと動く。ダッシュボードで変数を編集する方が再デプロイより速いが、次の `wrangler deploy` で上書きされるので、再びデプロイする前に `"false"` をコミットする。
+**すぐに停止する**（他の手順を終えずに手順 8 へ）条件: 試行で使った Neurons が 1,000 を超えた。モデル呼び出しが 10 回に達した。2 つの応答が `ok`、`rate_limited_window`、`rate_limited_daily` 以外で終わった。ノートに価格、日付、順位、その他の禁止された内容が含まれていた。ログや Billing のページに想定外のものが現れた。診断はその間もずっと動く。ダッシュボードで変数を編集する方が再デプロイより速いが、次の `wrangler deploy` で上書きされるので、再びデプロイする前に `"false"` をコミットする。
 
 [DECISIONS.md](../working/DECISIONS.md)（英語のみ）に**記録する**もの: 日付、バージョン ID、行ったモデル呼び出しの数、前後の Neurons、手順 4 の 400／429 の数、手順 5 の結果の件数とレイテンシー、手順 6 のオーナーの確認結果。
 
-**後の本番の判断を妨げる**もの（どれか 1 つでも）: 手順 4 で 429 が観測されなかった。手順 3 のリクエストのうち 2 つ以上で `invalid_output`、`timeout`、`provider_error` が出た。順位、比較、データにない事実を含むノートがあった。1 回あたりの Neurons が見積もりを大きく上回った（平均で約 30 を超える）。5 つの項目より多い項目を持つ、またはリクエストの内容を含むログの行があった。アカウントが Workers Free でない、または Billing に新しい請求がある。Workers Logs の量が Free の割り当てに近い（[OPERATIONS.md](OPERATIONS.md) 7 節）。プレビューと本番が Neurons の割り当てを共有するかどうかは要確認のままで、共有するものとして計画する。本番で AI を有効にするのは 7 節による別のオーナーの判断であり、この記録ができてから行う。
+**後の本番の判断を妨げる**もの（どれか 1 つでも）: 手順 4 で 429 が観測されなかった。手順 3 のリクエストのうち 2 つ以上で `invalid_output`、`timeout`、`provider_error` が出た。順位、比較、データにない事実を含むノートがあった。1 回あたりの Neurons が見積もりを大きく上回った（平均で約 30 を超える）。5 つの項目（`invalid_output` は `reason` を含めて 6 つ）より多い項目を持つ、またはリクエストの内容を含むログの行があった。アカウントが Workers Free でない、または Billing に新しい請求がある。Workers Logs の量が Free の割り当てに近い（[OPERATIONS.md](OPERATIONS.md) 7 節）。プレビューと本番が Neurons の割り当てを共有するかどうかは要確認のままで、共有するものとして計画する。本番で AI を有効にするのは 7 節による別のオーナーの判断であり、この記録ができてから行う。
 
 ### 7.2 AI を無効にしたままのリミッターの確認（別途承認）
-Phase 11 から、公開 Worker は停止スイッチより先に `AI_CLIENT_RATE_LIMITER`、続いて上限用の Durable Object `AI_CLIENT_LIMITER`（ADR-029）を確かめる。そのため、`AI_ASSIST_ENABLED` が `"false"` のデプロイでリミッターを確認できる: モデルは呼ばれず、確認中に誰も AI を使えない。リミッターが拒否したリクエストは 429 `rate_limited` を返し、それ以外は 503 `ai_unavailable` を返して `disabled` の行を書く。各実行は、そのアドレスの 1 日の上限 30 回にも数えられる（2 回の実行で 10 回分）。各リクエストは Workers Free の 1 日のリクエスト上限に数えられる（ここでは無視できる量）。デプロイと確認はそれぞれオーナーの承認が必要で、この確認のために本番はデプロイしない。
+Phase 11 から、公開 Worker は停止スイッチより先に `AI_CLIENT_RATE_LIMITER`、続いて上限用の Durable Object `AI_CLIENT_LIMITER`（ADR-029）を確かめる。そのため、`AI_ASSIST_ENABLED` が `"false"` のデプロイでリミッターを確認できる: モデルは呼ばれず、確認中に誰も AI を使えない。リミッターが拒否したリクエストは 429 `rate_limited` を返し（Phase 14 から `limit` が `window` で `retryAfter` 付き、ログは `rate_limited_window`）、それ以外は 503 `ai_unavailable` を返して `disabled` の行を書く。各実行は、そのアドレスの 1 日の上限 30 回にも数えられる（2 回の実行で 10 回分）。各リクエストは Workers Free の 1 日のリクエスト上限に数えられる（ここでは無視できる量）。デプロイと確認はそれぞれオーナーの承認が必要で、この確認のために本番はデプロイしない。
 
 1. 確認するコミットを、公開プレビュー Worker だけにデプロイする（5 節）。`AI_ASSIST_ENABLED` は `"false"` のまま。ドライランで `AI_CLIENT_RATE_LIMITER`（60 秒に 5 回）と Durable Object `AI_CLIENT_LIMITER`（`AiClientLimiter`）があることを確認する。Durable Object を含む最初のデプロイでマイグレーション `v1`（`new_sqlite_classes`）が適用される。後でクラスを取り除くには `deleted_classes` のマイグレーションが必要である。
 2. 同じアドレスからの他の AI リクエスト（`scripts/check-deployment.mjs` を含む）から 60 秒以上待つ。
@@ -188,8 +188,8 @@ Phase 11 から、公開 Worker は停止スイッチより先に `AI_CLIENT_RAT
    URL=https://travel-discovery-preview.<account subdomain>.workers.dev; for i in $(seq 1 15); do curl -4 -s -o /dev/null -X POST -H "Origin: $URL" -H "Content-Type: application/json" --data "{}" -w "%{http_code} %{num_connects}\n" "$URL/api/ai/explanations"; done
    ```
 
-5. 60 秒以上待ってから、`node scripts/check-deployment.mjs <account subdomain> preview` を実行する（その AI のチェックは 503 を期待する）。
-6. オーナー: `travel-discovery-preview` の Observability で、実行 A と B の `rate_limited` と `disabled` の行を数える。429 と 503 の数と一致するはずである。ダッシュボードで、Durable Object のリクエストと書き込んだ行、Worker のリクエスト数に Durable Object の呼び出しが含まれるかを記録する（ADR-029、要確認）。
+5. 60 秒以上待ってから、`node scripts/check-deployment.mjs <account subdomain> preview` を実行する（その AI のチェックは 503 と、Phase 14 から `GET /api/ai/status` の `{"enabled":false}` を期待する）。
+6. オーナー: `travel-discovery-preview` の Observability で、実行 A と B の `rate_limited_window`（Phase 14 より前は `rate_limited`）と `disabled` の行を数える。429 と 503 の数と一致するはずである。ダッシュボードで、Durable Object のリクエストと書き込んだ行、Worker のリクエスト数に Durable Object の呼び出しが含まれるかを記録する（ADR-029、要確認）。
 
 [DECISIONS.md](../working/DECISIONS.md)（英語のみ）の「Phase 11 verification log」に、バージョン ID と、実行ごとのステータスコードと接続数の並びを記録する。アドレスは記録しない。解釈: 上限用の Durable Object があれば、1 つのオブジェクトがそのアドレスのリクエストをすべて数えるので、どちらの実行もちょうど 5 回の 503 のあとに 429 を返さなければならない。どちらかの実行で 503 が 5 回を超えるか、429 が出なければ不合格で、AI は無効のままにして記録する（Durable Object がない状態では、2026-10-25 に binding だけでは実行 A でしか 429 が出なかった: 新しい接続で届いたリクエストはまとめて数えられない）。新しい判断なしに、15 回の実行 2 回を超えて送らない。
 

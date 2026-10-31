@@ -1,10 +1,12 @@
-import { useId, useState, type SyntheticEvent } from "react";
+import { useEffect, useId, useState, type SyntheticEvent } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router";
+import { AI_CLIENT_QUOTA } from "../../shared/ai-quota";
 import { DEFAULT_CURRENCY, SUPPORTED_CURRENCIES } from "../../shared/costs";
 import { MONTHS } from "../../shared/months";
 import { buttonClass, chipClass, fieldClass, headingClass, ticketLabelClass } from "../components/classes";
 import { Barcode, PlaneIcon } from "../components/Decorations";
+import { useAiSiteStatus } from "../diagnosis/aiStatus";
 import { parseConstraints, type ConstraintsDraft } from "../diagnosis/constraintsForm";
 import { useQuizSession } from "../diagnosis/quizSessionContext";
 import { drawSeed } from "../diagnosis/session";
@@ -25,8 +27,17 @@ export function PlanPage() {
   }));
   const [errors, setErrors] = useState<("days" | "budget")[]>([]);
   const monthFormat = new Intl.DateTimeFormat(i18n.resolvedLanguage, { month: "long", timeZone: "UTC" });
+  const aiStatus = useAiSiteStatus();
+  const aiOff = aiStatus === "off";
   const daysError = errors.includes("days");
   const budgetError = errors.includes("budget");
+
+  // A choice made before the status arrived must not send a request the site refuses anyway.
+  useEffect(() => {
+    if (aiOff && session.aiAssist) {
+      dispatch({ type: "setAiAssist", enabled: false });
+    }
+  }, [aiOff, session.aiAssist, dispatch]);
 
   const submit = (event: SyntheticEvent) => {
     event.preventDefault();
@@ -192,16 +203,17 @@ export function PlanPage() {
                 <input
                   id={`${id}-ai`}
                   type="checkbox"
-                  checked={session.aiAssist}
-                  aria-describedby={`${id}-ai-hint`}
+                  checked={session.aiAssist && !aiOff}
+                  disabled={aiOff}
+                  aria-describedby={aiOff ? `${id}-ai-off ${id}-ai-hint ${id}-ai-limits` : `${id}-ai-hint ${id}-ai-limits`}
                   onChange={(event) => {
                     dispatch({ type: "setAiAssist", enabled: event.target.checked });
                   }}
-                  className="peer absolute inset-0 z-10 m-0 size-full cursor-pointer appearance-none rounded-full"
+                  className="peer absolute inset-0 z-10 m-0 size-full cursor-pointer appearance-none rounded-full disabled:cursor-not-allowed"
                 />
                 <span
                   aria-hidden="true"
-                  className="pointer-events-none absolute inset-0 rounded-full bg-muted transition-colors peer-checked:bg-accent"
+                  className="pointer-events-none absolute inset-0 rounded-full bg-muted transition-colors peer-checked:bg-accent peer-disabled:opacity-40"
                 />
                 <span
                   aria-hidden="true"
@@ -209,8 +221,16 @@ export function PlanPage() {
                 />
               </span>
             </div>
+            {aiOff && (
+              <p id={`${id}-ai-off`} className="mt-1 text-sm font-semibold">
+                {t("plan.aiOff")}
+              </p>
+            )}
             <p id={`${id}-ai-hint`} className="mt-1 text-sm text-muted">
               {t("plan.aiHint")}
+            </p>
+            <p id={`${id}-ai-limits`} className="mt-1 text-sm text-muted">
+              {t("plan.aiLimits", { perWindow: AI_CLIENT_QUOTA.perWindow, perDay: AI_CLIENT_QUOTA.perUtcDay })}
             </p>
           </div>
         </div>

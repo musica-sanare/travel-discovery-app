@@ -74,6 +74,11 @@ async function checkPublic() {
   }
   await expectStatus("public /api/admin/me 404", `${publicBase}/api/admin/me`, 404);
   await expectStatus("public DELETE /api/destinations 405", `${publicBase}/api/destinations`, 405, { method: "DELETE" });
+  const status = await expectStatus("public /api/ai/status 200", `${publicBase}/api/ai/status`, 200);
+  if (status) {
+    const body = await status.json().catch(() => null);
+    report(body?.enabled === false, "public AI status enabled false (AI disabled)", JSON.stringify(body));
+  }
   const aiInit = (origin) => ({
     method: "POST",
     headers: { Origin: origin, "Content-Type": "application/json" },

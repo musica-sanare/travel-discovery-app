@@ -10,7 +10,11 @@ import { createI18n } from "../i18n/createI18n";
 import { routes } from "./routes";
 
 let failRequests = false;
+/** Every request except the site AI status, which carries no user data. */
 const requests: string[] = [];
+let aiStatusRequests = 0;
+/** Body of `GET /api/ai/status`, or null for a failing request. */
+let aiStatusBody: { enabled: boolean } | null;
 const aiBodies: unknown[] = [];
 const AI_TEXT = "ゆったりとした街歩きと豊かな食文化があり、あなたの好みに合いそうです。";
 /** Response of the mocked AI endpoint: echoes one text per expected slug by default. */
@@ -23,6 +27,8 @@ function echoAi(body: { expected: string[] }) {
 beforeEach(() => {
   failRequests = false;
   requests.length = 0;
+  aiStatusRequests = 0;
+  aiStatusBody = { enabled: true };
   aiBodies.length = 0;
   aiResponse = echoAi;
   sharedContentCache.clear();
@@ -30,6 +36,12 @@ beforeEach(() => {
     "fetch",
     vi.fn((input: string, init?: RequestInit) => {
       const url = new URL(input, "https://app.example.test");
+      if (url.pathname === "/api/ai/status") {
+        aiStatusRequests += 1;
+        return Promise.resolve(
+          aiStatusBody ? new Response(JSON.stringify(aiStatusBody)) : new Response(JSON.stringify({ error: "internal_error" }), { status: 500 }),
+        );
+      }
       requests.push(url.pathname + url.search);
       if (url.pathname === "/api/ai/explanations") {
         const body = JSON.parse(typeof init?.body === "string" ? init.body : "") as { expected: string[] };
@@ -166,7 +178,7 @@ describe("diagnosis flow", () => {
 
   it.each([
     [409, "診断中に登録データが更新されたため"],
-    [429, "AI アシストへのリクエストが集中しています"],
+    [429, "AI による補足の作成回数が上限に達しました。時間をおいて"],
     [503, "AI アシストは現在利用できません"],
     [500, "AI アシストは現在利用できません"],
   ])("shows a non-blocking notice and the normal results for status %i", async (status, notice) => {
@@ -176,6 +188,68 @@ describe("diagnosis flow", () => {
     expect(screen.getAllByRole("article")).toHaveLength(2);
     expect(screen.queryByRole("heading", { name: "AI による補足" })).toBeNull();
     expect(requests.filter((url) => url === "/api/ai/explanations")).toHaveLength(1);
+  });
+
+  it("names the per-minute limit for a 429 of the window", async () => {
+    aiResponse = () => new Response(JSON.stringify({ error: "rate_limited", limit: "window", retryAfter: 40 }), { status: 429 });
+    await finishQuizWithAi();
+    expect((await screen.findByRole("status")).textContent).toContain("1 分間の上限に達しました。1 分ほどたつと、再びご利用いただけます。");
+    expect(screen.getAllByRole("article")).toHaveLength(2);
+  });
+
+  it("names the daily limit and when it resets for a 429 of the day", async () => {
+    aiResponse = () => new Response(JSON.stringify({ error: "rate_limited", limit: "daily", retryAfter: 3_600 }), { status: 429 });
+    await finishQuizWithAi();
+    const retryAt = new Date(Math.round((Date.now() + 3_600_000) / 60_000) * 60_000);
+    const date = new Intl.DateTimeFormat("ja", { month: "long", day: "numeric" }).format(retryAt);
+    const time = new Intl.DateTimeFormat("ja", { hour: "numeric", minute: "2-digit", timeZoneName: "short" }).format(retryAt);
+    expect((await screen.findByRole("status")).textContent).toContain(`本日分（UTC 基準）の AI による補足の作成回数が上限に達しました。${date} ${time} 以降に`);
+    expect(screen.getAllByRole("article")).toHaveLength(2);
+  });
+
+  it("states the limits next to the toggle and disables it when the site offers no AI", async () => {
+    aiStatusBody = { enabled: false };
+    renderApp("/plan");
+    await screen.findByText("現在、AI アシストは提供していません。診断はこのままご利用いただけます。");
+    const toggle = screen.getByLabelText<HTMLInputElement>("AI アシストを使う");
+    expect(toggle.disabled).toBe(true);
+    expect(toggle.checked).toBe(false);
+    expect(toggle.getAttribute("aria-describedby")?.split(" ")).toHaveLength(3);
+    expect(screen.getByText(/1 分間に 5 回、1 日（UTC 基準）に 30 回までです/)).toBeTruthy();
+    expect(aiStatusRequests).toBe(1);
+  });
+
+  it("turns AI off when the site status arrives after the toggle was switched on", async () => {
+    let resolveStatus: (response: Response) => void = () => undefined;
+    const pending = new Promise<Response>((resolve) => {
+      resolveStatus = resolve;
+    });
+    const base = vi.mocked(fetch).getMockImplementation();
+    vi.mocked(fetch).mockImplementation((input, init) =>
+      input === "/api/ai/status" ? pending : (base?.(input, init) ?? Promise.reject(new Error("no mock"))),
+    );
+    renderApp("/plan");
+    const toggle = await screen.findByLabelText<HTMLInputElement>("AI アシストを使う");
+    fireEvent.click(toggle);
+    expect(toggle.checked).toBe(true);
+    resolveStatus(new Response(JSON.stringify({ enabled: false })));
+    await screen.findByText("現在、AI アシストは提供していません。診断はこのままご利用いただけます。");
+    expect(toggle.checked).toBe(false);
+    fireEvent.click(screen.getByRole("button", { name: "質問に進む" }));
+    await screen.findByRole("heading", { name: /^質問 1 \/ 2$/ });
+    answerFirstOption();
+    await screen.findByRole("heading", { name: /^質問 2 \/ 2$/ });
+    answerFirstOption();
+    await screen.findByRole("heading", { name: "あなたへのおすすめ" });
+    expect(screen.queryByRole("status")).toBeNull();
+    expect(requests.filter((url) => url === "/api/ai/explanations")).toHaveLength(0);
+  });
+
+  it("keeps the toggle usable when the site status cannot be read", async () => {
+    aiStatusBody = null;
+    await finishQuizWithAi();
+    await screen.findByText("各旅行先に AI による補足を追加しました。");
+    expect(screen.queryByText("現在、AI アシストは提供していません。診断はこのままご利用いただけます。")).toBeNull();
   });
 
   it("shows the unavailable notice when the AI request fails at the network level", async () => {

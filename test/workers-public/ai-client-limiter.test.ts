@@ -19,6 +19,9 @@ describe("AiClientLimiter", () => {
       results.push((await stub.check()).success);
     }
     expect(results).toEqual([true, true, true, true, true, false]);
+    const refused = await stub.check();
+    expect(refused).toMatchObject({ success: false, limit: "window" });
+    expect(refused.success ? 0 : refused.retryAt - Date.now()).toBeGreaterThan(0);
     expect((await (await stubFor("ip4:192.0.2.9")).check()).success).toBe(true);
   });
 
@@ -50,5 +53,7 @@ describe("AiClientLimiter", () => {
       statuses.push((await app.fetch(request, env)).status);
     }
     expect(statuses).toEqual([503, 503, 503, 503, 503, 429, 429]);
+    const status = await app.fetch(new Request(`${ORIGIN}/api/ai/status`), env);
+    expect(await status.json()).toEqual({ enabled: false });
   });
 });

@@ -4,7 +4,7 @@
  * mean a text is accurate.
  */
 import { describe, expect, it } from "vitest";
-import { checkExplanationText, parseModelOutput } from "../../server/ai/output";
+import { checkExplanationText, parseModelOutput, validateModelOutput } from "../../server/ai/output";
 
 const JA = "ゆったりとした街歩きと豊かな食文化があり、あなたが挙げた好みによく合いそうな旅行先です。";
 const EN = "Relaxed walks through historic streets and a rich food culture make this a natural fit for what you enjoy.";
@@ -68,5 +68,32 @@ describe("parseModelOutput", () => {
     ["undefined", undefined],
   ])("discards the whole output for %s", (_, value) => {
     expect(parseModelOutput(value, ids, "ja")).toBeNull();
+  });
+});
+
+describe("validateModelOutput", () => {
+  const ids = ["d1", "d2"];
+  const items = (list: string[], text = JA) => ({ explanations: list.map((id) => ({ id, text })) });
+
+  it("accepts valid output", () => {
+    expect(validateModelOutput(items(ids), ids, "ja")).toEqual({ ok: true, texts: new Map([["d1", JA], ["d2", JA]]) });
+  });
+
+  it.each([
+    ["non-JSON text", "Here are your explanations", "json"],
+    ["null", null, "shape"],
+    ["an extra field", { explanations: [{ id: "d1", text: JA, rank: 1 }, { id: "d2", text: JA }] }, "shape"],
+    ["empty text", items(ids, "   "), "shape"],
+    ["text over the length limit", items(ids, "x".repeat(401)), "too_long"],
+    ["a duplicate ID", items(["d1", "d1"]), "duplicate_id"],
+    ["a missing ID", items(["d1"]), "id_set"],
+    ["an unknown ID", items(["d1", "d9"]), "id_set"],
+    ["a short text", items(ids, "短い説明です。"), "too_short"],
+    ["a digit", items(ids, `${JA}一泊１万円です。`), "digit"],
+    ["a link", items(ids, `${JA}www.example.org`), "link"],
+    ["markup", items(ids, `${JA}**おすすめ**`), "markup"],
+    ["the wrong script", items(ids, EN), "script"],
+  ] as const)("reports %s as %s", (_, raw, reason) => {
+    expect(validateModelOutput(raw, ids, "ja")).toEqual({ ok: false, reason });
   });
 });

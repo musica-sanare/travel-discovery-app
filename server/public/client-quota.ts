@@ -4,14 +4,9 @@
  * every request of a client is counted in one place, whatever connection or
  * Cloudflare location it arrives on.
  */
-export interface QuotaLimits {
-  windowMs: number;
-  perWindow: number;
-  perUtcDay: number;
-}
+import type { AiRateLimit, QuotaLimits } from "../../shared/ai-quota";
 
-/** 5 per 60 s, as the Rate Limiting binding, plus 30 per UTC day. */
-export const AI_CLIENT_QUOTA: QuotaLimits = { windowMs: 60_000, perWindow: 5, perUtcDay: 30 };
+export { AI_CLIENT_QUOTA } from "../../shared/ai-quota";
 
 /** Counts only; the object identity is the client, so no key is stored. */
 export interface QuotaState {
@@ -32,12 +27,24 @@ export function nextUtcMidnight(nowMs: number): number {
   return (utcDay(nowMs) + 1) * DAY_MS;
 }
 
-/** Refused requests are not counted, so a refusal needs no storage write. */
+/** Which limit refused a request and when a request can pass again (epoch ms). */
+export interface QuotaRefusal {
+  limit: AiRateLimit;
+  retryAt: number;
+}
+
+/** Result of one quota check, as returned by the Durable Object. */
+export type QuotaDecision = { success: true } | ({ success: false } & QuotaRefusal);
+
+/**
+ * Refused requests are not counted, so a refusal needs no storage write. When
+ * both limits are reached, the daily limit is reported, because it lasts longer.
+ */
 export function applyQuota(
   state: QuotaState | null,
   nowMs: number,
   limits: QuotaLimits,
-): { allowed: boolean; state: QuotaState } {
+): { allowed: true; state: QuotaState } | { allowed: false; state: QuotaState; refusal: QuotaRefusal } {
   const today = utcDay(nowMs);
   const sameDay = state !== null && state.utcDay === today;
   const dayCount = sameDay ? state.dayCount : 0;
@@ -45,8 +52,11 @@ export function applyQuota(
   const windowStart = windowOpen ? state.windowStart : nowMs;
   const windowCount = windowOpen ? state.windowCount : 0;
   const current = { utcDay: today, dayCount, windowStart, windowCount };
-  if (dayCount >= limits.perUtcDay || windowCount >= limits.perWindow) {
-    return { allowed: false, state: current };
+  if (dayCount >= limits.perUtcDay) {
+    return { allowed: false, state: current, refusal: { limit: "daily", retryAt: nextUtcMidnight(nowMs) } };
+  }
+  if (windowCount >= limits.perWindow) {
+    return { allowed: false, state: current, refusal: { limit: "window", retryAt: windowStart + limits.windowMs } };
   }
   return { allowed: true, state: { ...current, dayCount: dayCount + 1, windowCount: windowCount + 1 } };
 }

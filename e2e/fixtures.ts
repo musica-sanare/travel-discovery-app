@@ -43,7 +43,7 @@ export async function startQuiz(page: Page) {
   await expect(page.getByRole("heading", { level: 1, name: "旅の条件（任意）" })).toBeVisible();
 }
 
-/** Same-origin requests other than the app shell, assets, and the content snapshot. */
+/** Same-origin requests other than the app shell, assets, the content snapshot, and the site AI status. */
 export function unexpectedRequests(requests: readonly string[], baseURL: string): string[] {
   return requests.filter((url) => {
     const parsed = new URL(url);
@@ -52,7 +52,8 @@ export function unexpectedRequests(requests: readonly string[], baseURL: string)
       parsed.pathname === "/" ||
       parsed.pathname === "/plan" ||
       parsed.pathname.startsWith("/assets/") ||
-      parsed.pathname === "/api/diagnosis-content"
+      parsed.pathname === "/api/diagnosis-content" ||
+      parsed.pathname === "/api/ai/status"
     );
   });
 }
@@ -78,4 +79,9 @@ export async function axeViolations(page: Page): Promise<string[]> {
     const result = await axe.run(document);
     return result.violations.map((violation) => `${violation.id}: ${violation.nodes.map((node) => node.target.join(" ")).join(", ")}`);
   });
+}
+
+/** Makes the plan page see AI as offered, as on a deployment with AI enabled. */
+export async function mockAiOffered(page: Page) {
+  await page.route("**/api/ai/status", (route) => route.fulfill({ contentType: "application/json", body: '{"enabled":true}' }));
 }

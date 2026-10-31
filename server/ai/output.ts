@@ -53,27 +53,49 @@ function parseJsonText(raw: unknown): unknown {
   }
 }
 
+/** Why a whole model answer was discarded; logged as a fixed code, never with content. */
+export type OutputRejection = "json" | "shape" | "too_long" | "duplicate_id" | "id_set" | TextRejection;
+
+export type ModelOutputResult =
+  | { ok: true; texts: ReadonlyMap<string, string> }
+  | { ok: false; reason: OutputRejection };
+
 /**
- * Returns text by ID when the output names exactly the given IDs once each and
- * every text passes the guards, otherwise null (the whole response is
- * discarded).
+ * Accepts the output only when it names exactly the given IDs once each and
+ * every text passes the guards; otherwise reports the first failed check (the
+ * whole response is discarded).
  */
+export function validateModelOutput(raw: unknown, ids: readonly string[], locale: Locale): ModelOutputResult {
+  const json = parseJsonText(raw);
+  if (json === undefined) {
+    return { ok: false, reason: "json" };
+  }
+  const result = modelOutputSchema.safeParse(json);
+  if (!result.success) {
+    const textTooLong = result.error.issues.some((issue) => issue.code === "too_big" && issue.path.at(-1) === "text");
+    return { ok: false, reason: textTooLong ? "too_long" : "shape" };
+  }
+  const texts = new Map<string, string>();
+  for (const item of result.data.explanations) {
+    if (texts.has(item.id)) {
+      return { ok: false, reason: "duplicate_id" };
+    }
+    const rejection = checkExplanationText(item.text, locale);
+    if (rejection !== null) {
+      return { ok: false, reason: rejection };
+    }
+    texts.set(item.id, item.text);
+  }
+  const sameSet = texts.size === ids.length && ids.every((id) => texts.has(id));
+  return sameSet ? { ok: true, texts } : { ok: false, reason: "id_set" };
+}
+
+/** Text by ID for valid output, otherwise null. */
 export function parseModelOutput(
   raw: unknown,
   ids: readonly string[],
   locale: Locale,
 ): ReadonlyMap<string, string> | null {
-  const result = modelOutputSchema.safeParse(parseJsonText(raw));
-  if (!result.success) {
-    return null;
-  }
-  const texts = new Map<string, string>();
-  for (const item of result.data.explanations) {
-    if (texts.has(item.id) || checkExplanationText(item.text, locale) !== null) {
-      return null;
-    }
-    texts.set(item.id, item.text);
-  }
-  const sameSet = texts.size === ids.length && ids.every((id) => texts.has(id));
-  return sameSet ? texts : null;
+  const result = validateModelOutput(raw, ids, locale);
+  return result.ok ? result.texts : null;
 }

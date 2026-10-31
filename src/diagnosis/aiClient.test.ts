@@ -46,6 +46,32 @@ describe("fetchAiExplanations", () => {
     expect(await fetchAiExplanations(REQUEST, respond({ error: "x" }, status))).toEqual({ ok: false, reason });
   });
 
+  it("tells the window limit from the daily limit and keeps the daily reset time", async () => {
+    vi.useFakeTimers({ now: Date.UTC(2026, 9, 31, 19, 0, 0, 400), toFake: ["Date"] });
+    try {
+      expect(await fetchAiExplanations(REQUEST, respond({ error: "rate_limited", limit: "window", retryAfter: 43 }, 429))).toEqual({
+        ok: false,
+        reason: "rate_limited_window",
+      });
+      // 5 h to 00:00 UTC; the reset is rounded to the whole minute.
+      expect(await fetchAiExplanations(REQUEST, respond({ error: "rate_limited", limit: "daily", retryAfter: 18_000 }, 429))).toEqual({
+        ok: false,
+        reason: "rate_limited_daily",
+        retryAt: Date.UTC(2026, 10, 1, 0, 0, 0),
+      });
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it.each([
+    ["no body", ""],
+    ["an unknown limit", { error: "rate_limited", limit: "hourly", retryAfter: 60 }],
+    ["a wait over one day", { error: "rate_limited", limit: "daily", retryAfter: 90_000 }],
+  ])("reports a 429 with %s as a generic limit", async (_, body) => {
+    expect(await fetchAiExplanations(REQUEST, respond(body, 429))).toEqual({ ok: false, reason: "rate_limited" });
+  });
+
   it.each([
     ["non-JSON", "<html>Error 1027</html>"],
     ["an unexpected shape", { explanations: "text" }],

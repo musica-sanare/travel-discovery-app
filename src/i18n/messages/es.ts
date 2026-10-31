@@ -54,7 +54,7 @@ export const es: Messages = {
     delayed: "DELAYED",
   },
   footer: {
-    privacy: "Tus respuestas se quedan en este navegador; no se envían ni se guardan en nuestro servidor.",
+    privacy: "Tus respuestas se quedan en este navegador y no se guardan en nuestro servidor. Solo si activas la asistencia de IA se envían una vez para crear las notas de IA.",
     costs: "Todos los costes mostrados son estimaciones orientativas con fuente, no precios actuales.",
   },
   common: {
@@ -80,6 +80,8 @@ export const es: Messages = {
     budgetAmount: "Importe",
     ai: "Usar asistencia de IA",
     aiHint: "Si la activas, tus respuestas y condiciones del viaje se envían una vez al servidor de este sitio para comprobar los resultados. A Cloudflare Workers AI solo se envían un resumen de tus preferencias y las descripciones de los destinos recomendados para redactar la explicación. No se guarda nada. La IA nunca decide la clasificación.",
+    aiLimits: "Las notas de IA pueden crearse hasta {{perWindow}} veces por minuto y {{perDay}} veces al día (el día empieza a las 00:00 UTC). La asistencia de IA también puede estar desactivada para todo el sitio.",
+    aiOff: "La asistencia de IA no está disponible en este sitio por ahora. Puedes usar el diagnóstico completo igualmente.",
     submit: "Continuar a las preguntas",
     invalidDays: "Introduce un número entero de días entre 1 y 365.",
     invalidBudget: "Introduce un número entero igual o mayor que 1.",
@@ -129,7 +131,9 @@ export const es: Messages = {
       ready: "Se añadieron notas de IA a cada destino.",
       unavailable: "La asistencia de IA no está disponible ahora. La explicación siguiente se basa en nuestros datos.",
       contentChanged: "Nuestros datos cambiaron durante el cuestionario, así que no se pueden mostrar las notas de IA. Empieza de nuevo para usar los datos más recientes.",
-      rateLimited: "La asistencia de IA está saturada en este momento. Inténtalo más tarde. La explicación siguiente se basa en nuestros datos.",
+      rateLimited: "Has alcanzado el límite de notas de IA. Inténtalo de nuevo más tarde. La explicación siguiente se basa en nuestros datos.",
+      rateLimitedWindow: "Has alcanzado el límite de notas de IA por minuto. Podrás volver a usarlas en aproximadamente un minuto. La explicación siguiente se basa en nuestros datos.",
+      rateLimitedDaily: "Has alcanzado el límite diario de notas de IA (el día empieza a las 00:00 UTC). Podrás volver a usarlas a partir del {{date}} ({{time}}). La explicación siguiente se basa en nuestros datos.",
     },
     excluded_one: "Se excluyó {{count}} destino porque supera tu presupuesto máximo.",
     excluded_other: "Se excluyeron {{count}} destinos porque superan tu presupuesto máximo.",

@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
+import type { TFunction } from "i18next";
 import { Navigate, useNavigate } from "react-router";
 import type { DiagnosisContentDestination } from "../../shared/diagnosis-content";
 import { DEFAULT_LOCALE, isLocale, type Locale } from "../../shared/locales";
@@ -33,10 +34,22 @@ const AI_STATUS_KEYS = {
   unavailable: "results.ai.unavailable",
   content_changed: "results.ai.contentChanged",
   rate_limited: "results.ai.rateLimited",
+  rate_limited_window: "results.ai.rateLimitedWindow",
 } as const;
 
-function aiStatusKey(state: Exclude<AiExplanationState, { status: "off" }>) {
-  return AI_STATUS_KEYS[state.status === "failed" ? state.reason : state.status];
+/** The daily reset (00:00 UTC) is shown in the device's time zone, with the zone named. */
+function aiStatusText(t: TFunction, state: Exclude<AiExplanationState, { status: "off" }>, locale: Locale) {
+  if (state.status !== "failed") {
+    return t(AI_STATUS_KEYS[state.status]);
+  }
+  if (state.reason === "rate_limited_daily") {
+    const retryAt = new Date(state.retryAt);
+    return t("results.ai.rateLimitedDaily", {
+      date: new Intl.DateTimeFormat(locale, { month: "long", day: "numeric" }).format(retryAt),
+      time: new Intl.DateTimeFormat(locale, { hour: "numeric", minute: "2-digit", timeZoneName: "short" }).format(retryAt),
+    });
+  }
+  return t(AI_STATUS_KEYS[state.reason]);
 }
 
 function CostLine({ cost, locale }: { cost: Cost; locale: Locale }) {
@@ -292,7 +305,8 @@ function ResultItem({
 }
 
 export function ResultsPage() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const locale = isLocale(i18n.resolvedLanguage) ? i18n.resolvedLanguage : DEFAULT_LOCALE;
   const navigate = useNavigate();
   const { session, dispatch, content, reloadContent, snapshot, engine, step } = useDiagnosis();
   const ranking = useMemo(
@@ -333,7 +347,7 @@ export function ResultsPage() {
       </div>
       {ai.status !== "off" && (
         <p role="status" className={noticeClass.info}>
-          {t(aiStatusKey(ai))}
+          {aiStatusText(t, ai, locale)}
         </p>
       )}
       {(notices.length > 0 || ranking.excluded.length > 0) && (

@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { answerAllQuestions, axeViolations, startQuiz, watchPage } from "./fixtures";
+import { answerAllQuestions, axeViolations, mockAiOffered, startQuiz, watchPage } from "./fixtures";
 
 test("serves the security headers and renders without CSP errors", async ({ page }) => {
   const { errors } = watchPage(page);
@@ -69,6 +69,23 @@ test.describe("accessibility in a real browser (axe-core)", () => {
       expect(await axeViolations(page)).toEqual([]);
       await answerAllQuestions(page);
       for (const summary of await page.locator("details > summary").all()) await summary.click();
+      expect(await axeViolations(page)).toEqual([]);
+    });
+  }
+
+  for (const colorScheme of ["light", "dark"] as const) {
+    test(`the AI toggle and the daily-limit notice pass in ${colorScheme} mode`, async ({ page }) => {
+      await page.emulateMedia({ colorScheme });
+      await mockAiOffered(page);
+      await page.route("**/api/ai/explanations", (route) =>
+        route.fulfill({ status: 429, contentType: "application/json", body: '{"error":"rate_limited","limit":"daily","retryAfter":3600}' }),
+      );
+      await startQuiz(page);
+      await page.getByLabel("AI アシストを使う").check();
+      expect(await axeViolations(page)).toEqual([]);
+      await page.getByRole("button", { name: "質問に進む" }).click();
+      await answerAllQuestions(page);
+      await expect(page.getByRole("status")).toContainText("本日分（UTC 基準）");
       expect(await axeViolations(page)).toEqual([]);
     });
   }

@@ -8,7 +8,7 @@ export type AiExplanationState =
   | { status: "off" }
   | { status: "loading" }
   | { status: "ready"; texts: ReadonlyMap<string, string> }
-  | { status: "failed"; reason: AiFailure };
+  | ({ status: "failed" } & AiFailure);
 
 /** Builds the request from in-memory quiz state; null when there is nothing to explain. */
 export function buildAiRequest(
@@ -73,5 +73,10 @@ export function useAiExplanations(enabled: boolean, request: AiExplanationReques
   if (!result) {
     return { status: "loading" };
   }
-  return result.ok ? { status: "ready", texts: result.texts } : { status: "failed", reason: result.reason };
+  if (result.ok) {
+    return { status: "ready", texts: result.texts };
+  }
+  return result.reason === "rate_limited_daily"
+    ? { status: "failed", reason: result.reason, retryAt: result.retryAt }
+    : { status: "failed", reason: result.reason };
 }

@@ -71,3 +71,15 @@ describe("clientObjectName", () => {
     expect(name).not.toContain("ip4:");
   });
 });
+
+describe("applyQuota refusals", () => {
+  it("reports the window limit with the end of the window", () => {
+    const state: QuotaState = { utcDay: 20_000, dayCount: 5, windowStart: noon, windowCount: 5 };
+    expect(applyQuota(state, noon + 17_000, limits)).toMatchObject({ allowed: false, refusal: { limit: "window", retryAt: noon + 60_000 } });
+  });
+
+  it("reports the daily limit with the next 00:00 UTC, also when the window is full", () => {
+    const full: QuotaState = { utcDay: 20_000, dayCount: 30, windowStart: noon, windowCount: 5 };
+    expect(applyQuota(full, noon + 1, limits)).toMatchObject({ allowed: false, refusal: { limit: "daily", retryAt: 20_001 * DAY } });
+  });
+});

@@ -115,6 +115,7 @@ Phase 4 design (ADR-026, proposed):
 - The model sees opaque IDs (`d1`, …) in slug order, never slugs, ranks, scores, costs, or user answers; the server maps IDs back to slugs.
 - Output checks (shape, ID set, length, digits/URLs/markup, script) are auxiliary guards; they cannot prove the text is factually correct. Ranking and factual fields stay with the deterministic engine and authored content.
 - Usage is bounded by a kill switch (`AI_ASSIST_ENABLED`), a burst rate limiter (Rate Limiting binding, best effort), a strict per-client quota in a Durable Object (5 per 60 s and 30 per UTC day per address, ADR-029), and the Workers AI daily allocation; there is no app-wide daily budget in the MVP.
+- Phase 14 (ADR-026 "Phase 14 amendments"): `GET /api/ai/status` tells the plan page whether the deployment offers AI at all (kill switch, provider, and quota binding), without touching D1, a limiter, or the model; while AI is off, the toggle is disabled. A 429 names the limit reached (`window` or `daily`) and when to try again, and the UI states the limits next to the toggle.
 
 ## 6. Data and API principles
 
@@ -143,7 +144,7 @@ MVP does not require analytics. Log only operational errors and coarse AI usage/
 
 External images: a destination may reference an `https` image URL entered in the admin console. Browsers load it directly from that host, which therefore sees the visitor's IP address and user agent; the app sends no referrer (`referrerPolicy="no-referrer"`, ADR-017) and no cookies to it. Prefer images hosted on our own origin or a provider whose privacy terms are acceptable, and record the provider when adding one.
 
-AI data flow (ADR-026, proposed): with AI on, the app Worker receives answers (IDs), constraints, and displayed slugs for one request; Workers AI receives only a preference summary (attribute names) and the recommended destinations' authored descriptions. Neither stores the content; the AI endpoint logs only outcome, model, latency, and count. AI Gateway is not used.
+AI data flow (ADR-026, proposed): with AI on, the app Worker receives answers (IDs), constraints, and displayed slugs for one request; Workers AI receives only a preference summary (attribute names) and the recommended destinations' authored descriptions. Neither stores the content; the AI endpoint logs only outcome, model, latency, and count, plus a fixed code of the failed check for invalid output. AI Gateway is not used.
 
 ## 9. Deployment
 

@@ -10,7 +10,7 @@ import { rankDestinations, topPreferences, type TripConstraints } from "../../do
 import type { AiExplanationRequest, AiExplanationResponse } from "../../shared/ai-explanation";
 import type { DiagnosisContentResponse } from "../../shared/diagnosis-content";
 import { toEngineContent } from "../../shared/engine-content";
-import { parseModelOutput } from "../ai/output";
+import { validateModelOutput, type OutputRejection } from "../ai/output";
 import type { ExplanationDestination, ExplanationInput, ExplanationProvider } from "../ai/provider";
 import type { Database } from "../db/client";
 import { ApiError } from "../http/errors";
@@ -29,16 +29,21 @@ export type AiOutcome =
   | "timeout"
   | "invalid_output"
   | "disabled"
-  | "rate_limited"
+  | "rate_limited_window"
+  | "rate_limited_daily"
   | "limiter_unavailable";
 
-/** The only log line for AI requests: no answers, texts, prompts, or addresses. */
+/**
+ * The only log line for AI requests: no answers, texts, prompts, or addresses.
+ * `reason` is present only for `invalid_output` and names the failed check.
+ */
 export interface AiLogEntry {
   event: "ai_explanation";
   outcome: AiOutcome;
   model: string | null;
   latencyMs: number;
   destinationCount: number;
+  reason?: OutputRejection;
 }
 
 export interface AiExplanationOptions {
@@ -129,8 +134,15 @@ export async function explainDiagnosis(
 ): Promise<AiExplanationResponse> {
   const { provider, timeoutMs = DEFAULT_AI_TIMEOUT_MS, now = Date.now, log = () => undefined } = options;
   const started = now();
-  const report = (outcome: AiOutcome, destinationCount: number) => {
-    log({ event: "ai_explanation", outcome, model: provider.model, latencyMs: now() - started, destinationCount });
+  const report = (outcome: AiOutcome, destinationCount: number, reason?: OutputRejection) => {
+    log({
+      event: "ai_explanation",
+      outcome,
+      model: provider.model,
+      latencyMs: now() - started,
+      destinationCount,
+      ...(reason === undefined ? {} : { reason }),
+    });
   };
 
   const content = await getDiagnosisContent(db, request.locale);
@@ -154,13 +166,13 @@ export async function explainDiagnosis(
     throw new ApiError("ai_unavailable");
   }
 
-  const texts = parseModelOutput(raw, [...slugById.keys()], request.locale);
-  if (!texts) {
-    report("invalid_output", input.destinations.length);
+  const output = validateModelOutput(raw, [...slugById.keys()], request.locale);
+  if (!output.ok) {
+    report("invalid_output", input.destinations.length, output.reason);
     throw new ApiError("ai_unavailable");
   }
 
-  const textBySlug = new Map([...texts].map(([id, text]) => [slugById.get(id) ?? "", text]));
+  const textBySlug = new Map([...output.texts].map(([id, text]) => [slugById.get(id) ?? "", text]));
   report("ok", input.destinations.length);
   return {
     explanations: slugs.flatMap((slug) => {

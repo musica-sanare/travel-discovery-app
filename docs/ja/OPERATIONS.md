@@ -1,4 +1,4 @@
-<!-- source: docs/en/OPERATIONS.md blob d16e6c1a96a7bcfa6e5d88ee9d8a80c1addf1e85 -->
+<!-- source: docs/en/OPERATIONS.md blob e052f85b47e9312078c48ecf30de3637b26efe87 -->
 [English](../en/OPERATIONS.md) | 日本語 · [目次に戻る](README.md)
 
 > この文書は[英語版](../en/OPERATIONS.md)の翻訳です。内容が異なる場合は英語版が優先されます。
@@ -29,12 +29,12 @@
 
 アプリのログの行（JSON、1 行に 1 件）:
 - `{"event":"api_error","context":…,"code":…,"errorName":…}`: リクエストが 500 か 503 で終わった（`server/http/errors.ts`）。`service_unavailable` は、1 日の上限を含む D1 の障害を意味する。
-- `{"event":"ai_explanation","outcome":…,"model":…,"latencyMs":…,"destinationCount":…}`: AI のリクエストごとに 1 件。結果は `ok`、`content_mismatch`、`provider_error`、`timeout`、`invalid_output`、`disabled`、`rate_limited`、`limiter_unavailable`。Phase 11 からリミッターが停止スイッチより先に動くので、AI が無効なときにも `rate_limited` の行が出ることがある。`limiter_unavailable` は、上限用の Durable Object が失敗したか存在しないことを示す（たとえば Workers Free の 1 日の上限）。モデルは呼ばれず、クライアントには 503 を返す（ADR-029）。
+- `{"event":"ai_explanation","outcome":…,"model":…,"latencyMs":…,"destinationCount":…}`: AI のリクエストごとに 1 件。結果は `ok`、`content_mismatch`、`provider_error`、`timeout`、`invalid_output`、`disabled`、`rate_limited_window`、`rate_limited_daily`、`limiter_unavailable`（Phase 14 より前は、後者 2 つの代わりに `rate_limited` の 1 つ）。`invalid_output` の行には、落ちた検査を示す `reason`（`json`、`shape`、`too_long`、`duplicate_id`、`id_set`、`too_short`、`digit`、`link`、`markup`、`script` のいずれか。ADR-026「Phase 14 amendments」）もある。Phase 11 からリミッターが停止スイッチより先に動くので、AI が無効なときにも上限の行が出ることがある。Phase 14 から、AI が停止している間は計画の画面で AI のトグルが無効になるので、そのようなリクエストは UI 以外のクライアントからだけ来る。`limiter_unavailable` は、上限用の Durable Object が失敗したか存在しないことを示す（たとえば Workers Free の 1 日の上限）。モデルは呼ばれず、クライアントには 503 を返す（ADR-029）。
 
 ## 3. 定期チェック
 
 毎週、および Access のタブ、Zero Trust のポリシー、アカウントのサブドメインを変更した後:
-- 両方の環境について、認証なしのチェックを実行する。対象は、全ロケールの公開 API、セキュリティヘッダー、AI が無効な間の AI エンドポイント、管理 Worker の `/`、`/destinations`、`/api/admin/me` の Access リダイレクト（`https://<team>.cloudflareaccess.com/...` への 302）である。どれかが失敗するとスクリプトは 1 で終了する:
+- 両方の環境について、認証なしのチェックを実行する。対象は、全ロケールの公開 API、セキュリティヘッダー、AI が無効な間の AI エンドポイントと AI の状態（`{"enabled":false}`）、管理 Worker の `/`、`/destinations`、`/api/admin/me` の Access リダイレクト（`https://<team>.cloudflareaccess.com/...` への 302）である。どれかが失敗するとスクリプトは 1 で終了する:
 
   ```bash
   node scripts/check-deployment.mjs <account subdomain> production
@@ -77,7 +77,7 @@
 管理コンソールでアーカイブするか修正する。より大きな誤りを取り消すには、Time Travel でデータベースを復元する（5 節）。
 
 ### 4.4 AI の問題や悪用（AI を有効にした後）
-停止スイッチで AI を止める（[DEPLOYMENT.md](DEPLOYMENT.md) 7 節、ADR-026 E）。診断はそのまま動く。12:00 UTC より前に Neurons が 1 日の割り当ての約 70% を超えたとき、または `rate_limited` や `provider_error` の結果が急増したときに止める。
+停止スイッチで AI を止める（[DEPLOYMENT.md](DEPLOYMENT.md) 7 節、ADR-026 E）。診断はそのまま動く。12:00 UTC より前に Neurons が 1 日の割り当ての約 70% を超えたとき、または上限（`rate_limited_window`、`rate_limited_daily`）や `provider_error` の結果が急増したときに止める。
 
 ## 5. バックアップと復元
 - D1 の Time Travel は Workers Free で 7 日間保持される。コンテンツをまとめて変更する前に、ブックマークを記録する: `npx wrangler d1 time-travel info travel-discovery-production`（リモートの読み取り。承認が必要）。

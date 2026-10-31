@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { answerAllQuestions, startQuiz, unexpectedRequests, watchPage } from "./fixtures";
+import { answerAllQuestions, mockAiOffered, startQuiz, unexpectedRequests, watchPage } from "./fixtures";
 
 test.describe("core journey without AI", () => {
   test("landing → constraints → quiz → results", async ({ page, baseURL }) => {
@@ -29,7 +29,9 @@ test.describe("core journey without AI", () => {
 
     // No AI endpoint and no other API calls; answers never leave the browser.
     expect(unexpectedRequests(requests, baseURL ?? "")).toEqual([]);
-    expect(requests.filter((url) => url.includes("/api/")).every((url) => url.includes("/api/diagnosis-content?locale=ja"))).toBe(true);
+    expect(
+      requests.filter((url) => url.includes("/api/")).every((url) => url.includes("/api/diagnosis-content?locale=ja") || url.endsWith("/api/ai/status")),
+    ).toBe(true);
     expect(errors).toEqual([]);
   });
 
@@ -153,9 +155,25 @@ test.describe("optional AI notes", () => {
   const AI_PATH = "/api/ai/explanations";
   const AI_TEXT = "ゆったりとした街歩きと豊かな食文化があり、あなたの好みに合いそうな旅行先です。";
 
-  test("toggle on against the real server: one request, AI unavailable notice, results intact", async ({ page, baseURL }) => {
-    // The preview server has no AI configuration, so the real endpoint answers 503 ai_unavailable.
+  test("against the real server, AI is not offered: the toggle is disabled and no AI request is sent", async ({ page, baseURL }) => {
+    // The preview server has no AI configuration, so the status endpoint reports AI as off.
     const { errors, requests } = watchPage(page);
+    await startQuiz(page);
+    await expect(page.getByText("現在、AI アシストは提供していません。診断はこのままご利用いただけます。")).toBeVisible();
+    await expect(page.getByLabel("AI アシストを使う")).toBeDisabled();
+    await expect(page.getByLabel("AI アシストを使う")).not.toBeChecked();
+    await expect(page.getByText(/1 分間に 5 回、1 日（UTC 基準）に 30 回までです/)).toBeVisible();
+    await page.getByRole("button", { name: "質問に進む" }).click();
+    await answerAllQuestions(page);
+    await expect(page.getByRole("article").first()).toBeVisible();
+    await expect(page.getByRole("status")).toHaveCount(0);
+    expect(requests.filter((url) => new URL(url).pathname === AI_PATH)).toEqual([]);
+    expect(unexpectedRequests(requests, baseURL ?? "")).toEqual([]);
+    expect(errors).toEqual([]);
+  });
+
+  test("toggle on against the real AI endpoint while it is disabled: one request, unavailable notice, results intact", async ({ page }) => {
+    await mockAiOffered(page);
     const aiResponses: number[] = [];
     page.on("response", (response) => {
       if (new URL(response.url()).pathname === AI_PATH) aiResponses.push(response.status());
@@ -167,12 +185,10 @@ test.describe("optional AI notes", () => {
     await expect(page.getByRole("status").filter({ hasText: "AI アシストは現在利用できません" })).toBeVisible();
     await expect(page.getByRole("article").first()).toBeVisible();
     expect(aiResponses).toEqual([503]);
-    expect(unexpectedRequests(requests, baseURL ?? "").map((url) => new URL(url).pathname)).toEqual([AI_PATH]);
-    // The browser reports the 503 as a failed resource load; nothing else may log errors.
-    expect(errors.filter((message) => !message.includes("503"))).toEqual([]);
   });
 
   test("toggle on with a mocked AI response shows labelled notes in rank order", async ({ page }) => {
+    await mockAiOffered(page);
     const bodies: { expected: string[]; answers: unknown[] }[] = [];
     await page.route(`**${AI_PATH}`, async (route) => {
       const body = route.request().postDataJSON() as { expected: string[]; answers: unknown[] };
@@ -215,4 +231,62 @@ test.describe("optional AI notes", () => {
     expect(aiRequests).toBe(0);
     await expect(page.getByRole("heading", { name: "AI による補足" })).toHaveCount(0);
   });
+
+  const LIMIT_TEXTS = [
+    {
+      locale: "ja",
+      toggle: "AI アシストを使う",
+      submit: "質問に進む",
+      window: "AI による補足の作成回数が 1 分間の上限に達しました。1 分ほどたつと、再びご利用いただけます。",
+      daily: "本日分（UTC 基準）の AI による補足の作成回数が上限に達しました。",
+    },
+    {
+      locale: "en",
+      toggle: "Use AI assistance",
+      submit: "Continue to questions",
+      window: "You have reached the per-minute limit for AI notes. You can use them again in about a minute.",
+      daily: "You have reached today's limit for AI notes (days start at 00:00 UTC).",
+    },
+    {
+      locale: "es",
+      toggle: "Usar asistencia de IA",
+      submit: "Continuar a las preguntas",
+      window: "Has alcanzado el límite de notas de IA por minuto. Podrás volver a usarlas en aproximadamente un minuto.",
+      daily: "Has alcanzado el límite diario de notas de IA (el día empieza a las 00:00 UTC).",
+    },
+  ] as const;
+
+  for (const texts of LIMIT_TEXTS) {
+    for (const limit of ["window", "daily"] as const) {
+      test(`names the ${limit} limit of a mocked 429 in ${texts.locale}`, async ({ page }) => {
+        await mockAiOffered(page);
+        await page.addInitScript((locale) => {
+          localStorage.setItem("travel-discovery.locale", locale);
+        }, texts.locale);
+        // Like the server: the window ends within a minute, the day at the next 00:00 UTC.
+        const untilMidnight = () => Math.ceil((86_400_000 - (Date.now() % 86_400_000)) / 1000);
+        await page.route(`**${AI_PATH}`, (route) => {
+          const retryAfter = limit === "window" ? 40 : untilMidnight();
+          return route.fulfill({
+            status: 429,
+            headers: { "Retry-After": String(retryAfter) },
+            contentType: "application/json",
+            body: JSON.stringify({ error: "rate_limited", limit, retryAfter }),
+          });
+        });
+        await page.goto("/plan");
+        await page.getByLabel(texts.toggle).check();
+        await page.getByRole("button", { name: texts.submit }).click();
+        await answerAllQuestions(page);
+        const status = page.getByRole("status");
+        await expect(status).toContainText(texts[limit]);
+        if (limit === "daily") {
+          // 00:00 UTC is shown in the browser's time zone, on the hour.
+          await expect(status).toContainText(/\d{1,2}:00/);
+        }
+        await expect(page.getByRole("article").first()).toBeVisible();
+        expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(0);
+      });
+    }
+  }
 });
