@@ -350,3 +350,9 @@ Acceptance:
 - The main public and admin pages work in `fr` at 375 px and desktop width without missing keys or overflow, and switching between all four locales works.
 - After the owner-approved migration and imports with Time Travel bookmarks, `/api/diagnosis-content` matches the bundle in all four locales on preview and production, and complete quizzes pass in `fr`.
 - `npm run check` and `npm run test:e2e` pass, AI is disabled in every environment, and the account stays on Workers Free.
+
+Status: **complete (2026-10-31)**; every acceptance item is met ([DECISIONS.md](DECISIONS.md) "Phase 17 verification log"):
+- Code: `fr` in `shared/locales.ts` with the fallback `fr → en → ja`, French public and admin catalogs, migration `0002`, and the Import update mode for every item type (ADR-032, ADR-028 "Update mode").
+- Content: `content/initial-v7.json` adds `fr` to every item and cost basis; with `fr` removed it equals `initial-v6.json`. The owner approved the rendered review copy.
+- Rollout: migration `0002`, deployments, and the import ran on preview and then production with Time Travel bookmarks, each on the first attempt. `/api/diagnosis-content` matches the bundle in all four locales on both, and complete quizzes in `fr` work on both.
+- `npm run check` (810 tests) and `npm run test:e2e` (75 passed, one mobile keyboard test skipped by design) passed after the last code change; AI is disabled in every environment and no paid plan or feature was enabled.
