@@ -1286,7 +1286,7 @@ Order proposed: preview trial ([DEPLOYMENT.md](../en/DEPLOYMENT.md) 7.1) → sep
   - French currency formatting with real cost data was checked after the import on preview and production ("Phase 17 verification log").
 
 ## ADR-033: Deploy through Cloudflare Workers Builds
-- Status: **Needs owner decision** (proposed 2026-10-31). The docs describe the target state; the connection itself is an owner step ([DEPLOYMENT.md](../en/DEPLOYMENT.md) 3.6) and is not done yet.
+- Status: **Accepted** (owner, 2026-10-31) as amended below: production only, without the preview environment. The two production Workers are connected and deployed through Workers Builds ("Amendment 2026-10-31").
 - Context: the shared rules `deployment.md` and `paid-services.md` (2026-10-31) require that production changes reach users only through the owner's push via the hosting provider's Git integration, that no deploy credential lives in CI, that no Cloudflare login stays on the machine, and that billing is never possible. Until now the owner deployed all four Workers from a local Wrangler login ([DEPLOYMENT.md](../en/DEPLOYMENT.md) section 11). my-music-site already deploys through Cloudflare Pages Git integration.
 - Decision (proposed): **design A**, four connected Workers with branch mapping.
   - Each of the four existing Workers is connected to this repository in Workers Builds: the two preview Workers on `dev`, the two production Workers on `main`.
@@ -1320,15 +1320,21 @@ Order proposed: preview trial ([DEPLOYMENT.md](../en/DEPLOYMENT.md) 7.1) → sep
   - **Gating:** Workers Builds does not wait for GitHub Actions CI. Local `npm run check` and `npm run test:e2e` before pushing `dev`, and pushing `main` only for a commit with green CI and passed preview checks, take its place.
   - **Build minutes:** two builds per push, four per release (`dev` then `main`); each build runs `npm run build` for both Workers, so the bundle checks always run. The duration per build is measured at the first builds.
   - **Kill switch:** a dashboard edit of `AI_ASSIST_ENABLED` is overwritten by the next build, so the `"false"` commit must reach the branch before anything else is pushed ([AI_ENABLEMENT.md](../en/AI_ENABLEMENT.md) section 4).
+- Amendment 2026-10-31 (owner decision): **no preview environment.**
+  - The owner found the preview environment redundant. `env.preview` is removed from both Wrangler configs and `scripts/check-deployment.mjs` checks production only. Only `travel-discovery` and `travel-discovery-admin` are connected, to `main`; a push to `dev` runs CI only.
+  - What preview was used for, and what takes its place: migrations are tested locally by `npm run check` and `npm run test:e2e`, and risky ones are rehearsed on a local copy of a production export, with a Time Travel bookmark before applying ([DEPLOYMENT.md](../en/DEPLOYMENT.md) section 4); the AI trial is done and later trials run on production ([AI_ENABLEMENT.md](../en/AI_ENABLEMENT.md) sections 2 to 4); deployment checks run on production (section 6).
+  - Accepted loss: no place to try Access or infrastructure changes before production. The admin Access setup changes rarely, and its checks (`--watch-admin`) run right after each production deployment.
+  - Effects: one push to `main` runs two builds instead of four per release; one admin Worker and one Access application remain; the namespace IDs `1001` and `1002` become free once the preview Workers are deleted.
+  - The preview Workers, the Access application of the admin preview Worker, and the preview database are deleted by the owner in the dashboard ([DEPLOYMENT.md](../en/DEPLOYMENT.md) 3.7); status: not yet done. Until then they exist without being deployed.
+  - Outcome of the connection (2026-10-31): the owner connected both production Workers to `main`. `main` still pointed at the initial commit `a77df9f` (no `package.json`), so no build could deploy before the owner pushed `59b754c`, whose builds deployed new versions (seen by the owner in Deployments). The code was the same as the Phase 17 deployment (`ef6d323`). `scripts/check-deployment.mjs <account subdomain> production --watch-admin 120` then passed (public API in four locales, AI disabled, Access redirect on all admin paths for two minutes). Version IDs and build durations: 要確認, to be recorded by the owner.
+  - Local checks after removing `env.preview` (2026-10-31): `npm run check` passed (816 tests). `CLOUDFLARE_ENV=production npm run build` wrote the expected flattened configurations: names `travel-discovery` and `travel-discovery-admin`, the production database, `AI_ASSIST_ENABLED` `"false"`, rate limiters `2001` and `2002`, `workers_dev` true, `preview_urls` false.
 - Open (要確認):
   - What happens on Workers Free when the 3,000 build minutes run out: stop or charge. Treated as possibly billing until confirmed; watched monthly ([OPERATIONS.md](../en/OPERATIONS.md) section 3).
-  - Whether `dev` can be selected as the production branch of the preview Workers (the dropdown suggests it).
-  - Whether the build command accepts the `CLOUDFLARE_ENV=<env>` prefix. If it does not, the fallback is a build variable `CLOUDFLARE_ENV` per Worker (Configuration: build variables), shown in the settings instead of the command.
-  - Whether the admin Workers deploy without a name error, given that the root `wrangler.jsonc` is named `travel-discovery`; expected to work through `WRANGLER_CI_OVERRIDE_NAME`.
+  - The version IDs, build durations, Node.js and Wrangler versions of the first builds, and that `travel-discovery-admin` built without a name error (expected through `WRANGLER_CI_OVERRIDE_NAME`).
   - Whether Workers Builds uses the GitHub app already installed for my-music-site, and its repository list.
-  - The Node.js version the build image selects (`.nvmrc` is 24), and whether saving the connection starts a build at once.
-  - Whether a narrower custom token (without KV, R2, and Routes edit) would work; the generated token is used until then.
-  - A local check of the flattened configs for both environments (Worker name and D1 database) was blocked in this session by the billing guard hook and is left to the owner ([DEPLOYMENT.md](../en/DEPLOYMENT.md) section 5 "Local dry run").
+  - Whether saving the connection starts a build at once.
+  - Whether a narrower custom token (without KV, R2, and Routes edit) would work; the generated token is used until then. The owner checks the generated token's permissions.
+  - Resolved 2026-10-31: the `CLOUDFLARE_ENV=production` prefix works in the build command (the builds deployed the production bindings); the flattened configs carry the expected Worker names (local build); choosing `dev` as a production branch is no longer needed.
 
 ## Admin authentication status (2026-10-17)
 

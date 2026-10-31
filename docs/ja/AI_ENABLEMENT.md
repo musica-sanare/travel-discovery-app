@@ -1,16 +1,16 @@
-<!-- source: docs/en/AI_ENABLEMENT.md blob 8968c41a3c4a445b4d55f4a712268b01c8f58037 -->
+<!-- source: docs/en/AI_ENABLEMENT.md blob 71c72e9a606a921fa34902dc78bf2747706ec27b -->
 [English](../en/AI_ENABLEMENT.md) | 日本語 · [目次に戻る](README.md)
 
 > この文書は[英語版](../en/AI_ENABLEMENT.md)の翻訳。内容が異なる場合は英語版が優先する。
 
 # AI 有効化の手順書
 
-デプロイした Worker で任意の AI ノートを有効にし、試し、また止める手順をまとめる。オーナーと、オーナーの承認を受けるためにこれらの手順を準備する人向けの文書だ。一般的な手順、プレビューでの試行、AI を無効にしたままのリミッターの確認、本番での AI の有効化を扱う。ビルドとデプロイは [DEPLOYMENT.md](DEPLOYMENT.md)、監視は [OPERATIONS.md](OPERATIONS.md) にある。
+デプロイした Worker で任意の AI ノートを有効にし、試し、また止める手順をまとめる。オーナーと、オーナーの承認を受けるためにこれらの手順を準備する人向けの文書だ。一般的な手順、プレビューでの試行の記録、AI を無効にしたままのリミッターの確認、本番での AI の有効化を扱う。ビルドとデプロイは [DEPLOYMENT.md](DEPLOYMENT.md)、監視は [OPERATIONS.md](OPERATIONS.md) にある。
 
 > [!WARNING]
 > AI の有効化、各試行、各デプロイ、その後の本番での利用は、どれも別々のオーナーの判断だ。以下の節は計画であって、承認ではない。
 
-AI はすべての環境で無効になっている。AI が ON でも OFF でも、診断は動き続ける。
+2026-10-31 からデプロイする環境は本番だけで、そこでは AI は無効になっている。AI が ON でも OFF でも、診断は動き続ける。
 
 ## 1. AI の有効化（一般的な手順）
 この文書の各節は、ドキュメントを整理するまで [DEPLOYMENT.md](DEPLOYMENT.md) の 7 節にあった。
@@ -22,12 +22,15 @@ AI はすべての環境で無効になっている。AI が ON でも OFF で�
 - オーナーが Gemma の利用規約と禁止用途のポリシーを確認済み。
 
 手順:
-1. その環境の `vars` で `AI_ASSIST_ENABLED: "true"` にしてコミットする。オーナーがその環境のブランチに push するとデプロイされる（[DEPLOYMENT.md](DEPLOYMENT.md) 5 節）。プレビューは `dev`、本番は `main` だ。
+1. `env.production` の `vars` で `AI_ASSIST_ENABLED: "true"` にしてコミットする。オーナーが `main` に push するとデプロイされる（[DEPLOYMENT.md](DEPLOYMENT.md) 5 節）。
 2. 4 言語すべてで AI ノートを確かめ、ダッシュボードで Workers AI の使用量を見る。
 3. 監視と停止: ADR-026 E と [OPERATIONS.md](OPERATIONS.md) 4.4。
 4. 本番では 4 節に従う（Phase 14 で用意したが、まだ承認されていない）。
 
 ## 2. プレビューでの試行（別途承認）
+> [!NOTE]
+> 2026-10-25 に実施済み（[DECISIONS.md](../working/DECISIONS.md)（英語のみ）「Phase 10 verification log」）。プレビュー環境は 2026-10-31 に外した（ADR-033）ので、この節はその試行の記録で、書いたとおりには繰り返せない。今後の試行は 4 節に沿って本番で行う。
+
 この試行では、本番について何か決める前に、利用者ごとのリミッター（ADR-026 A、前提条件 2）と AI ノートを確かめる。試行そのもの、各デプロイ、その後の本番での利用は、どれも別々のオーナーの判断だ。この節は計画であって、承認ではない。
 
 **前提条件**（ADR-026「Readiness for enabling AI」）:
@@ -49,10 +52,10 @@ AI はすべての環境で無効になっている。AI が ON でも OFF で�
 手順:
 1. オーナー: ダッシュボードで、その日すでに使った Workers AI の Neurons を控える。試行の使用量を差分で読むためだ。
 2. 公開のプレビュー Worker だけで AI を有効にする:
-   - `env.preview`（`wrangler.jsonc`）だけで `AI_ASSIST_ENABLED: "true"` にして、`dev` にコミットする（オーナー承認済み）。
-   - 任意: ローカルのドライランを確かめる（[DEPLOYMENT.md](DEPLOYMENT.md) 5 節）。プレビューのデータベース、`AI_ASSIST_ENABLED` が `"true"`、`AI_CLIENT_RATE_LIMITER` が 60 秒に 5 回。
-   - オーナー: `dev` に push する。この時点で AI が有効になる。Workers Builds はプレビューの両方の Worker をデプロイする。管理のプレビュー Worker は、自分の変更なしで同じコミットになる。`main` には push しないので、本番はデプロイされない。
-   - 公開のプレビュー Worker のビルドのログでも、同じ値を確かめる。
+   - `env.preview`（`wrangler.jsonc`）だけで `AI_ASSIST_ENABLED: "true"` にして、コミットする（オーナー承認済み）。
+   - `CLOUDFLARE_ENV=preview npm run build` を実行する。
+   - ドライランを確かめる: プレビューのデータベース、`AI_ASSIST_ENABLED` が `"true"`、`AI_CLIENT_RATE_LIMITER` が 60 秒に 5 回。
+   - Workers Builds に移る前と同じく、オーナーのローカルのログインから公開のプレビュー Worker だけをデプロイする。本番と管理 Worker はデプロイしない。
 3. ノート（モデル呼び出し約 6 回）: 組み込みブラウザーで、AI のトグルを ON にして、`ja`、`en`、`es`、`fr` でそれぞれクイズを最初から最後まで 1 回答える。その後、1 つの結果ページで言語を 2 回切り替える。
    - 各手順でリクエストは 1 回。すでに表示した言語に戻すときは送らない（ADR-026 C4）。
    - リミッターに拒否されないよう、クイズの間は 60 秒以上空ける。
@@ -79,7 +82,7 @@ AI はすべての環境で無効になっている。AI が ON でも OFF で�
    - 各ノートに AI が書いたというラベルがある。決定的な説明、費用、季節の注記は変わらない。カードの順番は AI が OFF のときと同じ。
    - ロケールごとの結果を [DECISIONS.md](../working/DECISIONS.md)（英語のみ）に記録する。ノートの文章はリポジトリにコピーしない。
 7. オーナー: Workers AI の Neurons をもう一度読み、差分を記録する。
-8. 無効化: `AI_ASSIST_ENABLED` を `"false"` に戻して `dev` にコミットし、`dev` に push する（オーナー）。`scripts/check-deployment.mjs <account subdomain> preview` で、503 `ai_unavailable` と、`/api/ai/status` の `{"enabled":false}` を確かめる。AI を有効にしている間は、このスクリプトの AI のチェックは意図どおり失敗する。
+8. 無効化: `AI_ASSIST_ENABLED` を `"false"` に戻し、コミット、再ビルドして、公開のプレビュー Worker を再デプロイする。`scripts/check-deployment.mjs <account subdomain> preview` で、503 `ai_unavailable` と、`/api/ai/status` の `{"enabled":false}` を確かめる。AI を有効にしている間は、このスクリプトの AI のチェックは意図どおり失敗する。
 
 **すぐに止める**（他の手順を終えずに手順 8 へ）のは、次のどれかのとき:
 - 試行で使った Neurons が 1,000 を超えた。
@@ -88,7 +91,7 @@ AI はすべての環境で無効になっている。AI が ON でも OFF で�
 - ノートに価格、日付、順位など、禁じた内容が入っていた。
 - ログや Billing のページに予期しないものが出た。
 
-その間も診断は動き続ける。ダッシュボードで変数を変えるほうが push より早いが、次のビルドのデプロイで上書きされる。だから `dev` にほかのものを push する前に、`"false"` にしたコミットを push する。
+その間も診断は動き続ける。ダッシュボードで変数を変えるほうが再デプロイより早いが、次のデプロイで上書きされる。だから再デプロイの前に `"false"` をコミットする。
 
 **記録する**もの（[DECISIONS.md](../working/DECISIONS.md)、英語のみ）: 日付、バージョン ID、モデルを呼んだ回数、前後の Neurons、手順 4 の 400／429 の数、手順 5 の結果の件数とレイテンシー、手順 6 のオーナーの確認結果。
 
@@ -110,31 +113,32 @@ AI はすべての環境で無効になっている。AI が ON でも OFF で�
 - それ以外は 503 `ai_unavailable` を返し、`disabled` の行を書く。
 - 1 回の実行ごとに、そのアドレスの 1 日 30 回の上限にも数えられる（2 回の実行で 10 回分）。
 - 各リクエストは Workers Free の 1 日のリクエスト上限にも数えられる（ここでは無視できる量）。
-- デプロイと確認は、それぞれオーナーの承認が要る。この確認のために本番はデプロイしない。
+- デプロイと確認は、それぞれオーナーの承認が要る。
+- 2026-10-25 にプレビューで（「Phase 11 verification log」）、Phase 14 に本番で（「Phase 14 verification log」）実施した。プレビュー環境は 2026-10-31 に外したので、繰り返すときは本番で行う。
 
 手順:
-1. 確かめるコミットを、`AI_ASSIST_ENABLED` が `"false"` のままプレビューにデプロイする。オーナーが `dev` に push すると（[DEPLOYMENT.md](DEPLOYMENT.md) 5 節）、プレビューの両方の Worker がデプロイされる。
+1. 確かめるコミットを、`AI_ASSIST_ENABLED` が `"false"` のまま本番にデプロイする。オーナーがそのコミットを `main` に push する（[DEPLOYMENT.md](DEPLOYMENT.md) 5 節）。
    - ビルドのログ（またはローカルのドライラン）で、`AI_CLIENT_RATE_LIMITER`（60 秒に 5 回）と Durable Object の `AI_CLIENT_LIMITER`（`AiClientLimiter`）があることを確かめる。
    - Durable Object を含む最初のデプロイで、そのマイグレーション `v1`（`new_sqlite_classes`）が適用される。後でクラスを外すには `deleted_classes` のマイグレーションが要る。
 2. 同じアドレスからの他の AI リクエスト（`scripts/check-deployment.mjs` を含む）から、60 秒以上待つ。
 3. 実行 A、接続 1 本: 1 回の `curl` で 15 リクエストを送り、接続を使い回す（`num_connects` は最初のリクエストが 1、残りは 0）。`-4` でリクエストを IPv4 にそろえ、同じキーを共有させる:
 
    ```bash
-   URL=https://travel-discovery-preview.<account subdomain>.workers.dev; args=(); for i in $(seq 1 15); do args+=("$URL/api/ai/explanations" -o /dev/null); done; curl -4 -s -X POST -H "Origin: $URL" -H "Content-Type: application/json" --data "{}" -w "%{http_code} %{num_connects}\n" "${args[@]}"
+   URL=https://travel-discovery.<account subdomain>.workers.dev; args=(); for i in $(seq 1 15); do args+=("$URL/api/ai/explanations" -o /dev/null); done; curl -4 -s -X POST -H "Origin: $URL" -H "Content-Type: application/json" --data "{}" -w "%{http_code} %{num_connects}\n" "${args[@]}"
    ```
 
 4. 60 秒以上待ってから、実行 B。リクエストごとに新しい接続を使う:
 
    ```bash
-   URL=https://travel-discovery-preview.<account subdomain>.workers.dev; for i in $(seq 1 15); do curl -4 -s -o /dev/null -X POST -H "Origin: $URL" -H "Content-Type: application/json" --data "{}" -w "%{http_code} %{num_connects}\n" "$URL/api/ai/explanations"; done
+   URL=https://travel-discovery.<account subdomain>.workers.dev; for i in $(seq 1 15); do curl -4 -s -o /dev/null -X POST -H "Origin: $URL" -H "Content-Type: application/json" --data "{}" -w "%{http_code} %{num_connects}\n" "$URL/api/ai/explanations"; done
    ```
 
-5. 60 秒以上待ってから、`node scripts/check-deployment.mjs <account subdomain> preview` を実行する。この AI のチェックは 503 と、Phase 14 からは `GET /api/ai/status` が `{"enabled":false}` を返すことを期待する。
-6. オーナー、`travel-discovery-preview` の Observability:
+5. 60 秒以上待ってから、`node scripts/check-deployment.mjs <account subdomain> production` を実行する。この AI のチェックは 503 と、Phase 14 からは `GET /api/ai/status` が `{"enabled":false}` を返すことを期待する。
+6. オーナー、`travel-discovery` の Observability:
    - 実行 A と B の `rate_limited_window`（Phase 14 より前は `rate_limited`）と `disabled` の行を数える。429 と 503 の数と一致するはずだ。
    - ダッシュボードで、Durable Object のリクエスト数と書き込んだ行数を控える。Worker のリクエスト数に Durable Object の呼び出しが含まれるかも控える（ADR-029、要確認）。
 
-**記録する**もの（[DECISIONS.md](../working/DECISIONS.md)（英語のみ）「Phase 11 verification log」）: バージョン ID と、実行ごとのステータスコードと接続数の並び。アドレスは決して記録しない。
+**記録する**もの（[DECISIONS.md](../working/DECISIONS.md)（英語のみ）の、そのときのフェーズの検証ログ）: バージョン ID と、実行ごとのステータスコードと接続数の並び。アドレスは決して記録しない。
 
 **読み方。** 上限用の Durable Object があれば、どちらの実行でもちょうど 503 が 5 回、その後 429 にならなければならない。1 つのオブジェクトがそのアドレスのリクエストをすべて数えるからだ。
 - どちらかの実行で 503 が 6 回以上、または 429 が出ないなら失敗だ。AI は無効のままにして記録する。
@@ -147,7 +151,6 @@ AI はすべての環境で無効になっている。AI が ON でも OFF で�
 **前提条件:**
 - ADR-026「Readiness for enabling AI」に、満たしていない項目がない。
 - Billing にはドメインの登録だけが載っていて、プランは Free（[OPERATIONS.md](OPERATIONS.md) 3 節）。
-- プレビューの AI は無効。
 - `travel-discovery` で Workers Logs が ON で、呼び出しログは OFF。
 - 本番の上限用 Durable Object がデプロイ済み（バージョン `cc06950d` 以降）。
 
@@ -157,7 +160,7 @@ AI はすべての環境で無効になっている。AI が ON でも OFF で�
 - 決定的な結果は変わらない。
 
 **予算。**
-- Workers Free には 1 日 10,000 Neurons が含まれ、00:00 UTC にリセットされる。超えると課金されずに失敗する。プレビューと本番で共有する前提で計画している（要確認）。
+- Workers Free には 1 日 10,000 Neurons が含まれ、00:00 UTC にリセットされる。超えると課金されずに失敗する。割り当てはアカウントごとなので、このアカウントのほかのプロジェクトとも共有することになる *(要確認)*。
 - 実測の 1 回 7〜14 Neurons（試行では約 11.8）なら、1 日あたりおよそ 700〜1,400 回。
 - 1 つのアドレスが 1 日に使えるのは最大で約 420 Neurons（最悪で約 3,150）。
 - アプリ全体の 1 日の上限はない（ADR-029「Not covered」）。多くのアドレスが合わせて割り当てを使い切ることがあり、そうなると 00:00 UTC まで全員が AI を使えなくなる。
@@ -167,8 +170,8 @@ AI はすべての環境で無効になっている。AI が ON でも OFF で�
 2. 公開の本番 Worker だけで AI を有効にする:
    - `env.production`（`wrangler.jsonc`）だけで `AI_ASSIST_ENABLED: "true"` にして、`dev` にコミットする（オーナー承認済み）。
    - ローカルで `npm run check` を実行し、任意で `CLOUDFLARE_ENV=production` のローカルのドライランも実行する（[DEPLOYMENT.md](DEPLOYMENT.md) 5 節）。本番のデータベース、`AI_ASSIST_ENABLED` が `"true"`、`AI_CLIENT_RATE_LIMITER` が 60 秒に 5 回、`AI_CLIENT_LIMITER (AiClientLimiter)` が出ていなければならない。
-   - オーナー: `dev` に push する。`env.preview` は変わらないので、プレビューの Worker は AI が無効のまま再デプロイされる。プレビューのチェックを実行する。
-   - オーナー: `main` をそのコミットまで早送りして push する（[DEPLOYMENT.md](DEPLOYMENT.md) 5 節の手順 7）。この時点で本番の AI が有効になる。本番の両方の Worker がデプロイされ、管理 Worker は自分の変更なしで同じコミットになる。
+   - オーナー: `dev` に push し（CI だけ）、CI が成功するまで待つ。
+   - オーナー: `main` をそのコミットまで早送りして push する（[DEPLOYMENT.md](DEPLOYMENT.md) 5 節の手順 4）。この時点で本番の AI が有効になる。本番の両方の Worker がデプロイされ、管理 Worker は自分の変更なしで同じコミットになる。
    - `travel-discovery` のビルドのログでも同じ値を確かめる。バージョン ID と時刻を記録する。
 3. 確認（モデル呼び出し約 4 回）:
    - `GET /api/ai/status` が `{"enabled":true}` を返す。

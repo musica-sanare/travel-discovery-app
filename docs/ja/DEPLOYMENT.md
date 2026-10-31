@@ -1,14 +1,14 @@
-<!-- source: docs/en/DEPLOYMENT.md blob 2f0b46c3c5d253bf643b3809ca0cc10e1ad27028 -->
+<!-- source: docs/en/DEPLOYMENT.md blob 992506cb618ac0f03e8b97d3e0264315e17ffa73 -->
 [English](../en/DEPLOYMENT.md) | 日本語 · [目次に戻る](README.md)
 
 > この文書は[英語版](../en/DEPLOYMENT.md)の翻訳。内容が異なる場合は英語版が優先する。
 
 # デプロイ手順書
 
-Cloudflare 上のプレビューと本番の Worker について、準備、マイグレーション、ビルド、デプロイ、確認、ロールバックの手順をまとめる。コードが Cloudflare に届く経路は、Cloudflare の Git 連携である Workers Builds だけだ。オーナーが `dev` に push するとプレビューに、`main` に push すると本番にデプロイされる。オーナーと、オーナーのためにデプロイを準備する人向けの文書だ。AI の有効化は [AI_ENABLEMENT.md](AI_ENABLEMENT.md)、デプロイしたアプリの運用は [OPERATIONS.md](OPERATIONS.md) にある。
+Cloudflare 上の本番の Worker について、準備、マイグレーション、ビルド、デプロイ、確認、ロールバックの手順をまとめる。コードが Cloudflare に届く経路は、Cloudflare の Git 連携である Workers Builds だけだ。オーナーが `main` に push すると本番にデプロイされる。`dev` への push では CI だけが走る。オーナーと、オーナーのためにデプロイを準備する人向けの文書だ。AI の有効化は [AI_ENABLEMENT.md](AI_ENABLEMENT.md)、デプロイしたアプリの運用は [OPERATIONS.md](OPERATIONS.md) にある。
 
 > [!WARNING]
-> `main` への push は本番に、`dev` への push はプレビューにデプロイする。それ以外のリモートの手順（D1 のマイグレーション、Time Travel、コマンドでのロールバック、秘密情報、Access、ダッシュボードの設定）はすべてオーナーの手順だ。Claude はコマンドとチェックを用意するが、承認があっても自分では実行しない。
+> `main` への push は本番にデプロイする。それ以外のリモートの手順（D1 のマイグレーション、Time Travel、コマンドでのロールバック、秘密情報、Access、ダッシュボードの設定）はすべてオーナーの手順だ。Claude はコマンドとチェックを用意するが、承認があっても自分では実行しない。
 
 コマンドは Phase 6（2026-10-18）に、現行の公式ドキュメントと照らし合わせた（[DECISIONS.md](../working/DECISIONS.md)（英語のみ）「Phase 6 verification log」）。Workers Builds は 2026-10-31 に確かめた（ADR-033）。*(要確認)* の印がある項目は文書に書かれていないので、その手順の時点で確かめる。これまでに何をデプロイしたかは 11 節にある。
 
@@ -22,14 +22,15 @@ Cloudflare 上のプレビューと本番の Worker について、準備、マ�
 | D1 | 管理 Worker と同じデータベース。コード上は読み取り専用（ADR-018） | マイグレーションを管理する |
 | 任意のバインディング | `AI`、`AI_CLIENT_RATE_LIMITER`（ADR-026）、Durable Object `AI_CLIENT_LIMITER`（ADR-029。AI には必須） | `ADMIN_RATE_LIMITER`（ADR-020） |
 
-環境は `preview`（確認用）と `production` の 2 つで、それぞれ専用の D1 データベースを持つ。名前つきの環境は、その環境が自分の `name` を設定しない限り、`<name>-<environment>` という別の Worker としてデプロイされる:
+デプロイする環境は `production` の 1 つで、専用の D1 データベースを持つ。名前つきの環境は、その環境が自分の `name` を設定しない限り、`<name>-<environment>` という別の Worker としてデプロイされる:
 
 | 環境 | デプロイする Git ブランチ | 公開 Worker | 管理 Worker | D1 データベース |
 |---|---|---|---|---|
-| `preview` | `dev` | `travel-discovery-preview` | `travel-discovery-admin-preview` | `travel-discovery-preview` |
 | `production` | `main` | `travel-discovery`（`env.production` が `name` を設定。オーナーの判断、2026-10-18） | `travel-discovery-admin`（同様） | `travel-discovery-production` |
 
-- 4 つの Worker はそれぞれ Workers Builds でこのリポジトリにつながり、専用のブランチ、ビルドコマンド、デプロイコマンドを持つ（5 節）。
+- 両方の Worker は Workers Builds でこのリポジトリにつながり、5 節のブランチ、ビルドコマンド、デプロイコマンドを持つ。
+- 2026-10-18 から 2026-10-31 までは `preview` 環境（`travel-discovery-preview`、`travel-discovery-admin-preview`、データベース `travel-discovery-preview`）もあった。用途はローカルのチェックと本番のチェックで足りるので外した（ADR-033「Amendment 2026-10-31」）。Cloudflare 上のリソースはオーナーが消す（3.7）。
+- 本番の前の確認はローカルで行う。`npm run check`、`npm run test:e2e`、危ないマイグレーションでは本番のローカルコピーでのリハーサルだ（4 節）。
 - Worker の名前で `workers.dev` の URL（`<worker>.<account subdomain>.workers.dev`）が決まる。
 - トップレベルの設定はローカル専用のまま。`npm run dev`、テスト、E2E が使う。
 - `wrangler.admin.jsonc` の `env.e2e` はローカルのテスト用で、決してデプロイしない。
@@ -37,7 +38,7 @@ Cloudflare 上のプレビューと本番の Worker について、準備、マ�
 ## 2. 誰が何をするか
 
 - **Claude** はコミット、コマンド、期待する出力、チェックを用意する。デプロイはしない。Cloudflare へのログインが要るコマンドは実行せず、ログインもログアウトもせず、ダッシュボードも開かない。
-- **オーナー** は `dev` と `main` に push し（どの push もデプロイになる）、ダッシュボードの手順とオーナーのセッション（3.1）をすべて受け持つ。
+- **オーナー** は `dev` と `main` に push し（`main` への push はどれもデプロイになる）、ダッシュボードの手順とオーナーのセッション（3.1）をすべて受け持つ。
 - 次の項目はそれぞれ別のオーナーの判断だ。新しい環境ではこの順に進める:
   1. ダッシュボードでのアカウントのプランの確認（Workers Free。支払い方法が登録されているか）。
   2. 各 D1 データベースの作成（3.2）。
@@ -45,7 +46,7 @@ Cloudflare 上のプレビューと本番の Worker について、準備、マ�
   4. 各リモートデータベースへのマイグレーションの適用（4 節）。
   5. Cloudflare Zero Trust の有効化と、各管理 Worker の Access ポリシーの作成（3.4）。
   6. 各 Worker の Workers Builds への接続（3.6）。
-  7. デプロイになる各 push。`dev` が先。
+  7. `main` への各 push。
   8. 後で AI を有効にするのは別の判断（[AI_ENABLEMENT.md](AI_ENABLEMENT.md)）。
 
 ## 3. 初回だけのセットアップ
@@ -81,18 +82,17 @@ API トークンは `.dev.vars`、`.env`、リポジトリ内のどのファイ�
 環境ごとに 1 つ、オーナーのセッション（3.1）で作る:
 
 ```bash
-npx wrangler d1 create travel-discovery-preview
+npx wrangler d1 create travel-discovery-production
 ```
 
 - 表示された `database_id` を、**両方の**設定の対応する環境に記録する（C5）。ID は秘密情報ではない。
 - ローカルのプレースホルダー `local-travel-discovery` を使い回さない。それでデプロイすると、別のデータベースに触れずに失敗する（ADR-018）。
-- `travel-discovery-production` は、本番が承認されてから同じ方法で作る。
 - `--location`（ロケーションのヒント）は任意。オーナーが選ばない限り指定しない。
 
 ### 3.3 設定（C5、ADR-026「Stage 5 preparation decisions」C）
-`env.preview` と `env.production` は両方の Wrangler の設定にある（Phase 6、2026-10-18）。それぞれ専用のデータベースと `namespace_id` の値（プレビューは `1001`／`1002`、本番は `2001`／`2002`）を持つ。`env.production` は、トップレベルの Worker 名を保つために `name` も設定する。
+`env.production` は両方の Wrangler の設定にある（Phase 6、2026-10-18）。専用のデータベースと、`namespace_id` の値 `2001`（公開）と `2002`（管理）を持つ。トップレベルの Worker 名を保つために `name` も設定する。`env.preview`（`1001`／`1002`）は 2026-10-31 に外した。プレビューの Worker を消すまで（3.7）、その ID は使い回さない。
 
-名前つきの環境は `vars` とバインディングを引き継がないので、各環境は使うものをすべて宣言する:
+名前つきの環境は `vars` とバインディングを引き継がないので、環境は使うものをすべて宣言する:
 - **両方の Worker:**
   - その環境の `database_name` と `database_id` を持つ `d1_databases`（管理の設定は `migrations_dir` も残す）。
   - `"observability": { "enabled": true, "logs": { "enabled": true, "invocation_logs": false } }`。アプリ自身の行だけを残す Workers Logs だ。呼び出しログは、各リクエストの IP アドレス、ヘッダー、位置情報を保存してしまう（[DECISIONS.md](../working/DECISIONS.md)（英語のみ）「Phase 7 verification log」）。
@@ -106,7 +106,7 @@ npx wrangler d1 create travel-discovery-preview
 - **管理 Worker:**
   - `ratelimits` バインディング `ADMIN_RATE_LIMITER`（推奨 `limit: 120, period: 60`）。
   - `vars` の `ACCESS_TEAM_DOMAIN` と `ACCESS_POLICY_AUD`。秘密情報ではない。3.4 の後でわかり、管理 Worker ごとに違う。
-- **レート制限の名前空間:** `ratelimits` のエントリーにはそれぞれ専用の `namespace_id`（正の整数を文字列にしたもの。アカウント内で一意）が要る。同じ ID のバインディングはカウンターを共有するので、プレビューと本番で共有してはならない。
+- **レート制限の名前空間:** `ratelimits` のエントリーにはそれぞれ専用の `namespace_id`（正の整数を文字列にしたもの。アカウント内で一意）が要る。同じ ID のバインディングはカウンターを共有するので、2 つの環境で決して共有しない。
 
 > [!WARNING]
 > ローカルの実行に AI の設定を持ち込まない。`ai` バインディングは、`npm run dev` やテストからでも常に Cloudflare に接続する。
@@ -114,9 +114,9 @@ npx wrangler d1 create travel-discovery-preview
 > - `CLOUDFLARE_ENV` にデプロイ環境を設定したまま `npm run dev` や `npm run dev:admin` を決して動かさない。環境向けのビルドの後に `npm run preview` も使わない。どちらもその環境の `ai` バインディングを使ってしまう。
 > - `dist/` と `dist-admin/` をローカルの設定に戻すには、`CLOUDFLARE_ENV` なしで `npm run build` を実行する。
 
-C5 のチェック（ローカル、ログイン不要。`env.preview` について 2026-10-18 にすべて合格）:
+設定を変えた後のチェック（ローカル、ログイン不要。最後は `env.preview` を外した後の 2026-10-31 に合格）:
 - トップレベルのビルド出力（`dist/worker/wrangler.json`、`dist-admin/admin_worker/wrangler.json`）が、定義した環境の一覧以外は変わらない。
-- `CLOUDFLARE_ENV=preview npm run build` が、期待どおりに平たくした設定を書き出す。
+- `CLOUDFLARE_ENV=production npm run build` が、期待どおりに平たくした設定を書き出す。Worker 名 `travel-discovery` と `travel-discovery-admin`、本番のデータベース、期待どおりの `vars` とレートリミッターだ。
 - `npm run check` と `npm run test:e2e` が通る。
 - `npm run dev` がリモートバインディングの警告を出さない。
 
@@ -140,7 +140,7 @@ C5 のチェック（ローカル、ログイン不要。`env.preview` につい
    - `/` が 200 を返したら、[OPERATIONS.md](OPERATIONS.md) 4.2 のとおり、すぐに URL を外す。
 6. 管理用のホスト名に当たる、Bypass ポリシーつきのホスト名／パスの Access アプリケーションを作らない（ADR-004 の不変条件 4）。アカウント全体の Worker 保護も使わない。公開サイトまで保護してしまう。
 
-本番の管理 Worker でも同じことを繰り返す。こちらは専用の Access 設定と AUD を持つ。
+管理 Worker はそれぞれ専用の Access 設定と AUD を持つ。今は `travel-discovery-admin` の 1 つだけだ。
 
 ### 3.5 秘密情報
 今の Worker には秘密情報が要らない。AI バインディングは何も要らず、Access の値は秘密ではない。後で秘密情報を足すなら、オーナーがダッシュボード（Settings → Variables & Secrets）で設定するか、オーナーのセッション（3.1）で `npx wrangler secret put <NAME>` を使う。ファイル、`.dev.vars`、`.env`、GitHub には決して入れない。デプロイで秘密情報が消えることはない。
@@ -148,37 +148,36 @@ C5 のチェック（ローカル、ログイン不要。`env.preview` につい
 Workers Builds にもビルド変数とビルド用の秘密情報があり、ビルドの間だけ使える。このプロジェクトはどちらも使わない。`CLOUDFLARE_ENV` はビルドコマンドに含めるので、設定画面にも各ビルドのログにも表示される（3.6）。
 
 ### 3.6 Worker を Workers Builds につなぐ
-4 つの Worker は、オーナーがダッシュボードで 1 回ずつこのリポジトリにつなぐ。下の順に 1 つずつ進め、次に移る前にそれぞれを確かめる。状態: 未実施 *(オーナーの判断、ADR-033)*。
+各 Worker は、オーナーがダッシュボードで 1 回ずつ、1 つずつこのリポジトリにつなぐ。状態: 本番の 2 つの Worker を 2026-10-31 につないだ。最初のビルドがコミット `59b754c` を新しいバージョンとしてデプロイし、6 節も通った（ADR-033「Amendment 2026-10-31」）。下の手順は、Worker をつなぎ直すときや新しい Worker をつなぐときのためのものだ。
 
 **事前に:**
 - 請求（オーナー）: Workers のプランが Free で、Billing にはドメインの登録だけが載っている（[OPERATIONS.md](OPERATIONS.md) 3 節）。
-- この節を足したコミットが `dev` と `main` にあり、その CI が通っている。
-- 4 つの Worker はすでに存在する（11 節）ので、ローカルからは何もデプロイしない。
+- `main` がデプロイしてよいコミットを指していて、その CI が通っている。2026-10-31 に Worker をつないだときは、`main` はまだ `package.json` のない最初のコミットを指していた。そのビルドは何もデプロイできず、`59b754c` の push で最初の本当のビルドが始まった。
+- その Worker がすでに存在する（新しい管理 Worker なら 3.4）。
 
 **Worker ごとに**（Workers & Pages → その Worker → Settings → Build → Connect）:
 1. Git プロバイダー: GitHub と、このリポジトリ。
    - Cloudflare が GitHub アプリのインストールや権限の追加を求めてきたら、**選んだリポジトリだけ**にアクセスを許し、このリポジトリを足す。my-music-site が使うアプリがすでに入っているかもしれない *(要確認: Workers Builds が同じアプリとリポジトリの一覧を使うか)*。
 2. 設定は 5 節の表に合わせる:
-   - Git ブランチ: プレビューの 2 つの Worker は `dev`、本番の 2 つの Worker は `main` *(要確認: 文書にはドロップダウンでブランチを変えられるとあるが、`dev` のような既定以外のブランチを本番ブランチにする例はない。`dev` を選べるか確かめる)*。
-   - ビルドコマンドとデプロイコマンドは 5 節のとおりにする。`CLOUDFLARE_ENV=<env>` の前置きが効かないと、ビルドはトップレベルの設定を使い、デプロイはプレースホルダーのデータベース `local-travel-discovery` で失敗する（ADR-018）。そのときは前置きを外し、代わりに `CLOUDFLARE_ENV` をその Worker のビルド変数にする *(要確認、ADR-033)*。
+   - Git ブランチ: `main`。
+   - ビルドコマンドとデプロイコマンドは 5 節のとおりにする。`CLOUDFLARE_ENV=production` の前置きは効く。最初のビルドが本番のバインディングでデプロイした（2026-10-31）。前置きがないと、ビルドはトップレベルの設定を使い、デプロイはプレースホルダーのデータベース `local-travel-discovery` で失敗する（ADR-018）。
    - ルートディレクトリ: 空（両方の Wrangler の設定があるリポジトリのルート）。
    - ビルド変数とビルド用の秘密情報: なし。
    - ビルドの監視パス: オーナーが別に決めない限り既定（すべての変更）のまま（5 節「ビルド時間」）。
 3. Branch control で**プレビュービルドを無効にする**（本番以外のブランチのビルド）。
    - 無効にしないと、ほかのブランチへの push で専用の URL を持つ公開の Preview ができてしまう。確認済みの `workers_dev` と Access の構成の外側だ。
    - Worker を新しい Worker Previews の方式に切り替えない。文書によると、この切り替えは元に戻せない（ADR-033）。
-4. API トークン: Cloudflare に作らせ、残りの 3 つの Worker でも同じトークンを選ぶ。
+4. API トークン: もう一方の Worker が使っているトークンを選ぶ。まだ 1 つもないときだけ、Cloudflare に作らせる。
    - 文書にある権限は、Account Settings の読み取り、Workers Scripts の編集、Workers KV Storage の編集、Workers R2 Storage の編集、全ゾーンの Workers Routes の編集、User Details の読み取り、Memberships の読み取りだ。請求、プラン、支払い、メンバーの権限はどれも含まない。
    - オーナー: My Profile → API Tokens でトークンを開き、権限がちょうどこの一覧であることを確かめる。請求やアカウント管理の権限を持つトークンはインシデントだ。取り消して [DECISIONS.md](../working/DECISIONS.md)（英語のみ）に記録する。
    - トークンは Cloudflare の中にとどめる。ファイル、GitHub、チャットには決してコピーしない。
-5. 保存する。保存するとすぐにブランチの先頭のビルドが始まるかもしれない *(要確認)*。だから接続の前に、そのブランチの先頭がそこへデプロイしてよいコミットであることを確かめ、ビルドを手順 6 のとおり確かめる。
+5. 保存する。保存するとすぐにブランチの先頭のビルドが始まるかもしれない *(要確認)*。だから接続の前に、`main` の先頭がデプロイしてよいコミットであることを確かめ、ビルドを手順 6 のとおり確かめる。
 6. その Worker の最初のビルドを確かめる:
    - ビルドのログに、`.nvmrc` の Node.js のバージョン（24） *(要確認: ビルドイメージが Node.js をどう選ぶか)* と、`package.json` の Wrangler のバージョンが出ている。
-   - デプロイの段階で、期待する Worker の名前と、期待するバインディングが出ている。その環境の D1 データベース、公開 Worker では `AI_ASSIST_ENABLED` が `"false"`、その環境の `namespace_id` を持つレートリミッターだ。
+   - デプロイの段階で、期待する Worker の名前と、期待するバインディングが出ている。本番の D1 データベース、公開 Worker では `AI_ASSIST_ENABLED` が `"false"`、本番の `namespace_id` を持つレートリミッターだ。
+   - その Worker の Deployments に、そのコミットの新しいバージョンが出ている。
    - ビルドにかかった時間を控える（5 節「ビルド時間」）。
-   - その環境で 6 節を実行する。管理 Worker の後は `--watch-admin 120` を足す。
-
-**順番:** `travel-discovery-preview`、`travel-discovery-admin-preview`、両方をデプロイする `dev` への push。プレビューのチェックが通ったら、`travel-discovery`、`travel-discovery-admin`、`main` への push。
+   - 6 節を実行する。管理 Worker の後は `--watch-admin 120` を足す。
 
 **事後に:**
 - 日付、ビルド時間、バージョン ID を [DECISIONS.md](../working/DECISIONS.md)（英語のみ）と 11 節に記録する。
@@ -194,69 +193,93 @@ Workers Builds にもビルド変数とビルド用の秘密情報があり、�
 
 - 以後、オーナーのセッションは必ず `npx wrangler logout` で終える。こうして、この手順書のどの手順もマシンに Cloudflare のログインを残さない。
 
+### 3.7 プレビューのリソースを消す（オーナー、1 回だけ）
+プレビュー環境は 2026-10-31 に設定から外したが、Cloudflare 上のリソースはオーナーが消すまで残る。Workers Free では費用はかからないが、公開側のプレビュー Worker は古いコードとシードデータを公開 URL で出し続ける。状態: 未実施。
+
+どの削除も元に戻せず、オーナーの判断だ。管理のプレビュー Worker が Access なしで届く瞬間を作らないよう、次の順に消す:
+
+1. **先に管理のプレビュー Worker。** Workers & Pages → `travel-discovery-admin-preview` → Settings → Delete *(要確認: 正確な表示名)*。Workers Builds にはつながっていない。
+2. **公開のプレビュー Worker。** Workers & Pages → `travel-discovery-preview` → Settings → Delete。Durable Object `AiClientLimiter` のデータも消えるが、中身はアドレスごとの AI のカウンターだけだ。
+3. **管理のプレビュー Worker の Access アプリケーション。** 手順 1 の後にだけ消す。Zero Trust → Access controls → Applications → `travel-discovery-admin-preview` のアプリケーション → Delete。
+   - `travel-discovery-admin` のアプリケーションには触れない。
+   - 続いて Access controls → Policies で、再利用可能なポリシー `travel-discovery-admin-preview - Production` を、どのアプリケーションも使っていない場合にだけ消す。本番のアプリケーションは専用のポリシーを持つ。
+4. **プレビューの D1 データベース。** Storage & Databases → D1 → `travel-discovery-preview` → Settings → Delete *(要確認: 正確な表示名)*。中身は `db/seed/dev.sql` のデータと確認用に入れたコンテンツだけなので、エクスポートは要らない。データベースを消すと、Time Travel でも戻せない。
+5. **確かめる:**
+   - `node scripts/check-deployment.mjs <account subdomain> production --watch-admin 120` が通る。
+   - `https://travel-discovery-preview.<account subdomain>.workers.dev/` と `https://travel-discovery-admin-preview.<account subdomain>.workers.dev/` が 200 を返さなくなっている。
+   - このアプリの Worker として Workers & Pages に `travel-discovery` と `travel-discovery-admin` だけが、D1 に `travel-discovery-production` だけが載っている。
+6. 日付を [DECISIONS.md](../working/DECISIONS.md)（英語のみ）の ADR-033 と 11 節に記録する。以後、`namespace_id` の `1001` と `1002` は使い回してよい。
+
+どれもダッシュボードの手順で、このマシンでのログインは要らない。
+
 ## 4. データベースのマイグレーション
-マイグレーションは管理の設定からだけ、プレビューを先に適用する。どれもオーナーのセッション（3.1）で実行し、Workers Builds は適用しない。
+マイグレーションは管理の設定からだけ、オーナーのセッション（3.1）で適用する。Workers Builds は適用しない。
 
 > [!WARNING]
-> push するとすぐにデプロイされる。新しいスキーマが要るコードのブランチを push する**前に**、その環境のデータベースにマイグレーションを適用する。
+> `main` に push するとすぐにデプロイされる。新しいスキーマが要るコードのコミットを `main` に push する**前に**、本番のデータベースにマイグレーションを適用する。
 
 スキーマの変更が要るコミットの順番:
 
-1. マイグレーションが今デプロイしているコードと後方互換であり（8 節）、そのコミットでローカルの `npm run check` と `npm run test:e2e` が通っている。
-2. オーナーのセッション: `travel-discovery-preview` にマイグレーションを適用し、確かめて、ログアウトする。
-3. オーナー: `dev` に push する。Workers Builds がプレビューの両方の Worker をデプロイする。6 節を実行する。
-4. オーナーのセッション: Time Travel のブックマークを記録し、`travel-discovery-production` にマイグレーションを適用し、確かめて、ログアウトする。
-5. オーナー: `main` に push する。Workers Builds が本番の両方の Worker をデプロイする。6 節を実行する。
+1. マイグレーションが今デプロイしているコードと後方互換である（8 節）。そのコミットでローカルの `npm run check` と `npm run test:e2e` が通っている。どちらも、まっさらなローカルのデータベースにすべてのマイグレーションを適用する。
+2. テーブルを作り直したりデータを変えたりするマイグレーションは、先に本番のローカルコピーでリハーサルする（下）。
+3. オーナーのセッション: Time Travel のブックマークを記録し、`travel-discovery-production` にマイグレーションを適用し、確かめて、ログアウトする。
+4. オーナー: `main` に push する。Workers Builds が両方の Worker をデプロイする。6 節を実行する。
 
-プレビューのコマンド:
+本番のコマンド:
 
 ```bash
-npx wrangler d1 migrations apply travel-discovery-preview --remote --env preview --config wrangler.admin.jsonc
+npx wrangler d1 migrations apply travel-discovery-production --remote --env production --config wrangler.admin.jsonc
 ```
 
 - Wrangler は未適用のマイグレーションを並べ、確認を求め、適用する前にバックアップを取る。
-- プレビューのチェックが通ったら、`travel-discovery-production` と `--env production` で同じことをする。
-- 本番に適用する前に、復元ポイントを記録する: `npx wrangler d1 time-travel info travel-discovery-production`。
-- `npx wrangler d1 export travel-discovery-production --remote --output <file>` で SQL のエクスポートも取れる。本番のエクスポートには公開済みのコンテンツが入るので、リポジトリの外に置く。
+- 適用する前に、復元ポイントを記録する: `npx wrangler d1 time-travel info travel-discovery-production`。
 - スキーマの変更は、前にデプロイしたコードと後方互換にする。コードをロールバックしても、データベースは戻らない（8 節）。
-- `db/seed/dev.sql` はローカルのテストデータだ。プレビューのデータベースに読み込むかは、その手順の時点でのオーナーの判断 *(要確認)*。本番には決して読み込まない。本番のコンテンツは管理コンソールから入れる。
+- `db/seed/dev.sql` はローカルのテストデータだ。本番には決して読み込まない。本番のコンテンツは管理コンソールから入れる。
+
+**本番のローカルコピーでのリハーサル（任意）。** 危ないマイグレーションでは、これが以前のプレビューのデータベースの代わりになる。
+1. オーナーのセッション: 本番のデータベースを**リポジトリの外**のファイルにエクスポートする。公開済みのコンテンツが入るからだ。ログアウトする。
+
+   ```bash
+   npx wrangler d1 export travel-discovery-production --remote --output ~/travel-discovery-backups/production.sql
+   ```
+
+2. ローカルで、ログインなしに、別のローカルの状態に読み込み、未適用のマイグレーションを適用する:
+
+   ```bash
+   npx wrangler d1 execute travel-discovery --local --persist-to .wrangler/rehearsal --config wrangler.admin.jsonc --file ~/travel-discovery-backups/production.sql
+   ```
+
+   ```bash
+   npx wrangler d1 migrations apply travel-discovery --local --persist-to .wrangler/rehearsal --config wrangler.admin.jsonc
+   ```
+
+3. 前後の行数を比べ、移行したテーブルを確かめる。終わったら `.wrangler/rehearsal` とエクスポートを消す *(要確認: エクスポートした SQL がそのままローカルのデータベースに読み込めるか)*。
 
 ## 5. ビルドとデプロイ
-Workers Builds は、`dev` と `main` への push をすべてビルドしてデプロイする。各 Worker の設定は次のとおり（3.6）:
+Workers Builds は、`main` への push をすべてビルドしてデプロイする。`dev` への push では GitHub Actions の CI だけが走る。各 Worker の設定は次のとおり（3.6）:
 
 | Worker | Git ブランチ | ビルドコマンド | デプロイコマンド |
 |---|---|---|---|
-| `travel-discovery-preview` | `dev` | `CLOUDFLARE_ENV=preview npm run build` | `npx wrangler deploy --config dist/worker/wrangler.json` |
-| `travel-discovery-admin-preview` | `dev` | `CLOUDFLARE_ENV=preview npm run build` | `npx wrangler deploy --config dist-admin/admin_worker/wrangler.json` |
 | `travel-discovery` | `main` | `CLOUDFLARE_ENV=production npm run build` | `npx wrangler deploy --config dist/worker/wrangler.json` |
 | `travel-discovery-admin` | `main` | `CLOUDFLARE_ENV=production npm run build` | `npx wrangler deploy --config dist-admin/admin_worker/wrangler.json` |
 
-4 つとも、ルートディレクトリは空、ビルド変数はなし、プレビュービルドは無効だ。`npm run build` は毎回両方の Worker をビルドするので、型チェックとバンドルのチェック（ADR-004）がどのビルドでも走る。
+どちらも、ルートディレクトリは空、ビルド変数はなし、プレビュービルドは無効だ。`npm run build` は毎回両方の Worker をビルドするので、型チェックとバンドルのチェック（ADR-004）がどのビルドでも走る。
 
 ```mermaid
 flowchart TD
-  local["コミットがローカルの check と E2E に通る（手順 1）"] --> mig["スキーマ変更: オーナーのセッションでプレビューの DB を移行（手順 2）"]
-  mig --> dev["オーナーが dev に push（手順 3）"]
-  dev --> pbuild["Workers Builds がプレビューの両 Worker をデプロイ"]
-  pbuild --> pcheck["ビルドのログとプレビューの 6 節（手順 4〜5）"]
-  pcheck -->|"失敗"| rollback["ロールバック（8 節）"]
-  pcheck -->|"合格かつ CI が成功"| pmig["スキーマ変更: オーナーのセッションで本番の DB を移行（手順 6）"]
-  pmig --> main["オーナーが main を早送りして push（手順 7）"]
-  main --> mbuild["Workers Builds が本番の両 Worker をデプロイ"]
-  mbuild --> mcheck["ビルドのログと本番の 6 節（手順 8）"]
-  mcheck -->|"失敗"| rollback
+  local["dev のコミットがローカルの check と E2E に通る（手順 1）"] --> dev["オーナーが dev に push: CI だけ（手順 2）"]
+  dev --> ci["GitHub で CI が成功（手順 2）"]
+  ci --> mig["スキーマ変更: オーナーのセッションで本番の DB を移行（手順 3）"]
+  mig --> main["オーナーが main を早送りして push（手順 4）"]
+  main --> build["Workers Builds が両 Worker をデプロイ"]
+  build --> check["ビルドのログと 6 節（手順 5〜6）"]
+  check -->|"失敗"| rollback["ロールバック（8 節）"]
 ```
 
-1. `dev` に push する前に、そのコミットでローカルの `npm run check` と `npm run test:e2e` を実行する。同じ push で GitHub Actions の CI も走るが、Workers Builds はその結果を待たない。
-2. コミットにスキーマの変更が要るなら、先にプレビューのデータベースにマイグレーションを適用する（4 節）。
-3. オーナー: `dev` に push する。これで `travel-discovery-preview` と `travel-discovery-admin-preview` がデプロイされる。
-4. ダッシュボードで 2 つのビルドのログを読む（その Worker → Deployments または Builds *(要確認: 正確なタブ)*）:
-   - 期待どおりのコマンドでビルドされ、型チェックとバンドルのチェックを含めて `npm run build` が通った。
-   - デプロイの段階で、期待する Worker の名前と、期待するバインディングと `vars` が出ている。その環境の D1 データベース、`AI_ASSIST_ENABLED`、その環境の `namespace_id` を持つレートリミッターだ。
-   - このチェックが大事なのは、デプロイする Worker の名前を Workers Builds 自身が設定するからだ（下の「Worker の名前」）。ビルドコマンドの `CLOUDFLARE_ENV` を間違えると、正しい名前のまま、もう一方の環境のバインディングでデプロイしてしまう。
-5. **両方の**ビルドが終わってから、プレビューで 6 節を実行する。
-6. コミットにスキーマの変更が要るなら、本番のデータベースにマイグレーションを適用する（4 節）。
-7. オーナー: `main` を確認済みのコミットまで進めて push する。これで `travel-discovery` と `travel-discovery-admin` がデプロイされる。push するのは、CI が通り、プレビューのチェックにも通ったコミットだけにし、その上に新しいものを載せない。
+1. `dev` にコミットし、そのコミットでローカルの `npm run check` と `npm run test:e2e` を実行する。
+2. オーナー: `dev` に push する。何もデプロイされない。そのコミットで GitHub Actions の CI が成功するまで待つ。Workers Builds はその結果を待たないからだ。
+3. コミットにスキーマの変更が要るなら、先に本番のデータベースにマイグレーションを適用する（4 節）。
+4. オーナー: `main` を確認済みのコミットまで進めて push する。これで `travel-discovery` と `travel-discovery-admin` がデプロイされる。push するのは CI が通ったコミットだけにし、その上に新しいものを載せない。
 
    ```bash
    git switch main
@@ -270,20 +293,24 @@ flowchart TD
    git push origin main
    ```
 
-8. 手順 4 と同じようにビルドのログを読み、本番で 6 節を実行する。記録しておく価値のあるデプロイなら、バージョン ID を 11 節に記録する。
+5. ダッシュボードで 2 つのビルドのログを読む（その Worker → Deployments または Builds *(要確認: 正確なタブ)*）:
+   - 期待どおりのコマンドでビルドされ、型チェックとバンドルのチェックを含めて `npm run build` が通った。
+   - デプロイの段階で、期待する Worker の名前と、期待するバインディングと `vars` が出ている。本番の D1 データベース、`AI_ASSIST_ENABLED`、本番の `namespace_id` を持つレートリミッターだ。
+   - このチェックが大事なのは、デプロイする Worker の名前を Workers Builds 自身が設定するからだ（下の「Worker の名前」）。ビルドコマンドを間違えると、正しい名前のまま、トップレベルや別の環境のバインディングでデプロイしてしまうことがある。
+6. **両方の**ビルドが終わってから、6 節を実行する。記録しておく価値のあるデプロイなら、バージョン ID を 11 節に記録する。
 
 **注意点:**
-- **どの push もデプロイになる。** ドキュメントだけを変えたコミットも同じだ。失敗したビルドは何もデプロイせず、前のバージョンが配信され続ける。
-- **Workers Free ではビルドは一度に 1 つ。** 同じブランチの 2 つの Worker は順にビルドされるので、数分の間、公開 Worker と管理 Worker が別のコミットで動くことがある。スキーマの変更は後方互換で（4 節）、2 つの Worker が共有するのはデータベースだけなので、これは安全だ。
+- **`main` への push はどれもデプロイになる。** ドキュメントだけを変えたコミットも同じだ。失敗したビルドは何もデプロイせず、前のバージョンが配信され続ける。
+- **Workers Free ではビルドは一度に 1 つ。** 2 つの Worker は順にビルドされるので、数分の間、公開 Worker と管理 Worker が別のコミットで動くことがある。スキーマの変更は後方互換で（4 節）、2 つの Worker が共有するのはデータベースだけなので、これは安全だ。
 - **ビルドに `.dev.vars` は入らない。** Workers Builds はクリーンなチェックアウトから始めるので、[DEVELOPMENT.md](DEVELOPMENT.md) にある `.dev.vars` のコピーはそこでは起きない。ローカルのビルドでは今も起きる。
 - **ダッシュボードでの変数や `workers.dev` の編集**は、これまでどおり次のビルドのデプロイで上書きされる。
-- **Worker の名前。** Workers Builds は、ダッシュボード上の Worker の名前が、ルートディレクトリの Wrangler の設定の `name` と一致することを求める。ただし、基本の名前が同じ Wrangler の環境は例外だ。Wrangler v3 以降では、Workers Builds が `WRANGLER_CI_OVERRIDE_NAME` で、つないだ Worker の名前を自分で設定する（Troubleshooting のページ、2026-10-30 更新）。ルートの `wrangler.jsonc` の名前は `travel-discovery` なので、管理 Worker はこの上書きに頼ることになる *(要確認: 管理 Worker の最初のビルドで確かめる)*。
-- **ビルド時間。** Workers Free には、月 3,000 分のビルド時間、同時ビルド 1 つ、20 分のタイムアウトが含まれる。1 回のリリース（`dev` への push の後に `main` への push）でビルドは 4 回走る。1 回のビルドが T 分なら、月に 3,000 ÷（4 × T）回リリースできる。たとえば 4 分なら約 190 回だ。使い切ったときに何が起きるかは文書にない *(要確認)*。そのときは push を止めて月のリセットを待つ。プランは決して上げない。使った時間が枠の半分を超えたら、まずドキュメントだけのコミットを除外するビルドの監視パスを検討する（オーナーの判断）。
+- **Worker の名前。** Workers Builds は、ダッシュボード上の Worker の名前が、ルートディレクトリの Wrangler の設定の `name` と一致することを求める。ただし、基本の名前が同じ Wrangler の環境は例外だ。Wrangler v3 以降では、Workers Builds が `WRANGLER_CI_OVERRIDE_NAME` で、つないだ Worker の名前を自分で設定する（Troubleshooting のページ、2026-10-30 更新）。ルートの `wrangler.jsonc` の名前は `travel-discovery` なので、管理 Worker はこの上書きに頼ることになる。2026-10-31 の最初のビルドで新しいバージョンができた *(要確認: `travel-discovery-admin` のバージョン ID を記録するときに確かめる)*。
+- **ビルド時間。** Workers Free には、月 3,000 分のビルド時間、同時ビルド 1 つ、20 分のタイムアウトが含まれる。`main` への push 1 回でビルドは 2 回走り、`dev` への push では走らない。1 回のビルドが T 分なら、月に 3,000 ÷（2 × T）回 `main` に push できる。たとえば 4 分なら約 375 回だ。使い切ったときに何が起きるかは文書にない *(要確認)*。そのときは push を止めて月のリセットを待つ。プランは決して上げない。使った時間が枠の半分を超えたら、まずドキュメントだけのコミットを除外するビルドの監視パスを検討する（オーナーの判断）。
 
 **ローカルでのドライラン（任意、ログイン不要）。** push の前に平たくした設定を見たいときは、ローカルでビルドしてドライランを実行する。終わったら `npm run build` でローカルの設定に戻す（3.3）。
 
 ```bash
-CLOUDFLARE_ENV=preview npm run build
+CLOUDFLARE_ENV=production npm run build
 ```
 
 ```bash
@@ -307,7 +334,7 @@ npx wrangler deploy --dry-run --config dist-admin/admin_worker/wrangler.json
 下の認証なしのチェックは自動化してある:
 
 ```bash
-node scripts/check-deployment.mjs <account subdomain> <preview|production>
+node scripts/check-deployment.mjs <account subdomain> production
 ```
 
 管理 Worker をデプロイした後は `--watch-admin 120` を足す。日々の監視、定期チェック、インシデント対応は [OPERATIONS.md](OPERATIONS.md) にある。
@@ -351,7 +378,7 @@ AI の有効化には専用の手順書がある: [AI_ENABLEMENT.md](AI_ENABLEME
   - 2026-10-24 に読んだアカウントの 1 日の量は、多くても上限の数パーセント。変更後の最初の確認は日付つきのタスクにしてある（[OPERATIONS.md](OPERATIONS.md) 3 節と 7 節）。
   - https://developers.cloudflare.com/workers/observability/logs/workers-logs/、https://developers.cloudflare.com/observability/pricing/
 - **Workers Builds:** Free では月 3,000 分のビルド時間、同時ビルド 1 つ、20 分のタイムアウト。Paid では 6,000 分で、その後は 1 分あたり 0.005 米ドル。Free で使い切ったときに止まるか課金されるかは書かれていない *(要確認。確かめるまでは課金されうるものとして扱い、使った時間を毎月見る)*。2026-10-31 に確認。https://developers.cloudflare.com/workers/ci-cd/builds/limits-and-pricing/ （2026-10-28 更新）
-- **Rate Limiting バインディング:** Workers Free で使えるか、いくらかは文書にない。承認を得たプレビューのデプロイでだけ確かめられる。https://developers.cloudflare.com/workers/runtime-apis/bindings/rate-limit/
+- **Rate Limiting バインディング:** Workers Free で使えるか、いくらかは文書にない。2026-10-18 からのデプロイでは、エラーなくデプロイできている。https://developers.cloudflare.com/workers/runtime-apis/bindings/rate-limit/
 - **Cloudflare Zero Trust Free:** 席数の上限、料金、ログイン方法はプランのページに書かれていない。ダッシュボードで確かめる。https://www.cloudflare.com/plans/zero-trust-services/
 
 ## 10. 最初のデプロイ前の手作業のチェック（オーナー）
@@ -369,7 +396,7 @@ AI の有効化には専用の手順書がある: [AI_ENABLEMENT.md](AI_ENABLEME
 
 ## 11. デプロイの履歴
 
-Phase 6（2026-10-18）時点の状態と、その後のデプロイ。詳細は [DECISIONS.md](../working/DECISIONS.md)（英語のみ）の検証ログにある。下のデプロイはどれも、Workers Builds に移る前（3.6）に、オーナーのローカルの Wrangler のログインから行った。
+Phase 6（2026-10-18）時点の状態と、その後のデプロイ。詳細は [DECISIONS.md](../working/DECISIONS.md)（英語のみ）の検証ログにある。2026-10-31 に Workers Builds に移るまで（3.6）、デプロイはどれもオーナーのローカルの Wrangler のログインから行った。
 
 **プレビュー（2026-10-18）:**
 - プレビューの D1 データベース `travel-discovery-preview` を作った（リージョン APAC）。`env.preview`（C5）を、その ID とともに両方の Wrangler の設定に入れてある。
@@ -391,3 +418,8 @@ Phase 6（2026-10-18）時点の状態と、その後のデプロイ。詳細は
 - 4 つの Worker すべてを、Workers Logs の呼び出しログを無効にして再デプロイした（プレビュー `def4b576`／`e45a9449`、本番 `f73d57c0`／`07a234a3`）。両方の管理 Worker の Access のリダイレクトを含め、同じチェックに合格した（[DECISIONS.md](../working/DECISIONS.md)（英語のみ）「Phase 7 verification log」）。
 - 管理 Worker をコンテンツのインポート機能つきで再デプロイした（プレビュー `3e2b9f30`、本番 `9d51e1a4`）。
 - `content/initial-v1.json` をプレビューと本番にインポートした。本番はその時点で、公開済みの旅行先 18 件と質問 12 問になった（ADR-028）。
+
+**Workers Builds（2026-10-31）:**
+- オーナーが `travel-discovery` と `travel-discovery-admin` を `main` につないだ（3.6）。`59b754c` を `main` に push すると最初のビルドが始まり、新しいバージョンをデプロイした。コードは Phase 17 のデプロイ（`ef6d323`）と同じだ。バージョン ID とビルド時間: *(要確認: オーナーが記録する)*。
+- `scripts/check-deployment.mjs <account subdomain> production --watch-admin 120` が通った。4 つのロケールの公開 API、AI は無効、管理のすべてのパスが 2 分間 Access のログインにリダイレクトした。
+- プレビュー環境を設定から外した（ADR-033「Amendment 2026-10-31」）。その Worker、Access アプリケーション、データベースはオーナーが消す（3.7）。

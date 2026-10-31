@@ -5,7 +5,7 @@ English | [日本語](../ja/OPERATIONS.md) · [Docs index](README.md)
 This runbook covers running the deployed app: where to look, routine and dated checks, incidents, backups, logs, publishing content, and actions that start charges. It is for the owner and anyone helping operate the app. How to deploy, migrate, and roll back is in [DEPLOYMENT.md](DEPLOYMENT.md); enabling AI is in [AI_ENABLEMENT.md](AI_ENABLEMENT.md); the facts behind each rule are in [DECISIONS.md](../working/DECISIONS.md).
 
 > [!WARNING]
-> A push to `main` deploys production, and a push to `dev` deploys preview ([DEPLOYMENT.md](DEPLOYMENT.md) section 5). Every remote Wrangler command, rollback, restore, and account or Access change is an owner step: dashboard steps and owner sessions ([DEPLOYMENT.md](DEPLOYMENT.md) 3.1) that end with `npx wrangler logout`. Claude prepares them but never runs them.
+> A push to `main` deploys production; a push to `dev` runs CI only ([DEPLOYMENT.md](DEPLOYMENT.md) section 5). Every remote Wrangler command, rollback, restore, and account or Access change is an owner step: dashboard steps and owner sessions ([DEPLOYMENT.md](DEPLOYMENT.md) 3.1) that end with `npx wrangler logout`. Claude prepares them but never runs them.
 
 Last reviewed: 2026-10-31.
 
@@ -13,19 +13,18 @@ Last reviewed: 2026-10-31.
 
 | Environment | Deployed by a push to | Public Worker | Admin Worker | D1 database |
 |---|---|---|---|---|
-| `preview` | `dev` | `travel-discovery-preview` | `travel-discovery-admin-preview` | `travel-discovery-preview` (seed data) |
 | `production` | `main` | `travel-discovery` | `travel-discovery-admin` | `travel-discovery-production` |
 
-- All four Workers are connected to this repository in Workers Builds ([DEPLOYMENT.md](DEPLOYMENT.md) 3.6).
-- All four Workers use `workers.dev` (`<worker>.<account subdomain>.workers.dev`).
-- The account is on Workers Free and Zero Trust Free. AI is disabled everywhere.
-- Free-tier limits are shared by the whole account, so heavy use of preview also affects production ([DEPLOYMENT.md](DEPLOYMENT.md) section 9).
+- Both Workers are connected to this repository in Workers Builds ([DEPLOYMENT.md](DEPLOYMENT.md) 3.6) and use `workers.dev` (`<worker>.<account subdomain>.workers.dev`).
+- The preview environment was removed on 2026-10-31. Until the owner deletes its Workers and database ([DEPLOYMENT.md](DEPLOYMENT.md) 3.7), they still exist but are no longer deployed or checked.
+- The account is on Workers Free and Zero Trust Free. AI is disabled.
+- Free-tier limits are shared by the whole account, including other projects on it ([DEPLOYMENT.md](DEPLOYMENT.md) section 9).
 
 ## 2. Where to look
 
 | Signal | Where | Notes |
 |---|---|---|
-| Requests and errors per Worker | Dashboard: Workers & Pages → the Worker → Metrics | Still available with invocation logs disabled (checked on preview, 2026-10-24). |
+| Requests and errors per Worker | Dashboard: Workers & Pages → the Worker → Metrics | Still available with invocation logs disabled (checked on the former preview Worker, 2026-10-24). |
 | App log lines | Dashboard: Workers & Pages → the Worker → Observability | Invocation logs are disabled, so only the app's own lines exist (section 6). |
 | D1 usage | Dashboard: the D1 database → Metrics *(要確認: exact path)* | Cloudflare also emails when the account reaches a D1 daily limit. |
 | Workers AI usage | Dashboard: Workers AI | Only relevant once AI is enabled. |
@@ -48,7 +47,7 @@ Rate-limit lines can also appear while AI is disabled, because since Phase 11 th
 ## 3. Routine checks
 
 **Weekly, and after any change on the Access tab, a Zero Trust policy, or the account subdomain:**
-- Run the unauthenticated checks for both environments. The script exits 1 on any failure. It covers:
+- Run the unauthenticated checks. The script exits 1 on any failure. It covers:
   - the public API in all locales and the security headers;
   - the AI endpoint and the AI status (`{"enabled":false}`) while AI is disabled;
   - the Access redirect (302 to `https://<team>.cloudflareaccess.com/...`) of `/`, `/destinations`, and `/api/admin/me` on the admin Worker.
@@ -57,15 +56,11 @@ Rate-limit lines can also appear while AI is disabled, because since Phase 11 th
   node scripts/check-deployment.mjs <account subdomain> production
   ```
 
-  ```bash
-  node scripts/check-deployment.mjs <account subdomain> preview
-  ```
-
   - A 200 from an admin URL is an incident (section 4.2).
   - Right after deploying an admin Worker, add `--watch-admin 120` to repeat the Access checks every 10 s for two minutes.
   - The script prepares TLS before its first request, which takes a few seconds on macOS. A timeout (15 s per request) still counts as a failure, so look at the failing URL with `curl` before treating it as an incident.
-- Access tab of each admin Worker: scope **All traffic**. Zero Trust policy: an **Emails** Include rule with the owner's address only. No hostname or path Access application with a Bypass policy for an admin hostname (ADR-004).
-- Observability of both public Workers: no unusual number of `api_error` lines.
+- Access tab of the admin Worker: scope **All traffic**. Zero Trust policy: an **Emails** Include rule with the owner's address only. No hostname or path Access application with a Bypass policy for an admin hostname (ADR-004).
+- Observability of the public Worker: no unusual number of `api_error` lines.
 
 **Monthly:**
 - `npm audit --omit=dev` (expected: 0 vulnerabilities) and `npm audit` (known development-only advisory, ADR-003).
@@ -99,9 +94,9 @@ Rate-limit lines can also appear while AI is disabled, because since Phase 11 th
 ### 4.2 Admin Worker reachable without Access
 This is any unauthenticated 200 from an admin URL. The admin API still answers 403 without a valid token, but the admin UI must not be public.
 1. Remove the URL at once (owner): disable `workers.dev` in the dashboard (Settings → Domains & Routes).
-2. Before anything else is pushed to that environment's branch, commit `"workers_dev": false` in that environment of `wrangler.admin.jsonc` on `dev` and push it; for production, then fast-forward `main` to it and push ([DEPLOYMENT.md](DEPLOYMENT.md) section 5, step 7). Otherwise the next build re-enables the URL. Each push also redeploys the public Worker of that environment with the same commit.
+2. Before anything else is pushed to `main`, commit `"workers_dev": false` in `env.production` of `wrangler.admin.jsonc` on `dev`, push `dev`, then fast-forward `main` to it and push ([DEPLOYMENT.md](DEPLOYMENT.md) section 5, step 4). Otherwise the next build re-enables the URL. The push also redeploys the public Worker with the same commit.
 3. Check the Access tab scope and the policy (section 3), and the Audit Log for what changed.
-4. Commit `"workers_dev": true` again, push the branch, and check the redirect immediately and for two minutes (`--watch-admin 120`).
+4. Commit `"workers_dev": true` again, push it to `dev` and `main` the same way, and check the redirect immediately and for two minutes (`--watch-admin 120`).
 5. Record the incident in [DECISIONS.md](../working/DECISIONS.md).
 
 ### 4.3 Wrong content published
@@ -114,9 +109,9 @@ Stop AI with the kill switch ([AI_ENABLEMENT.md](AI_ENABLEMENT.md), ADR-026 E); 
 
 ### 4.5 A build fails, or no build starts
 The previous version keeps serving; nothing is broken for users.
-1. Read the build log ([DEPLOYMENT.md](DEPLOYMENT.md) section 5, step 4).
-2. A failure in `npm run build` or the deploy step: fix it on `dev` and push again. Do not change the build settings to get past a failing check.
-3. Only one Worker of a pair deployed: the two Workers run different commits. Retry the failed build in the dashboard, or roll the other one back ([DEPLOYMENT.md](DEPLOYMENT.md) section 8).
+1. Read the build log ([DEPLOYMENT.md](DEPLOYMENT.md) section 5, step 5).
+2. A failure in `npm run build` or the deploy step: fix it on `dev`, then push `dev` and `main` again. Do not change the build settings to get past a failing check.
+3. Only one of the two Workers deployed: the two Workers run different commits. Retry the failed build in the dashboard, or roll the other one back ([DEPLOYMENT.md](DEPLOYMENT.md) section 8).
 4. No build starts, or the build minutes are used up: stop pushing. Never upgrade the plan to get builds back. Wait for the monthly reset, or deploy locally only by owner decision ([DEPLOYMENT.md](DEPLOYMENT.md) section 5 "Local deployment"). Record it in [DECISIONS.md](../working/DECISIONS.md).
 
 ## 5. Backups and restore
@@ -125,7 +120,7 @@ The previous version keeps serving; nothing is broken for users.
 - Optional SQL exports (`npx wrangler d1 export … --remote --output <file>`) stay outside the repository.
 
 ## 6. Logs and privacy
-- Workers Logs is enabled on all four Workers with invocation logs disabled. Do not re-enable them: invocation logs would store each request with its IP address, headers (including Access tokens on the admin Workers), and geolocation ("Phase 7 verification log" in [DECISIONS.md](../working/DECISIONS.md)).
+- Workers Logs is enabled on both Workers with invocation logs disabled. Do not re-enable them: invocation logs would store each request with its IP address, headers (including Access tokens on the admin Workers), and geolocation ("Phase 7 verification log" in [DECISIONS.md](../working/DECISIONS.md)).
 - The app's own lines contain no addresses, answers, or texts. Keep it that way when adding log lines.
 - Retention: 3 days on Workers Free, 7 days from 2026-12-01.
 - When sharing a log entry, remove the account ID and hostnames first.
@@ -189,6 +184,7 @@ After:
 - Record a new Time Travel bookmark.
 
 ## 9. Open items
+- **Preview resources:** the two preview Workers, the Access application of the admin preview Worker, and the preview database still exist until the owner deletes them ([DEPLOYMENT.md](DEPLOYMENT.md) 3.7).
 - **Rejection of an address outside the Access policy:** not checked. It needs a second Cloudflare account, which the owner postponed (2026-10-24).
 - **The 429 response of `AI_CLIENT_RATE_LIMITER`.** Current state (2026-10-31, Phase 14): the strict per-client quota in a Durable Object (ADR-029) is deployed to production (version `cc06950d`), where the limiter check passed ("Phase 14 verification log"). Enabling AI on production is a separate owner decision (ADR-026 "Readiness for enabling AI"). History:
   - 2026-10-25, preview AI trial: no 429 was observed (15 requests from one address, all 400; "Phase 10 verification log" in [DECISIONS.md](../working/DECISIONS.md)); cause 要確認. This blocks enabling AI on production (ADR-026 "Readiness for enabling AI").

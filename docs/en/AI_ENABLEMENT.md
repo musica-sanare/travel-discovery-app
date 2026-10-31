@@ -2,12 +2,12 @@ English | [日本語](../ja/AI_ENABLEMENT.md) · [Docs index](README.md)
 
 # AI Enablement Runbook
 
-This runbook describes how to enable the optional AI notes on a deployed Worker, test them, and turn them off again. It is for the owner and anyone preparing these steps for the owner's approval. It covers the general steps, the preview trial, the limiter check with AI disabled, and enabling AI on production. Building and deploying are in [DEPLOYMENT.md](DEPLOYMENT.md); monitoring is in [OPERATIONS.md](OPERATIONS.md).
+This runbook describes how to enable the optional AI notes on a deployed Worker, test them, and turn them off again. It is for the owner and anyone preparing these steps for the owner's approval. It covers the general steps, the record of the preview trial, the limiter check with AI disabled, and enabling AI on production. Building and deploying are in [DEPLOYMENT.md](DEPLOYMENT.md); monitoring is in [OPERATIONS.md](OPERATIONS.md).
 
 > [!WARNING]
 > Enabling AI, each trial, each deployment, and any later production use are separate owner decisions. The sections below are plans, not approvals.
 
-AI is disabled in every environment. The diagnosis keeps working whether AI is on or off.
+AI is disabled on production, the only deployment environment since 2026-10-31. The diagnosis keeps working whether AI is on or off.
 
 ## 1. Enabling AI (general steps)
 These sections were section 7 of [DEPLOYMENT.md](DEPLOYMENT.md) until the docs were reorganized.
@@ -19,12 +19,15 @@ Preconditions (ADR-026 A):
 - The owner has reviewed the Gemma terms of use and prohibited-use policy.
 
 Steps:
-1. In the environment's `vars`, set `AI_ASSIST_ENABLED: "true"` and commit. The owner's push of the environment's branch deploys it ([DEPLOYMENT.md](DEPLOYMENT.md) section 5): `dev` for preview, `main` for production.
+1. In `env.production` `vars`, set `AI_ASSIST_ENABLED: "true"` and commit. The owner's push to `main` deploys it ([DEPLOYMENT.md](DEPLOYMENT.md) section 5).
 2. Check the AI notes in all four languages and the Workers AI usage in the dashboard.
 3. Monitoring and stopping: ADR-026 E and [OPERATIONS.md](OPERATIONS.md) 4.4.
 4. For production, follow section 4 (prepared in Phase 14, not yet approved).
 
 ## 2. Preview trial (separate approval)
+> [!NOTE]
+> Done on 2026-10-25 ("Phase 10 verification log" in [DECISIONS.md](../working/DECISIONS.md)). The preview environment was removed on 2026-10-31 (ADR-033), so this section is the record of that trial and cannot be repeated as written. Any later trial runs on production under section 4.
+
 The trial verifies the per-client limiter (ADR-026 A, precondition 2) and the AI notes before any production decision. The trial itself, each deployment, and any later production use are separate owner decisions; this section is the plan, not an approval.
 
 **Preconditions** (ADR-026 "Readiness for enabling AI"):
@@ -46,10 +49,10 @@ The trial verifies the per-client limiter (ADR-026 A, precondition 2) and the AI
 Steps:
 1. Owner: in the dashboard, note the Workers AI Neurons already used today, so the trial's usage can be read as the difference.
 2. Enable AI on the public preview Worker only:
-   - Set `AI_ASSIST_ENABLED: "true"` in `env.preview` only (`wrangler.jsonc`) and commit on `dev` (owner-approved).
-   - Optional: check the local dry run ([DEPLOYMENT.md](DEPLOYMENT.md) section 5): preview database, `AI_ASSIST_ENABLED` `"true"`, `AI_CLIENT_RATE_LIMITER` 5 per 60 s.
-   - Owner: push `dev`. This is the moment AI is enabled. Workers Builds deploys both preview Workers; the admin preview Worker gets the same commit without any change of its own. `main` is not pushed, so production is not deployed.
-   - Check the same values in the public preview Worker's build log.
+   - Set `AI_ASSIST_ENABLED: "true"` in `env.preview` only (`wrangler.jsonc`) and commit (owner-approved).
+   - Run `CLOUDFLARE_ENV=preview npm run build`.
+   - Check the dry run: preview database, `AI_ASSIST_ENABLED` `"true"`, `AI_CLIENT_RATE_LIMITER` 5 per 60 s.
+   - Deploy only the public preview Worker, from the owner's local login as before Workers Builds. Production and the admin Workers are not deployed.
 3. Notes (about 6 model calls): in the built-in browser, answer one complete quiz in each of `ja`, `en`, `es`, and `fr` from the start with the AI toggle on. Then switch the language of one results page twice.
    - Each step sends one request; returning to a language already shown sends none (ADR-026 C4).
    - Wait at least 60 s between quizzes so the limiter does not refuse them.
@@ -76,7 +79,7 @@ Steps:
    - Each note is labelled as AI-written; the deterministic explanation, costs, and season notes are unchanged; the card order is the same as with AI off.
    - Record the result per locale in [DECISIONS.md](../working/DECISIONS.md) without copying the notes into the repository.
 7. Owner: read the Workers AI Neurons again and record the difference.
-8. Disable: set `AI_ASSIST_ENABLED` back to `"false"`, commit on `dev`, and push `dev` (owner). Confirm 503 `ai_unavailable` and `{"enabled":false}` from `/api/ai/status` with `scripts/check-deployment.mjs <account subdomain> preview`. While AI is enabled, its AI checks fail by design.
+8. Disable: set `AI_ASSIST_ENABLED` back to `"false"`, commit, rebuild, and redeploy the public preview Worker. Confirm 503 `ai_unavailable` and `{"enabled":false}` from `/api/ai/status` with `scripts/check-deployment.mjs <account subdomain> preview`. While AI is enabled, its AI checks fail by design.
 
 **Stop at once** (step 8, without finishing the other steps) when:
 - the Neurons used by the trial exceed 1,000;
@@ -85,7 +88,7 @@ Steps:
 - a note contains a price, date, ranking, or other forbidden content;
 - anything unexpected appears in the logs or the Billing page.
 
-The diagnosis keeps working throughout. A dashboard edit of the variable is faster than a push but is overwritten by the next build's deployment. So push the commit with `"false"` before any other push to `dev`.
+The diagnosis keeps working throughout. A dashboard edit of the variable is faster than a redeployment but is overwritten by the next deployment, so commit `"false"` before deploying again.
 
 **Record** in [DECISIONS.md](../working/DECISIONS.md): the date, version IDs, model calls made, Neurons before and after, the 400/429 counts of step 4, the outcome counts and latencies of step 5, and the owner's review of step 6.
 
@@ -107,31 +110,32 @@ The limiters can be checked on a deployment with `AI_ASSIST_ENABLED` `"false"`: 
 - The others answer 503 `ai_unavailable` and write a `disabled` line.
 - Each run also counts toward the address's daily quota of 30 (two runs use 10).
 - Each request counts toward the Workers Free daily request limit (negligible here).
-- The deployment and the check each need the owner's approval. Production is not deployed for this check.
+- The deployment and the check each need the owner's approval.
+- It ran on preview on 2026-10-25 ("Phase 11 verification log") and on production in Phase 14 ("Phase 14 verification log"). Since the preview environment was removed on 2026-10-31, a repeat runs on production.
 
 Steps:
-1. Deploy the commit to check to preview with `AI_ASSIST_ENABLED` `"false"`: the owner pushes `dev` ([DEPLOYMENT.md](DEPLOYMENT.md) section 5), which deploys both preview Workers.
+1. Deploy the commit to check to production with `AI_ASSIST_ENABLED` `"false"`: the owner pushes it to `main` ([DEPLOYMENT.md](DEPLOYMENT.md) section 5).
    - Confirm in the build log (or the local dry run) that `AI_CLIENT_RATE_LIMITER` (5 per 60 s) and the Durable Object `AI_CLIENT_LIMITER` (`AiClientLimiter`) are present.
    - The first deployment with the Durable Object applies its migration `v1` (`new_sqlite_classes`). Removing the class later needs a `deleted_classes` migration.
 2. Wait at least 60 s after any other AI request from the same address (including `scripts/check-deployment.mjs`).
 3. Run A, one connection: 15 requests in one `curl` call, which reuses the connection (`num_connects` is 1 for the first request and 0 for the others). `-4` keeps the requests on IPv4, so they share one key:
 
    ```bash
-   URL=https://travel-discovery-preview.<account subdomain>.workers.dev; args=(); for i in $(seq 1 15); do args+=("$URL/api/ai/explanations" -o /dev/null); done; curl -4 -s -X POST -H "Origin: $URL" -H "Content-Type: application/json" --data "{}" -w "%{http_code} %{num_connects}\n" "${args[@]}"
+   URL=https://travel-discovery.<account subdomain>.workers.dev; args=(); for i in $(seq 1 15); do args+=("$URL/api/ai/explanations" -o /dev/null); done; curl -4 -s -X POST -H "Origin: $URL" -H "Content-Type: application/json" --data "{}" -w "%{http_code} %{num_connects}\n" "${args[@]}"
    ```
 
 4. Wait at least 60 s, then run B, a new connection per request:
 
    ```bash
-   URL=https://travel-discovery-preview.<account subdomain>.workers.dev; for i in $(seq 1 15); do curl -4 -s -o /dev/null -X POST -H "Origin: $URL" -H "Content-Type: application/json" --data "{}" -w "%{http_code} %{num_connects}\n" "$URL/api/ai/explanations"; done
+   URL=https://travel-discovery.<account subdomain>.workers.dev; for i in $(seq 1 15); do curl -4 -s -o /dev/null -X POST -H "Origin: $URL" -H "Content-Type: application/json" --data "{}" -w "%{http_code} %{num_connects}\n" "$URL/api/ai/explanations"; done
    ```
 
-5. Wait at least 60 s, then run `node scripts/check-deployment.mjs <account subdomain> preview`. Its AI checks expect 503 and, since Phase 14, `GET /api/ai/status` answering `{"enabled":false}`.
-6. Owner, Observability of `travel-discovery-preview`:
+5. Wait at least 60 s, then run `node scripts/check-deployment.mjs <account subdomain> production`. Its AI checks expect 503 and, since Phase 14, `GET /api/ai/status` answering `{"enabled":false}`.
+6. Owner, Observability of `travel-discovery`:
    - Count the `rate_limited_window` (before Phase 14 `rate_limited`) and `disabled` lines of runs A and B. They should match the 429 and 503 counts.
    - In the dashboard, note the Durable Object requests and rows written, and whether the Worker's request count includes the Durable Object calls (ADR-029, 要確認).
 
-**Record** in [DECISIONS.md](../working/DECISIONS.md) ("Phase 11 verification log") the version ID and, per run, the sequence of status codes and connection counts; never the address.
+**Record** in [DECISIONS.md](../working/DECISIONS.md) (the current phase's verification log) the version ID and, per run, the sequence of status codes and connection counts; never the address.
 
 **Interpretation.** With the quota Durable Object, both runs must answer exactly five 503 and then 429, because one object counts every request of the address.
 - More than five 503 in either run, or no 429, is a failure: keep AI disabled and record it.
@@ -144,7 +148,6 @@ AI stays disabled on production until the owner approves these steps for a date.
 **Preconditions:**
 - ADR-026 "Readiness for enabling AI" lists no item as not met.
 - Billing lists only the domain registration and the plan is Free ([OPERATIONS.md](OPERATIONS.md) section 3).
-- AI is disabled on preview.
 - Workers Logs is on for `travel-discovery` with invocation logs off.
 - The production quota Durable Object is deployed (version `cc06950d` or later).
 
@@ -154,7 +157,7 @@ AI stays disabled on production until the owner approves these steps for a date.
 - The deterministic results do not change.
 
 **Budget.**
-- Workers Free includes 10,000 Neurons per day, reset at 00:00 UTC, after which calls fail without a charge. Preview and production are planned as sharing them (要確認).
+- Workers Free includes 10,000 Neurons per day, reset at 00:00 UTC, after which calls fail without a charge. The allowance is per account, so other projects on the account would share it *(要確認)*.
 - At the measured 7–14 Neurons per call (the trial: about 11.8), that is roughly 700–1,400 calls per day.
 - One address can use at most about 420 Neurons per day (worst case about 3,150).
 - There is no app-wide daily cap (ADR-029 "Not covered"). Many addresses together can use the whole allowance, after which AI is unavailable for everyone until 00:00 UTC.
@@ -164,8 +167,8 @@ Steps:
 2. Enable AI on the public production Worker only:
    - Set `AI_ASSIST_ENABLED: "true"` in `env.production` only (`wrangler.jsonc`) and commit on `dev` (owner-approved).
    - Run `npm run check` locally, and optionally the local dry run with `CLOUDFLARE_ENV=production` ([DEPLOYMENT.md](DEPLOYMENT.md) section 5). It must show the production database, `AI_ASSIST_ENABLED` `"true"`, `AI_CLIENT_RATE_LIMITER` 5 per 60 s, and `AI_CLIENT_LIMITER (AiClientLimiter)`.
-   - Owner: push `dev`. The preview Workers are redeployed, still with AI disabled, because `env.preview` is unchanged. Run the preview checks.
-   - Owner: fast-forward `main` to that commit and push it ([DEPLOYMENT.md](DEPLOYMENT.md) section 5, step 7). This is the moment AI is enabled on production. Both production Workers are deployed; the admin Worker gets the same commit without any change of its own.
+   - Owner: push `dev` (CI only) and wait for green CI.
+   - Owner: fast-forward `main` to that commit and push it ([DEPLOYMENT.md](DEPLOYMENT.md) section 5, step 4). This is the moment AI is enabled on production. Both production Workers are deployed; the admin Worker gets the same commit without any change of its own.
    - Check the same values in the build log of `travel-discovery`. Record the version ID and the time.
 3. Check (about 4 model calls):
    - `GET /api/ai/status` answers `{"enabled":true}`.

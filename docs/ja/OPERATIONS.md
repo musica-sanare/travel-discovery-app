@@ -1,4 +1,4 @@
-<!-- source: docs/en/OPERATIONS.md blob 32b8a1c637bae4b4f46549e0bb259d977a235cf5 -->
+<!-- source: docs/en/OPERATIONS.md blob 5286c152e3378a57146cfa05796a21b2fb54be75 -->
 [English](../en/OPERATIONS.md) | 日本語 · [目次に戻る](README.md)
 
 > この文書は[英語版](../en/OPERATIONS.md)の翻訳。内容が異なる場合は英語版が優先する。
@@ -8,7 +8,7 @@
 デプロイしたアプリの運用をまとめる。どこを見るか、定期と日付の決まったチェック、インシデント、バックアップ、ログ、コンテンツの公開、課金が始まる操作を扱う。オーナーと、運用を手伝う人向けの文書だ。デプロイ、マイグレーション、ロールバックは [DEPLOYMENT.md](DEPLOYMENT.md)、AI の有効化は [AI_ENABLEMENT.md](AI_ENABLEMENT.md)、各ルールの根拠となる事実は [DECISIONS.md](../working/DECISIONS.md)（英語のみ）にある。
 
 > [!WARNING]
-> `main` への push は本番に、`dev` への push はプレビューにデプロイする（[DEPLOYMENT.md](DEPLOYMENT.md) 5 節）。リモートでの Wrangler のコマンド、ロールバック、復元、アカウントや Access の変更は、どれもオーナーの手順だ。ダッシュボードでの作業と、`npx wrangler logout` で終えるオーナーのセッション（[DEPLOYMENT.md](DEPLOYMENT.md) 3.1）で行う。Claude は用意するが、自分では実行しない。
+> `main` への push は本番にデプロイする。`dev` への push では CI だけが走る（[DEPLOYMENT.md](DEPLOYMENT.md) 5 節）。リモートでの Wrangler のコマンド、ロールバック、復元、アカウントや Access の変更は、どれもオーナーの手順だ。ダッシュボードでの作業と、`npx wrangler logout` で終えるオーナーのセッション（[DEPLOYMENT.md](DEPLOYMENT.md) 3.1）で行う。Claude は用意するが、自分では実行しない。
 
 最終確認日: 2026-10-31。
 
@@ -16,19 +16,18 @@
 
 | 環境 | デプロイする push 先 | 公開 Worker | 管理 Worker | D1 データベース |
 |---|---|---|---|---|
-| `preview` | `dev` | `travel-discovery-preview` | `travel-discovery-admin-preview` | `travel-discovery-preview`（シードデータ） |
 | `production` | `main` | `travel-discovery` | `travel-discovery-admin` | `travel-discovery-production` |
 
-- 4 つの Worker はどれも Workers Builds でこのリポジトリにつながっている（[DEPLOYMENT.md](DEPLOYMENT.md) 3.6）。
-- 4 つの Worker はどれも `workers.dev`（`<worker>.<account subdomain>.workers.dev`）を使う。
-- アカウントは Workers Free と Zero Trust Free。AI はすべての環境で無効。
-- 無料枠の上限はアカウント全体で共有するので、プレビューを大量に使うと本番にも響く（[DEPLOYMENT.md](DEPLOYMENT.md) 9 節）。
+- 両方の Worker が Workers Builds でこのリポジトリにつながり（[DEPLOYMENT.md](DEPLOYMENT.md) 3.6）、`workers.dev`（`<worker>.<account subdomain>.workers.dev`）を使う。
+- プレビュー環境は 2026-10-31 に外した。オーナーがその Worker とデータベースを消すまで（[DEPLOYMENT.md](DEPLOYMENT.md) 3.7）は残っているが、もうデプロイもチェックもしない。
+- アカウントは Workers Free と Zero Trust Free。AI は無効。
+- 無料枠の上限は、このアカウントのほかのプロジェクトも含めてアカウント全体で共有する（[DEPLOYMENT.md](DEPLOYMENT.md) 9 節）。
 
 ## 2. どこを見るか
 
 | シグナル | 場所 | 補足 |
 |---|---|---|
-| Worker ごとのリクエストとエラー | ダッシュボード: Workers & Pages → その Worker → Metrics | 呼び出しログを無効にしても見られる（プレビューで確認、2026-10-24）。 |
+| Worker ごとのリクエストとエラー | ダッシュボード: Workers & Pages → その Worker → Metrics | 呼び出しログを無効にしても見られる（以前のプレビュー Worker で確認、2026-10-24）。 |
 | アプリのログの行 | ダッシュボード: Workers & Pages → その Worker → Observability | 呼び出しログを無効にしているので、アプリ自身の行だけがある（6 節）。 |
 | D1 の使用量 | ダッシュボード: その D1 データベース → Metrics *(要確認: 正確な場所)* | アカウントが D1 の 1 日の上限に達すると、Cloudflare からメールも届く。 |
 | Workers AI の使用量 | ダッシュボード: Workers AI | AI を有効にしてから関係する。 |
@@ -51,7 +50,7 @@ AI が無効でもレート制限の行が出ることがある。Phase 11 か�
 ## 3. 定期チェック
 
 **毎週と、Access タブ、Zero Trust のポリシー、アカウントのサブドメインを変えた後:**
-- 両方の環境で、認証なしのチェックを実行する。どれかが失敗するとスクリプトは 1 で終わる。確かめる内容:
+- 認証なしのチェックを実行する。どれかが失敗するとスクリプトは 1 で終わる。確かめる内容:
   - すべてのロケールでの公開 API と、セキュリティヘッダー
   - AI が無効の間の、AI エンドポイントと AI の状態（`{"enabled":false}`）
   - 管理 Worker の `/`、`/destinations`、`/api/admin/me` の Access のリダイレクト（`https://<team>.cloudflareaccess.com/...` への 302）
@@ -60,15 +59,11 @@ AI が無効でもレート制限の行が出ることがある。Phase 11 か�
   node scripts/check-deployment.mjs <account subdomain> production
   ```
 
-  ```bash
-  node scripts/check-deployment.mjs <account subdomain> preview
-  ```
-
   - 管理用の URL が 200 を返したらインシデントだ（4.2 節）。
   - 管理 Worker をデプロイした直後は `--watch-admin 120` を足し、Access のチェックを 10 秒ごとに 2 分間繰り返す。
   - スクリプトは最初のリクエストの前に TLS の準備をするので、macOS では数秒かかる。タイムアウト（リクエストあたり 15 秒）も失敗として数えるので、インシデントとして扱う前に、失敗した URL を `curl` で確かめる。
-- 各管理 Worker の Access タブ: スコープが **All traffic**。Zero Trust のポリシー: オーナーのアドレスだけを指定した **Emails** の Include ルール。管理用のホスト名に当たる、Bypass ポリシーつきのホスト名やパスの Access アプリケーションがない（ADR-004）。
-- 両方の公開 Worker の Observability: `api_error` の行が異常に多くない。
+- 管理 Worker の Access タブ: スコープが **All traffic**。Zero Trust のポリシー: オーナーのアドレスだけを指定した **Emails** の Include ルール。管理用のホスト名に当たる、Bypass ポリシーつきのホスト名やパスの Access アプリケーションがない（ADR-004）。
+- 公開 Worker の Observability: `api_error` の行が異常に多くない。
 
 **毎月:**
 - `npm audit --omit=dev`（期待: 脆弱性 0）と `npm audit`（開発時だけの既知の勧告あり、ADR-003）。
@@ -102,9 +97,9 @@ AI が無効でもレート制限の行が出ることがある。Phase 11 か�
 ### 4.2 管理 Worker に Access なしで到達できる
 管理用の URL が、認証なしで 200 を返した場合だ。有効なトークンがなければ管理 API は 403 を返し続けるが、管理 UI は公開されてはならない。
 1. すぐに URL を消す（オーナー）: ダッシュボードで `workers.dev` を無効にする（Settings → Domains & Routes）。
-2. その環境のブランチにほかのものを push する前に、`wrangler.admin.jsonc` のその環境で `"workers_dev": false` にしたコミットを `dev` に作って push する。本番なら、続けて `main` をそこまで早送りして push する（[DEPLOYMENT.md](DEPLOYMENT.md) 5 節の手順 7）。こうしないと、次のビルドで URL が戻ってしまう。どの push でも、その環境の公開 Worker も同じコミットで再デプロイされる。
+2. `main` にほかのものを push する前に、`wrangler.admin.jsonc` の `env.production` で `"workers_dev": false` にしたコミットを `dev` に作って push し、続けて `main` をそこまで早送りして push する（[DEPLOYMENT.md](DEPLOYMENT.md) 5 節の手順 4）。こうしないと、次のビルドで URL が戻ってしまう。この push で、公開 Worker も同じコミットで再デプロイされる。
 3. Access タブのスコープとポリシー（3 節）を確かめ、Audit Log で何が変わったかを見る。
-4. `"workers_dev": true` に戻したコミットを push し、リダイレクトを直後と 2 分間確かめる（`--watch-admin 120`）。
+4. `"workers_dev": true` に戻したコミットを同じように `dev` と `main` に push し、リダイレクトを直後と 2 分間確かめる（`--watch-admin 120`）。
 5. インシデントを [DECISIONS.md](../working/DECISIONS.md)（英語のみ）に記録する。
 
 ### 4.3 誤ったコンテンツを公開した
@@ -117,8 +112,8 @@ AI が無効でもレート制限の行が出ることがある。Phase 11 か�
 
 ### 4.5 ビルドが失敗する、またはビルドが始まらない
 前のバージョンが配信され続けるので、利用者には何も壊れていない。
-1. ビルドのログを読む（[DEPLOYMENT.md](DEPLOYMENT.md) 5 節の手順 4）。
-2. `npm run build` かデプロイの段階で失敗した: `dev` で直して、もう一度 push する。失敗するチェックを通すためにビルドの設定を変えない。
+1. ビルドのログを読む（[DEPLOYMENT.md](DEPLOYMENT.md) 5 節の手順 5）。
+2. `npm run build` かデプロイの段階で失敗した: `dev` で直して、`dev` と `main` にもう一度 push する。失敗するチェックを通すためにビルドの設定を変えない。
 3. 2 つの Worker のうち片方だけがデプロイされた: 2 つが別のコミットで動いている。ダッシュボードで失敗したビルドをやり直すか、もう片方をロールバックする（[DEPLOYMENT.md](DEPLOYMENT.md) 8 節）。
 4. ビルドが始まらない、またはビルド時間を使い切った: push を止める。ビルドを取り戻すためにプランを上げることは決してしない。月のリセットを待つか、オーナーの判断でだけローカルからデプロイする（[DEPLOYMENT.md](DEPLOYMENT.md) 5 節「ローカルからのデプロイ」）。[DECISIONS.md](../working/DECISIONS.md)（英語のみ）に記録する。
 
@@ -128,7 +123,7 @@ AI が無効でもレート制限の行が出ることがある。Phase 11 か�
 - 任意の SQL のエクスポート（`npx wrangler d1 export … --remote --output <file>`）は、リポジトリの外に置く。
 
 ## 6. ログとプライバシー
-- 4 つの Worker すべてで、Workers Logs を有効にし、呼び出しログを無効にしている。呼び出しログは有効に戻さない。各リクエストを、IP アドレス、ヘッダー（管理 Worker では Access のトークンも含む）、位置情報とともに保存してしまう（[DECISIONS.md](../working/DECISIONS.md)（英語のみ）「Phase 7 verification log」）。
+- 両方の Worker で、Workers Logs を有効にし、呼び出しログを無効にしている。呼び出しログは有効に戻さない。各リクエストを、IP アドレス、ヘッダー（管理 Worker では Access のトークンも含む）、位置情報とともに保存してしまう（[DECISIONS.md](../working/DECISIONS.md)（英語のみ）「Phase 7 verification log」）。
 - アプリ自身の行には、アドレス、回答、テキストを入れていない。ログの行を足すときも、そのままにする。
 - 保持期間: Workers Free では 3 日、2026-12-01 からは 7 日。
 - ログを共有するときは、先にアカウント ID とホスト名を消す。
@@ -192,6 +187,7 @@ AI が無効でもレート制限の行が出ることがある。Phase 11 か�
 - 新しい Time Travel のブックマークを記録する。
 
 ## 9. 未解決の項目
+- **プレビューのリソース:** プレビューの 2 つの Worker、管理のプレビュー Worker の Access アプリケーション、プレビューのデータベースは、オーナーが消すまで残る（[DEPLOYMENT.md](DEPLOYMENT.md) 3.7）。
 - **Access のポリシー外のアドレスが拒否されること:** 未確認。2 つ目の Cloudflare アカウントが要り、オーナーが先送りにした（2026-10-24）。
 - **`AI_CLIENT_RATE_LIMITER` の 429 の応答。** 現在の状態（2026-10-31、Phase 14）: Durable Object による利用者ごとの厳密な上限（ADR-029）を本番にデプロイし（バージョン `cc06950d`）、そこでリミッターの確認に合格した（「Phase 14 verification log」）。本番で AI を有効にするかは、オーナーが別に判断する（ADR-026「Readiness for enabling AI」）。経緯:
   - 2026-10-25、プレビューでの AI 試行: 429 は出なかった（同じアドレスから 15 回送り、すべて 400。[DECISIONS.md](../working/DECISIONS.md)（英語のみ）「Phase 10 verification log」）。原因は要確認。これが本番で AI を有効にすることを止めている（ADR-026「Readiness for enabling AI」）。

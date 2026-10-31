@@ -2,13 +2,13 @@
 // "6. Checks after each deployment", docs/en/OPERATIONS.md "3. Routine checks").
 // Sends only anonymous GET/POST/DELETE requests; never signs in or changes data.
 //
-// Usage: node scripts/check-deployment.mjs <account subdomain> <preview|production> [--watch-admin <seconds>]
+// Usage: node scripts/check-deployment.mjs <account subdomain> production [--watch-admin <seconds>]
 // --watch-admin repeats the admin Access checks every 10 s for that long (use it
 // right after deploying an admin Worker). Exits 1 if any check fails.
 import { createSecureContext } from "node:tls";
 
+// The preview environment was removed on 2026-10-31 (docs/working/DECISIONS.md ADR-033).
 const WORKERS = {
-  preview: { public: "travel-discovery-preview", admin: "travel-discovery-admin-preview" },
   production: { public: "travel-discovery", admin: "travel-discovery-admin" },
 };
 const LOCALES = ["ja", "en", "es", "fr"];
@@ -17,7 +17,7 @@ const ADMIN_PATHS = ["/", "/destinations", "/api/admin/me"];
 const [subdomain, environment, flag, seconds] = process.argv.slice(2);
 const workers = WORKERS[environment];
 if (!subdomain || !workers || (flag !== undefined && (flag !== "--watch-admin" || !(Number(seconds) > 0)))) {
-  console.error("Usage: node scripts/check-deployment.mjs <account subdomain> <preview|production> [--watch-admin <seconds>]");
+  console.error("Usage: node scripts/check-deployment.mjs <account subdomain> production [--watch-admin <seconds>]");
   process.exit(2);
 }
 const publicBase = `https://${workers.public}.${subdomain}.workers.dev`;

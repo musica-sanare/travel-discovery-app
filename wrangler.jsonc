@@ -30,14 +30,18 @@
   // `deleted_classes` migration.
   "durable_objects": { "bindings": [{ "name": "AI_CLIENT_LIMITER", "class_name": "AiClientLimiter" }] },
   "migrations": [{ "tag": "v1", "new_sqlite_classes": ["AiClientLimiter"] }],
-  // Deployment environments (docs/en/DEPLOYMENT.md "3.3 Configuration"), selected
+  // Deployment environment (docs/en/DEPLOYMENT.md "3.3 Configuration"), selected
   // with CLOUDFLARE_ENV at build time only. Bindings and vars are not inherited,
-  // so each environment declares all of them. The top level above must never
+  // so the environment declares all of them. The top level above must never
   // get the ai or ratelimits bindings: an ai binding always connects to
   // Cloudflare, also from `npm run dev` and the tests (ADR-026 C). Never run
-  // `npm run dev` with CLOUDFLARE_ENV set to a deployment environment.
+  // `npm run dev` with CLOUDFLARE_ENV set to a deployment environment. The
+  // preview environment was removed on 2026-10-31 (ADR-033).
   "env": {
-    "preview": {
+    "production": {
+      // Owner decision (2026-10-18): production keeps the top-level Worker name
+      // instead of the default "travel-discovery-production".
+      "name": "travel-discovery",
       "workers_dev": true,
       "preview_urls": false,
       "upload_source_maps": true,
@@ -49,46 +53,19 @@
         {
           // Created 2026-10-18 (docs/en/DEPLOYMENT.md "3.2 D1 databases").
           "binding": "PUBLIC_DB",
-          "database_name": "travel-discovery-preview",
-          "database_id": "d0f881f6-cc73-40cc-9de0-1460a5589625"
-        }
-      ],
-      "ai": { "binding": "AI" },
-      "ratelimits": [
-        // namespace_id must be unique in the account (ADR-026 B).
-        { "name": "AI_CLIENT_RATE_LIMITER", "namespace_id": "1001", "simple": { "limit": 5, "period": 60 } }
-      ],
-      "durable_objects": { "bindings": [{ "name": "AI_CLIENT_LIMITER", "class_name": "AiClientLimiter" }] },
-      "migrations": [{ "tag": "v1", "new_sqlite_classes": ["AiClientLimiter"] }],
-      "vars": {
-        // Kill switch: anything but "true" means no model call (ADR-026 A).
-        "AI_ASSIST_ENABLED": "false",
-        "AI_MODEL": "@cf/google/gemma-4-26b-a4b-it"
-      }
-    },
-    "production": {
-      // Owner decision (2026-10-18): production keeps the top-level Worker name
-      // instead of the default "travel-discovery-production".
-      "name": "travel-discovery",
-      "workers_dev": true,
-      "preview_urls": false,
-      "upload_source_maps": true,
-      "observability": { "enabled": true, "logs": { "enabled": true, "invocation_logs": false } },
-      "d1_databases": [
-        {
-          // Created 2026-10-18 (docs/en/DEPLOYMENT.md "3.2 D1 databases").
-          "binding": "PUBLIC_DB",
           "database_name": "travel-discovery-production",
           "database_id": "09ee8032-0e63-47b1-8b47-507d643d6255"
         }
       ],
       "ai": { "binding": "AI" },
       "ratelimits": [
+        // namespace_id must be unique in the account (ADR-026 B).
         { "name": "AI_CLIENT_RATE_LIMITER", "namespace_id": "2001", "simple": { "limit": 5, "period": 60 } }
       ],
       "durable_objects": { "bindings": [{ "name": "AI_CLIENT_LIMITER", "class_name": "AiClientLimiter" }] },
       "migrations": [{ "tag": "v1", "new_sqlite_classes": ["AiClientLimiter"] }],
       "vars": {
+        // Kill switch: anything but "true" means no model call (ADR-026 A).
         "AI_ASSIST_ENABLED": "false",
         "AI_MODEL": "@cf/google/gemma-4-26b-a4b-it"
       }

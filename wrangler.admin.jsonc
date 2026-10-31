@@ -45,43 +45,17 @@
     // Deployment environment (docs/en/DEPLOYMENT.md "3.3 Configuration" and
     // "3.4 Cloudflare Access"). Enable workers_dev only while Worker-level
     // Access ("All traffic") protects this Worker. Without the two ACCESS_*
-    // values the admin API answers 403 (fail closed).
-    "preview": {
+    // values the admin API answers 403 (fail closed). Owner decision
+    // (2026-10-18): production keeps the top-level Worker name. The preview
+    // environment was removed on 2026-10-31 (ADR-033).
+    "production": {
+      "name": "travel-discovery-admin",
       "workers_dev": true,
       "preview_urls": false,
       "upload_source_maps": true,
       // Invocation logs would store each request with its IP address, headers,
       // and geolocation; only the app's own console lines are kept
       // (docs/working/DECISIONS.md "Phase 7 verification log").
-      "observability": { "enabled": true, "logs": { "enabled": true, "invocation_logs": false } },
-      "d1_databases": [
-        {
-          // Same database as the public preview Worker (ADR-018).
-          "binding": "ADMIN_DB",
-          "database_name": "travel-discovery-preview",
-          "database_id": "d0f881f6-cc73-40cc-9de0-1460a5589625",
-          "migrations_dir": "migrations"
-        }
-      ],
-      "ratelimits": [
-        // Keyed by the Access email (ADR-020); namespace_id unique in the account.
-        { "name": "ADMIN_RATE_LIMITER", "namespace_id": "1002", "simple": { "limit": 120, "period": 60 } }
-      ],
-      "vars": {
-        // Not secrets: the Access team domain and this Worker's Access
-        // application audience (AUD) tag (ADR-004).
-        "ACCESS_TEAM_DOMAIN": "https://spring-dew-55d0.cloudflareaccess.com",
-        "ACCESS_POLICY_AUD": "1a9ac9ffe04c9be3e18e45f745b3452d2f861ec45025c43d424c210baf31c174"
-      }
-    },
-    // Same rules as preview. Owner decision (2026-10-18): production keeps the
-    // top-level Worker name. Enable workers_dev only while Worker-level Access
-    // ("All traffic") protects this Worker.
-    "production": {
-      "name": "travel-discovery-admin",
-      "workers_dev": true,
-      "preview_urls": false,
-      "upload_source_maps": true,
       "observability": { "enabled": true, "logs": { "enabled": true, "invocation_logs": false } },
       "d1_databases": [
         {
@@ -93,11 +67,12 @@
         }
       ],
       "ratelimits": [
+        // Keyed by the Access email (ADR-020); namespace_id unique in the account.
         { "name": "ADMIN_RATE_LIMITER", "namespace_id": "2002", "simple": { "limit": 120, "period": 60 } }
       ],
       "vars": {
-        // Not secrets (ADR-004). The AUD tag differs from preview: each admin
-        // Worker has its own Access application.
+        // Not secrets: the Access team domain and this Worker's Access
+        // application audience (AUD) tag (ADR-004).
         "ACCESS_TEAM_DOMAIN": "https://spring-dew-55d0.cloudflareaccess.com",
         "ACCESS_POLICY_AUD": "7a068c1afbcbf628060ec8cbc0def82f5218fef5225fcd037dcff88c4bcf5995"
       }

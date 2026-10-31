@@ -66,7 +66,7 @@ Before choosing framework/plugin versions or Cloudflare/AI capabilities, verify 
 
 ## Deployment
 - Deploys happen only through Cloudflare Workers Builds (Git integration), as in `docs/en/DEPLOYMENT.md` section 5 and ADR-033.
-- **A push to `main` deploys production** (`travel-discovery` and `travel-discovery-admin`). A push to `dev` deploys preview (`travel-discovery-preview` and `travel-discovery-admin-preview`). Every push to either branch deploys, also docs-only commits. When asking the owner about a push to `main` or `dev`, say that it deploys and which Workers.
+- **A push to `main` deploys production** (`travel-discovery` and `travel-discovery-admin`), also for docs-only commits. When asking the owner about a push to `main`, say that it deploys. A push to `dev` runs CI only. There is no preview environment (removed 2026-10-31, ADR-033); verify locally before `main`.
 - Never run `wrangler login`/`logout`, `wrangler deploy` (except `--dry-run`), `versions upload`, `rollback`, `secret`, or any `--remote` command. Prepare them as owner sessions ("log in, run, verify, log out", DEPLOYMENT.md 3.1), ending with `npx wrangler logout`.
 - A commit whose code needs a schema change is pushed only after the owner has applied the migration to that environment's database (DEPLOYMENT.md section 4).
 - Never change Workers Builds settings, the build token, or the plan. The account stays on Workers Free; build minutes are limited (DEPLOYMENT.md section 9).
