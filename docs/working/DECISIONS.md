@@ -517,6 +517,33 @@ Local simulation only; no Wrangler remote command, deployment, import, or quiz-s
   | anchored | 0.25 / 0 | 20261031 | 2.958 | 79.8% | 5.36 | 3.616 | 1,999 | 3.59 | `new-york` 30.1% / `rome` 4.0% |
 
   No destination is never in the top 5 in any run. The two master seeds differ by at most 0.021 in ideal overlap, 1.2 points in ideal first found, and 0.19 in fit loss. Answering all 29 questions recovers about 0.6 more of the ideal top 5 than the 10-question quiz, which bounds what better selection can gain. One call of `nextQuestion` takes a median 27.5 µs and p99 81.5 µs in Node on the development machine (2,200 calls, sparse primary scenario); the timing is not part of the deterministic report.
+- *Defaults applied* (2026-10-31, task 2 open items, stated to the owner before task 3 and not changed when the owner continued): Skipped answers do not count toward stability, and the cap stays at `min(targetQuestions, maxQuestions)` as today (A), with the cap at `maxQuestions` (B) compared for reference.
+- *Implemented* (2026-10-31, task 3, simulation only): `test/simulation/candidates.ts` (candidate rules with the signature of `nextQuestion`; nothing in the app uses them), `test/simulation/candidates.sim.ts` (the comparison; runs with `npm run quiz:simulate` only when `QUIZ_SIMULATE_CANDIDATES=1`, about 25 minutes for the full grid), and `test/node/candidates.test.ts` (determinism and bounds). `test/simulation/quiz-variety.ts` takes an optional selection rule, so the random-answer guardrail runs each candidate too.
+  - Discrimination `D`: §8 as written (`D-plain-top`: the top `2 · resultCount` destinations, which with no preference signal are the first ten in slug order); `D-plain` (every destination while there is no signal, the top ten after that); `D-floor0.25` (`max(d, 0.25 · mean d)`, so no question becomes impossible); `D-cap2` (`d / mean d` clamped to [0.5, 2]). If every candidate's `d` is 0, the current weights are used.
+  - Stability `S`: §8 with the gap 3, 5, or 8 fit points and a window of 1, 2, or 3 non-skipped answers, after at least `minQuestions` shown questions; cap A or B; and §8 as written with skips counted (`S-gap5-w2-target-skips`).
+  - `-max`: the same rule always asking `maxQuestions` (12) questions, to separate the effect of asking more from the effect of stopping.
+- *Comparison* (2026-10-31, task 3, `content/initial-v6.json`, settings 6/10/12/5, primary scenario `ε` 0.1 / `s` 0.1, 2,000 respondents per family; master seed `20261031`, with `20261032` in brackets where it was run; the full grid is in the run output, the rows below carry the conclusions):
+
+  | Rule | Sparse: overlap | Sparse: fit loss | Anchored: overlap | Anchored: fit loss | Questions (sparse / anchored) | Full-length overlap (sparse) | Random answers: top-5 high / low |
+  |---|---|---|---|---|---|---|---|
+  | current | 2.226 (2.247) | 8.10 (8.02) | 3.174 (3.182) | 4.16 (3.97) | 10 / 10 | 5.000 | 35.3% / 2.9% |
+  | `D-plain` | 2.326 (2.293) | 7.73 (7.73) | 3.263 (3.260) | 3.74 (3.57) | 10 / 10 | 5.000 | 38.9% / 2.1% |
+  | `D-plain-top` | 2.329 | 7.70 | 3.259 | 3.79 | 10 / 10 | 5.000 | 38.8% / 2.1% |
+  | `D-floor0.25` | identical to `D-plain` | | | | | | |
+  | `D-cap2` | 2.317 | 7.79 | 3.260 | 3.76 | 10 / 10 | 5.000 | 39.1% / 2.2% |
+  | `S-gap3-w1-target` | 2.207 (2.231) | 8.27 (8.13) | 3.147 (3.149) | 4.29 (4.16) | 9.52 / 9.21 | 4.846 | 34.7% / 3.0% |
+  | `S-gap5-w2-target` | 2.223 | 8.15 | 3.167 | 4.19 | 9.89 / 9.72 | 4.975 | 35.2% / 2.9% |
+  | `S-gap5-w2-target-skips` | 2.220 | 8.16 | 3.163 | 4.21 | 9.88 / 9.69 | 4.969 | 35.2% / 2.9% |
+  | `current-max` (always 12) | 2.349 (2.347) | 7.41 (7.42) | 3.289 (3.309) | 3.50 (3.37) | 12 / 12 | 5.000 | — |
+  | `S-gap5-w2-max` | 2.338 (2.346) | 7.49 (7.44) | 3.276 (3.296) | 3.55 (3.43) | 11.80 / 11.49 | 4.961 | 37.8% / 2.0% |
+  | `D-plain-max` (always 12) | 2.431 (2.379) | 7.01 (7.15) | 3.367 (3.381) | 3.18 (2.99) | 12 / 12 | 5.000 | — |
+  | `D-plain+S-gap5-w2-max` | 2.415 (2.371) | 7.12 (7.23) | 3.361 (3.381) | 3.22 (3.06) | 11.76 / 11.43 | 4.944 | 41.3% / 1.6% |
+
+  - Discrimination: in both families and on both seeds, `D-plain` raises the ideal overlap by 0.05–0.10 (the seeds differ by up to 0.03) and lowers the fit loss by 0.29–0.42 points (the seeds differ by up to 0.19). That is about a sixth of the 0.6 that answering every question would recover. The floor never binds on this content, the cap is slightly worse, and the slug-ordered pool at the start makes no measurable difference. Variety stays within the guardrails (1,999–2,000 distinct sets of 2,000; mean shared questions 3.59 → 3.75), and every destination still reaches the top 5, but the spread of top-5 shares widens slightly (random answers: highest 35.3% → 38.9%, lowest 2.9% → 2.1%).
+  - Early stopping with cap A ends a quiz only 0.1–0.8 questions earlier on average (the median stays 10) and lowers every quality measure; the looser the thresholds, the more questions it saves and the more quality it loses. Counting skips makes no material difference. With cap B, the gain over the current rule comes from asking up to 12 questions, not from stopping: `S-gap5-w2-max` is no better than always asking 12 and saves 0.2–0.5 questions. No early-stopping candidate meets the decision rule.
+  - CPU per selection step in Node on the development machine: current median 26 µs, p99 55 µs; with discrimination median about 0.3 ms and p99 up to 1.7 ms (one ranking and up to 29 × 5 × 10 × 11 products per step); with stability median about 45–100 µs. Selection runs only in the browser; the AI endpoint does not call it (task 1), so no Worker CPU is added.
+  - Recommendation: adopt discrimination (`D-plain`: every destination while there is no signal, the top `2 · resultCount` after that, the current weights if every `d` is 0); do not adopt early stopping. The gain is small but consistent and needs no UI text, setting, or migration. The evaluation also shows that asking 12 instead of 10 questions gains about as much as discrimination; that is a quiz-settings decision for the owner in the admin console, outside this recommendation.
+- *Owner decision* (2026-10-31, task 3): adopt the recommendation: discrimination-based selection as `D-plain`, no early stopping. The discrimination pool ignores trip constraints (the ranking is computed without the budget filter), so `nextQuestion` keeps its signature.
 
 ## ADR-001: SPA and hosting
 - Status: **Accepted** (Phase 0)

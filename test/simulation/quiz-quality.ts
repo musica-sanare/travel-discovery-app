@@ -13,19 +13,10 @@ import {
   rankDestinations,
   type Answer,
   type DiagnosisContent,
-  type NextStep,
   type QuizLimits,
 } from "../../domain/diagnosis";
-import { questionVariety, randomStream, type QuestionVariety } from "./quiz-variety";
+import { questionVariety, randomStream, type QuestionVariety, type SelectionPolicy } from "./quiz-variety";
 import { makeRespondent, respondentAnswer, type AnswerBehaviour, type ProfileFamily, type Respondent } from "./respondents";
-
-/** Same signature as `nextQuestion`, so candidate rules can be compared with the current one. */
-export type SelectionPolicy = (
-  content: DiagnosisContent,
-  answers: readonly Answer[],
-  limits: QuizLimits,
-  seed: number,
-) => NextStep;
 
 export interface QualityOptions {
   respondents: number;

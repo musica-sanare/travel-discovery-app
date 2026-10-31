@@ -12,6 +12,7 @@ import {
   type Answer,
   type ContentStatus,
   type DiagnosisContent,
+  type NextStep,
   type QuestionType,
   type QuizLimits,
   type TaxonomyStatus,
@@ -38,6 +39,14 @@ export interface SimulationBundle {
   }[];
 }
 
+/** Same signature as `nextQuestion`, so candidate rules can be compared with the current one. */
+export type SelectionPolicy = (
+  content: DiagnosisContent,
+  answers: readonly Answer[],
+  limits: QuizLimits,
+  seed: number,
+) => NextStep;
+
 export interface SimulationOptions {
   runs: number;
   /** Seed from which every session seed is derived. */
@@ -45,6 +54,8 @@ export interface SimulationOptions {
   /** Share of shown questions answered as skipped, 0-1. */
   skipRate: number;
   limits: QuizLimits;
+  /** Selection rule; default: the current `nextQuestion`. */
+  policy?: SelectionPolicy;
 }
 
 export interface SimulationReport {
@@ -155,7 +166,7 @@ export function simulateQuizzes(content: DiagnosisContent, options: SimulationOp
     const random = randomStream(seed ^ ANSWER_SEED_SALT);
     const answers: Answer[] = [];
     for (;;) {
-      const step = nextQuestion(content, answers, options.limits, seed);
+      const step = (options.policy ?? nextQuestion)(content, answers, options.limits, seed);
       if (step.done) break;
       const question = questions.get(step.question);
       if (question === undefined) throw new Error(`unknown question ${step.question}`);
