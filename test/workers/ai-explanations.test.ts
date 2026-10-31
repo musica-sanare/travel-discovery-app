@@ -227,7 +227,7 @@ describe("POST /api/ai/explanations: switches, methods, and request checks", () 
     ["duplicate months", { constraints: { months: [4, 4] } }],
     ["a budget above MAX_BUDGET", { constraints: { budget: { amount: 100_000_001, currency: "JPY" } } }],
     ["an unsupported currency", { constraints: { budget: { amount: 1000, currency: "GBP" } } }],
-    ["an unsupported locale", { locale: "fr" }],
+    ["an unsupported locale", { locale: "de" }],
     ["no expected results", { expected: [] }],
     ["more than 5 expected results", { expected: ["a", "b", "c", "d", "e", "f"] }],
     ["duplicate expected results", { expected: ["a", "a"] }],

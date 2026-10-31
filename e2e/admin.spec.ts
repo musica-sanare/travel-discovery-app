@@ -268,6 +268,10 @@ test.describe("admin languages", () => {
     await page.getByLabel("Language").selectOption("es");
     await expect(page.locator("html")).toHaveAttribute("lang", "es");
     await expect(page).toHaveTitle("Administración de Travel Discovery");
+
+    await page.getByLabel("Idioma").selectOption("fr");
+    await expect(page.locator("html")).toHaveAttribute("lang", "fr");
+    await expect(page).toHaveTitle("Travel Discovery — Administration");
   });
 });
 

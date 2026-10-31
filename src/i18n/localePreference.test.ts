@@ -33,18 +33,19 @@ describe("locale preference", () => {
   });
 
   it("ignores unsupported or malformed stored values", () => {
-    expect(readStoredLocale(memoryStorage({ [LOCALE_STORAGE_KEY]: "fr" }))).toBeUndefined();
+    expect(readStoredLocale(memoryStorage({ [LOCALE_STORAGE_KEY]: "de" }))).toBeUndefined();
     expect(resolveInitialLocale(memoryStorage({ [LOCALE_STORAGE_KEY]: "<script>" }), ["en-GB"])).toBe("en");
   });
 
   it("uses the first supported browser language by primary subtag", () => {
-    expect(detectBrowserLocale(["fr-FR", "es-MX", "en"])).toBe("es");
+    expect(detectBrowserLocale(["de-DE", "es-MX", "en"])).toBe("es");
+    expect(detectBrowserLocale(["it", "fr-CA", "en"])).toBe("fr");
     expect(detectBrowserLocale(["JA-jp"])).toBe("ja");
     expect(detectBrowserLocale(["zh-Hant", "de"])).toBeUndefined();
   });
 
   it("defaults to Japanese", () => {
-    expect(resolveInitialLocale(memoryStorage(), ["fr", "de"])).toBe("ja");
+    expect(resolveInitialLocale(memoryStorage(), ["de", "it"])).toBe("ja");
     expect(resolveInitialLocale(undefined, [])).toBe("ja");
   });
 

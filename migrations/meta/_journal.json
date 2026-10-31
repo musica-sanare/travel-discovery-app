@@ -15,6 +15,13 @@
       "when": 1792238508914,
       "tag": "0001_phase2_diagnosis",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1793430435803,
+      "tag": "0002_fr_locale",
+      "breakpoints": true
     }
   ]
 }

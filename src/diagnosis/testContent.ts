@@ -6,7 +6,8 @@ const NAMES = {
   ja: { lisbon: "リスボン", iceland: "アイスランド南部", pace: "旅のペースは？", relaxed: "ゆったり", active: "アクティブ", interest: "楽しみたいことは？", food: "食", nature: "自然" },
   en: { lisbon: "Lisbon", iceland: "South Iceland", pace: "Travel pace?", relaxed: "Relaxed", active: "Active", interest: "What do you enjoy?", food: "Food", nature: "Nature" },
   es: { lisbon: "Lisboa", iceland: "Sur de Islandia", pace: "¿Ritmo de viaje?", relaxed: "Tranquilo", active: "Activo", interest: "¿Qué disfrutas?", food: "Comida", nature: "Naturaleza" },
-} as const;
+  fr: { lisbon: "Lisbonne", iceland: "Sud de l’Islande", pace: "Rythme de voyage\u202f?", relaxed: "Détendu", active: "Actif", interest: "Qu’aimez-vous\u202f?", food: "Gastronomie", nature: "Nature" },
+} as const satisfies Record<Locale, Record<string, string>>;
 
 export function testContent(locale: Locale = "ja", overrides: Partial<DiagnosisContentResponse> = {}): DiagnosisContentResponse {
   const n = NAMES[locale];

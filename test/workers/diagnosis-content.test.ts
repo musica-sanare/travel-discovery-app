@@ -56,7 +56,7 @@ describe("GET /api/diagnosis-content", () => {
   });
 
   it("rejects unsupported locales and answers without caching", async () => {
-    const invalid = await publicRequest("/api/diagnosis-content?locale=fr");
+    const invalid = await publicRequest("/api/diagnosis-content?locale=de");
     expect(invalid.status).toBe(400);
     expect(await json(invalid)).toEqual({ error: "invalid_request", issues: [{ path: "locale", code: "invalid_value" }] });
     const ok = await publicRequest("/api/diagnosis-content?locale=es");

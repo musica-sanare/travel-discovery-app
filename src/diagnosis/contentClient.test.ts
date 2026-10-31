@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
+import type { Locale } from "../../shared/locales";
 import { createContentCache, CONTENT_MAX_AGE_MS, fetchDiagnosisContent } from "./contentClient";
 import { testContent } from "./testContent";
 
@@ -39,7 +40,7 @@ describe("fetchDiagnosisContent", () => {
 describe("createContentCache", () => {
   it("reuses a snapshot for up to five minutes per locale, then refetches", async () => {
     let now = 0;
-    const load = vi.fn((locale: "ja" | "en" | "es") => Promise.resolve({ ok: true as const, content: testContent(locale) }));
+    const load = vi.fn((locale: Locale) => Promise.resolve({ ok: true as const, content: testContent(locale) }));
     const cache = createContentCache(load, () => now);
     await cache.get("ja");
     now = CONTENT_MAX_AGE_MS - 1;

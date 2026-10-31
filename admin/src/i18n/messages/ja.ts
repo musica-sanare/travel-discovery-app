@@ -5,7 +5,7 @@ export const ja = {
   meta: { title: "Travel Discovery 管理画面" },
   language: {
     label: "言語",
-    names: { ja: "日本語", en: "English", es: "Español" },
+    names: { ja: "日本語", en: "English", es: "Español", fr: "Français" },
   },
   nav: {
     label: "管理メニュー",

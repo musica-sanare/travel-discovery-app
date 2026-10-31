@@ -1,4 +1,4 @@
-export const SUPPORTED_LOCALES = ["ja", "en", "es"] as const;
+export const SUPPORTED_LOCALES = ["ja", "en", "es", "fr"] as const;
 
 export type Locale = (typeof SUPPORTED_LOCALES)[number];
 
@@ -13,6 +13,7 @@ export const FALLBACK_LOCALES = {
   ja: ["en"],
   en: ["ja"],
   es: ["en", "ja"],
+  fr: ["en", "ja"],
   default: [DEFAULT_LOCALE],
 } as const satisfies Record<Locale | "default", readonly Locale[]>;
 

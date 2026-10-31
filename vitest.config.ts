@@ -49,9 +49,13 @@ export default defineConfig({
           cloudflareTest(async () => ({
             wrangler: { configPath: "./wrangler.admin.jsonc" },
             miniflare: {
-              // Empty database for migration tests (test/workers/migration.test.ts);
+              // Empty databases for migration tests (test/workers/migration*.test.ts);
               // added alongside the ADMIN_DB binding from wrangler.admin.jsonc.
-              d1Databases: { ...adminD1Databases, MIGRATION_TEST_DB: "migration-test" },
+              d1Databases: {
+                ...adminD1Databases,
+                MIGRATION_TEST_DB: "migration-test",
+                MIGRATION_0002_TEST_DB: "migration-0002-test",
+              },
               // Simulated Rate Limiting binding with the deployed AI client
               // settings, for test/workers/ai-explanations.test.ts. Test-only:
               // wrangler.jsonc keeps ratelimits out of its top level (ADR-026 C).

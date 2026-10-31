@@ -10,6 +10,7 @@ describe("createI18n", () => {
     ["ja", ["ja", "en"]],
     ["en", ["en", "ja"]],
     ["es", ["es", "en", "ja"]],
+    ["fr", ["fr", "en", "ja"]],
   ] as const)("uses the documented fallback chain for %s", (locale, chain) => {
     expect(createI18n(locale).languages).toEqual(chain);
   });
@@ -17,7 +18,7 @@ describe("createI18n", () => {
   it("falls back to the default locale for unsupported languages", async () => {
     const i18n = createI18n();
 
-    await i18n.changeLanguage("fr");
+    await i18n.changeLanguage("de");
 
     expect(i18n.resolvedLanguage).toBe("ja");
   });

@@ -8,6 +8,7 @@ import { checkExplanationText, parseModelOutput, validateModelOutput } from "../
 
 const JA = "ゆったりとした街歩きと豊かな食文化があり、あなたが挙げた好みによく合いそうな旅行先です。";
 const EN = "Relaxed walks through historic streets and a rich food culture make this a natural fit for what you enjoy.";
+const FR = "Ses rues historiques et sa cuisine variée correspondent tout à fait à ce que vous aimez en voyage.";
 const ES = "Sus calles históricas y su cocina variada encajan muy bien con lo que más disfrutas al viajar.";
 
 describe("checkExplanationText", () => {
@@ -16,6 +17,7 @@ describe("checkExplanationText", () => {
     [EN, "en"],
     [ES, "es"],
     [`${EN} Lisboa`, "es"],
+    [FR, "fr"],
     [`${JA}Lisboa`, "ja"],
     ["ミレトは小さな港町です。", "ja"],
   ] as const)("accepts %s (%s)", (text, locale) => {
@@ -35,6 +37,7 @@ describe("checkExplanationText", () => {
     [EN, "ja", "script"],
     [`${EN} 東京`, "en", "script"],
     [`${ES} 東京`, "es", "script"],
+    [`${FR} 東京`, "fr", "script"],
   ] as const)("rejects %s (%s) as %s", (text, locale, reason) => {
     expect(checkExplanationText(text, locale)).toBe(reason);
   });

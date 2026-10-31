@@ -1,7 +1,7 @@
 /**
  * Every content bundle in content/ must import cleanly (ADR-028): valid
  * envelope and references, every item accepted by the admin API validation,
- * and published items translated into all three locales (docs/en/OPERATIONS.md 8).
+ * and every item translated into each locale its version covers (docs/en/OPERATIONS.md 8).
  */
 import { readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
@@ -22,7 +22,7 @@ import {
   destinationInput,
   questionInput,
 } from "../../server/admin/validation";
-import { SUPPORTED_LOCALES } from "../../shared/locales";
+import { SUPPORTED_LOCALES, type Locale } from "../../shared/locales";
 
 const CONTENT_DIR = path.resolve(import.meta.dirname, "../../content");
 const SCHEMAS: Record<ImportKind, z.ZodType> = {
@@ -34,6 +34,12 @@ const SCHEMAS: Record<ImportKind, z.ZodType> = {
 };
 
 const files = readdirSync(CONTENT_DIR).filter((name) => name.endsWith(".json"));
+
+/** Bundles before initial-v7.json predate `fr` (ADR-032); later ones cover every locale. */
+function requiredLocales(file: string): readonly Locale[] {
+  const version = Number(/^initial-v(\d+)\.json$/.exec(file)?.[1]);
+  return version < 7 ? ["ja", "en", "es"] : SUPPORTED_LOCALES;
+}
 
 it("content/ contains at least one bundle", () => {
   expect(files.length).toBeGreaterThan(0);
@@ -64,12 +70,12 @@ describe.each(files)("%s", (file) => {
     expect(failures).toEqual([]);
   });
 
-  it("translates every item into ja, en, and es", () => {
+  it(`translates every item into ${requiredLocales(file).join(", ")}`, () => {
     if (!parsed.bundle) throw new Error("invalid bundle");
     const missing = IMPORT_KINDS.flatMap((kind) =>
       parsed.bundle[kind].flatMap((entry) => {
         const translations = entry.data.translations as Record<string, unknown>;
-        return SUPPORTED_LOCALES.filter((locale) => !translations[locale]).map((locale) => `${kind}/${entry.slug}/${locale}`);
+        return requiredLocales(file).filter((locale) => !translations[locale]).map((locale) => `${kind}/${entry.slug}/${locale}`);
       }),
     );
     expect(missing).toEqual([]);

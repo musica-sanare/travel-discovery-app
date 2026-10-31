@@ -74,7 +74,7 @@ describe("public API basics", () => {
   });
 
   it("rejects unsupported locales", async () => {
-    const response = await publicRequest("/api/destinations?locale=fr");
+    const response = await publicRequest("/api/destinations?locale=de");
     expect(response.status).toBe(400);
     expect(await json(response)).toEqual({
       error: "invalid_request",

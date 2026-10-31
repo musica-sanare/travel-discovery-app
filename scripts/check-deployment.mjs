@@ -11,7 +11,7 @@ const WORKERS = {
   preview: { public: "travel-discovery-preview", admin: "travel-discovery-admin-preview" },
   production: { public: "travel-discovery", admin: "travel-discovery-admin" },
 };
-const LOCALES = ["ja", "en", "es"];
+const LOCALES = ["ja", "en", "es", "fr"];
 const ADMIN_PATHS = ["/", "/destinations", "/api/admin/me"];
 
 const [subdomain, environment, flag, seconds] = process.argv.slice(2);

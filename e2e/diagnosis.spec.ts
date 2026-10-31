@@ -290,3 +290,18 @@ test.describe("optional AI notes", () => {
     }
   }
 });
+
+test.describe("French", () => {
+  test.use({ locale: "fr-CA" });
+
+  test("detects French and switches back to Japanese", async ({ page }) => {
+    await page.goto("/");
+    await expect(page.locator("html")).toHaveAttribute("lang", "fr");
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText("Trouvez une destination à l’étranger faite pour vous");
+
+    await page.getByLabel("Langue").selectOption("ja");
+    await expect(page.locator("html")).toHaveAttribute("lang", "ja");
+    await page.getByLabel("言語").selectOption("fr");
+    await expect(page.getByRole("link", { name: "Commencer le questionnaire" })).toBeVisible();
+  });
+});

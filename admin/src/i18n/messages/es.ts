@@ -4,7 +4,7 @@ export const es: AdminMessages = {
   meta: { title: "Administración de Travel Discovery" },
   language: {
     label: "Idioma",
-    names: { ja: "日本語", en: "English", es: "Español" },
+    names: { ja: "日本語", en: "English", es: "Español", fr: "Français" },
   },
   nav: {
     label: "Menú de administración",

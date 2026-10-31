@@ -12,7 +12,7 @@ export const PROMPT_MARKER = "travel-discovery explanation editor";
 /** Length the model is asked for; validation allows up to MAX_EXPLANATION_LENGTH. */
 export const TARGET_EXPLANATION_LENGTH = 200;
 
-const LANGUAGE_NAMES: Record<Locale, string> = { ja: "Japanese", en: "English", es: "Spanish" };
+const LANGUAGE_NAMES: Record<Locale, string> = { ja: "Japanese", en: "English", es: "Spanish", fr: "French" };
 
 export const SYSTEM_PROMPT = `You are the ${PROMPT_MARKER}. You write one short paragraph per destination explaining why it may suit a traveller's stated preferences.
 

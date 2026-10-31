@@ -1,44 +1,44 @@
 /**
- * Published seed content must have curated ja/en/es translations
+ * Published seed content must have curated ja/en/es/fr translations
  * (docs/en/DATA_MODEL.md "Design rules"). Drafts may be incomplete.
  */
 import { env } from "cloudflare:workers";
 import { beforeAll, describe, expect, it } from "vitest";
 import { ensureSeeded } from "./helpers";
 
-// Each query returns `label` for every in-scope entity lacking any of ja/en/es.
+// Each query returns `label` for every in-scope entity lacking any of ja/en/es/fr.
 const CHECKS: Record<string, string> = {
   countries: `
     SELECT c.slug AS label FROM countries c
     WHERE c.id IN (SELECT country_id FROM destinations WHERE status = 'published')
       AND (SELECT count(DISTINCT locale) FROM country_translations t
-           WHERE t.country_id = c.id AND t.locale IN ('ja', 'en', 'es')) < 3`,
+           WHERE t.country_id = c.id AND t.locale IN ('ja', 'en', 'es', 'fr')) < 4`,
   attributes: `
     SELECT a.slug AS label FROM attributes a
     WHERE a.status = 'active'
       AND (SELECT count(DISTINCT locale) FROM attribute_translations t
-           WHERE t.attribute_id = a.id AND t.locale IN ('ja', 'en', 'es')) < 3`,
+           WHERE t.attribute_id = a.id AND t.locale IN ('ja', 'en', 'es', 'fr')) < 4`,
   categories: `
     SELECT c.slug AS label FROM question_categories c
     WHERE c.status = 'active'
       AND (SELECT count(DISTINCT locale) FROM question_category_translations t
-           WHERE t.category_id = c.id AND t.locale IN ('ja', 'en', 'es')) < 3`,
+           WHERE t.category_id = c.id AND t.locale IN ('ja', 'en', 'es', 'fr')) < 4`,
   destinations: `
     SELECT d.slug AS label FROM destinations d
     WHERE d.status = 'published'
       AND (SELECT count(DISTINCT locale) FROM destination_translations t
-           WHERE t.destination_id = d.id AND t.locale IN ('ja', 'en', 'es')) < 3`,
+           WHERE t.destination_id = d.id AND t.locale IN ('ja', 'en', 'es', 'fr')) < 4`,
   questions: `
     SELECT q.slug AS label FROM questions q
     WHERE q.status = 'published'
       AND (SELECT count(DISTINCT locale) FROM question_translations t
-           WHERE t.question_id = q.id AND t.locale IN ('ja', 'en', 'es')) < 3`,
+           WHERE t.question_id = q.id AND t.locale IN ('ja', 'en', 'es', 'fr')) < 4`,
   options: `
     SELECT q.slug || ':' || o.value AS label FROM question_options o
     JOIN questions q ON q.id = o.question_id
     WHERE q.status = 'published' AND o.status = 'active'
       AND (SELECT count(DISTINCT locale) FROM question_option_translations t
-           WHERE t.option_id = o.id AND t.locale IN ('ja', 'en', 'es')) < 3`,
+           WHERE t.option_id = o.id AND t.locale IN ('ja', 'en', 'es', 'fr')) < 4`,
 };
 
 async function findIncompleteTranslations(): Promise<Record<string, string[]>> {
@@ -73,7 +73,7 @@ describe("seed translations", () => {
     expect(counts?.questions).toBeGreaterThanOrEqual(2);
   });
 
-  it("has ja/en/es translations for all published content", async () => {
+  it("has ja/en/es/fr translations for all published content", async () => {
     expect(await findIncompleteTranslations()).toEqual(NONE);
   });
 

@@ -33,10 +33,15 @@ const httpsUrl = z
 
 const id = z.number().int().positive();
 
+/** An optional `entry` for every supported locale. */
+function perLocale<T extends z.ZodType>(entry: T) {
+  const shape = Object.fromEntries(SUPPORTED_LOCALES.map((locale) => [locale, entry.optional()]));
+  return z.object(shape as Record<Locale, z.ZodOptional<T>>);
+}
+
 /** Translations keyed by locale; at least one locale must be present. */
 function translations<T extends z.ZodType>(entry: T) {
-  return z
-    .object({ ja: entry.optional(), en: entry.optional(), es: entry.optional() })
+  return perLocale(entry)
     .refine((value) => Object.values(value).some((item) => item !== undefined), {
       message: "at_least_one_translation",
     });
@@ -99,11 +104,7 @@ const costEstimateInput = z
     sourceName: requiredText(200),
     sourceUrl: httpsUrl.nullish().transform((value) => value ?? null),
     updatedAt: z.iso.date(),
-    basis: z.object({
-      ja: optionalText(1000).optional(),
-      en: optionalText(1000).optional(),
-      es: optionalText(1000).optional(),
-    }),
+    basis: perLocale(optionalText(1000)),
   })
   .refine((value) => value.min <= value.max, { message: "min_exceeds_max", path: ["min"] });
 

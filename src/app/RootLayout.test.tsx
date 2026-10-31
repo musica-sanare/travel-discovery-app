@@ -36,6 +36,7 @@ describe("RootLayout", () => {
   it.each([
     ["en", "Find an overseas destination that suits you"],
     ["es", "Encuentra un destino en el extranjero hecho para ti"],
+    ["fr", "Trouvez une destination à l’étranger faite pour vous"],
   ])("switches the UI and document language to %s", async (locale, heading) => {
     renderAt("/");
 

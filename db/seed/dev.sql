@@ -1,5 +1,5 @@
 -- Local development seed data (apply after migrations to an empty database:
--- `npm run db:reset:local`). Small curated sample with ja/en/es text.
+-- `npm run db:reset:local`). Small curated sample with ja/en/es/fr text.
 -- No indicative cost estimates are seeded: no sourced estimates exist
 -- yet, and seed data must not present invented prices (docs/en/SPEC.md §7).
 -- Rows reference each other by slug so the file does not depend on IDs.
@@ -16,15 +16,19 @@ WITH t(slug, locale, name) AS (VALUES
   ('portugal', 'ja', 'ポルトガル'),
   ('portugal', 'en', 'Portugal'),
   ('portugal', 'es', 'Portugal'),
+  ('portugal', 'fr', 'Portugal'),
   ('taiwan', 'ja', '台湾'),
   ('taiwan', 'en', 'Taiwan'),
   ('taiwan', 'es', 'Taiwán'),
+  ('taiwan', 'fr', 'Taïwan'),
   ('iceland', 'ja', 'アイスランド'),
   ('iceland', 'en', 'Iceland'),
   ('iceland', 'es', 'Islandia'),
+  ('iceland', 'fr', 'Islande'),
   ('vietnam', 'ja', 'ベトナム'),
   ('vietnam', 'en', 'Vietnam'),
-  ('vietnam', 'es', 'Vietnam'))
+  ('vietnam', 'es', 'Vietnam'),
+  ('vietnam', 'fr', 'Viêt Nam'))
 INSERT INTO country_translations (country_id, locale, name)
 SELECT c.id, t.locale, t.name FROM t JOIN countries c ON c.slug = t.slug;
 
@@ -40,18 +44,23 @@ WITH t(slug, locale, name) AS (VALUES
   ('food', 'ja', '食'),
   ('food', 'en', 'Food'),
   ('food', 'es', 'Gastronomía'),
+  ('food', 'fr', 'Gastronomie'),
   ('history-culture', 'ja', '歴史・文化'),
   ('history-culture', 'en', 'History and culture'),
   ('history-culture', 'es', 'Historia y cultura'),
+  ('history-culture', 'fr', 'Histoire et culture'),
   ('nature', 'ja', '自然'),
   ('nature', 'en', 'Nature'),
   ('nature', 'es', 'Naturaleza'),
+  ('nature', 'fr', 'Nature'),
   ('city-life', 'ja', '都市の街歩き'),
   ('city-life', 'en', 'City life'),
   ('city-life', 'es', 'Vida urbana'),
+  ('city-life', 'fr', 'Vie urbaine'),
   ('beach', 'ja', 'ビーチ'),
   ('beach', 'en', 'Beaches'),
-  ('beach', 'es', 'Playas'))
+  ('beach', 'es', 'Playas'),
+  ('beach', 'fr', 'Plages'))
 INSERT INTO attribute_translations (attribute_id, locale, name, description)
 SELECT a.id, t.locale, t.name, NULL FROM t JOIN attributes a ON a.slug = t.slug;
 
@@ -87,6 +96,11 @@ WITH t(slug, locale, name, summary, highlights, cautions, season) AS (VALUES
     '["Barrios históricos","Zonas junto al río","Pescados y mariscos"]',
     'Hay muchas cuestas y calles empedradas; conviene llevar calzado cómodo.',
     'La primavera y el otoño suelen ser las estaciones más agradables.'),
+  ('lisbon', 'fr', 'Lisbonne',
+    'Une capitale de collines, de tramways et de vues sur le fleuve, à découvrir à pied pour sa gastronomie.',
+    '["Quartiers historiques","Quartiers au bord du fleuve","Poissons et fruits de mer"]',
+    'Les pentes et les pavés sont nombreux ; de bonnes chaussures sont utiles.',
+    'Le printemps et l’automne sont généralement les saisons les plus agréables.'),
   ('taipei', 'ja', '台北',
     '夜市や屋台料理、寺院、近郊の温泉や山歩きまで、短い日程でも幅広く楽しめる都市。',
     '["夜市","寺院めぐり","近郊の温泉"]',
@@ -102,6 +116,11 @@ WITH t(slug, locale, name, summary, highlights, cautions, season) AS (VALUES
     '["Mercados nocturnos","Templos","Aguas termales cercanas"]',
     'Los veranos son calurosos y lluviosos, y puede haber tifones.',
     'De otoño a primavera el clima suele ser más agradable.'),
+  ('taipei', 'fr', 'Taipei',
+    'Une ville compacte de marchés de nuit, de temples, de sources chaudes et de randonnées à proximité, idéale pour un court séjour.',
+    '["Marchés de nuit","Temples","Sources chaudes à proximité"]',
+    'Les étés sont chauds et pluvieux, et des typhons peuvent survenir.',
+    'De l’automne au printemps, le climat est généralement plus agréable.'),
   ('south-iceland', 'ja', 'アイスランド南部',
     '滝、氷河、黒砂の海岸など、ダイナミックな自然景観を巡る地域。',
     '["滝","氷河","黒砂の海岸"]',
@@ -117,6 +136,11 @@ WITH t(slug, locale, name, summary, highlights, cautions, season) AS (VALUES
     '["Cascadas","Glaciares","Playas de arena negra"]',
     'El tiempo cambia rápidamente; en invierno los días son cortos y las carreteras pueden ser difíciles.',
     'El verano ofrece días largos para viajar; el invierno es la temporada principal de auroras.'),
+  ('south-iceland', 'fr', 'Sud de l’Islande',
+    'Une région de cascades, de glaciers et de plages de sable noir pour qui recherche des paysages spectaculaires.',
+    '["Cascades","Glaciers","Plages de sable noir"]',
+    'Le temps change vite ; en hiver, les journées sont courtes et les routes peuvent être difficiles.',
+    'L’été offre de longues journées pour voyager ; l’hiver est la principale saison des aurores boréales.'),
   ('da-nang', 'ja', 'ダナン',
     '長いビーチと近郊の古い町並みを組み合わせて楽しめる海辺の都市。',
     '["ビーチ","近郊の旧市街"]', NULL, NULL),
@@ -160,9 +184,11 @@ WITH t(slug, locale, name) AS (VALUES
   ('travel-style', 'ja', '旅のスタイル'),
   ('travel-style', 'en', 'Travel style'),
   ('travel-style', 'es', 'Estilo de viaje'),
+  ('travel-style', 'fr', 'Style de voyage'),
   ('interests', 'ja', '興味・関心'),
   ('interests', 'en', 'Interests'),
-  ('interests', 'es', 'Intereses'))
+  ('interests', 'es', 'Intereses'),
+  ('interests', 'fr', 'Centres d’intérêt'))
 INSERT INTO question_category_translations (category_id, locale, name)
 SELECT c.id, t.locale, t.name FROM t JOIN question_categories c ON c.slug = t.slug;
 
@@ -181,9 +207,11 @@ WITH t(slug, locale, prompt) AS (VALUES
   ('pace', 'ja', '旅のペースはどちらが好みですか？'),
   ('pace', 'en', 'What travel pace do you prefer?'),
   ('pace', 'es', '¿Qué ritmo de viaje prefieres?'),
+  ('pace', 'fr', 'Quel rythme de voyage préférez-vous ?'),
   ('main-interest', 'ja', '旅先でいちばん楽しみたいことは？'),
   ('main-interest', 'en', 'What do you most want to enjoy on your trip?'),
   ('main-interest', 'es', '¿Qué es lo que más quieres disfrutar en tu viaje?'),
+  ('main-interest', 'fr', 'Qu’aimeriez-vous le plus apprécier pendant votre voyage ?'),
   ('evening', 'ja', '夜はどのように過ごしたいですか？'))
 INSERT INTO question_translations (question_id, locale, prompt, description)
 SELECT q.id, t.locale, t.prompt, NULL FROM t JOIN questions q ON q.slug = t.slug;
@@ -203,18 +231,23 @@ WITH t(question, value, locale, label) AS (VALUES
   ('pace', 'relaxed', 'ja', 'ゆったり過ごしたい'),
   ('pace', 'relaxed', 'en', 'Slow and relaxed'),
   ('pace', 'relaxed', 'es', 'Tranquilo y sin prisas'),
+  ('pace', 'relaxed', 'fr', 'Tranquille, sans se presser'),
   ('pace', 'active', 'ja', 'たくさん動き回りたい'),
   ('pace', 'active', 'en', 'Active and on the move'),
   ('pace', 'active', 'es', 'Activo y en movimiento'),
+  ('pace', 'active', 'fr', 'Actif, toujours en mouvement'),
   ('main-interest', 'food', 'ja', '食べ歩き'),
   ('main-interest', 'food', 'en', 'Food'),
   ('main-interest', 'food', 'es', 'La comida'),
+  ('main-interest', 'food', 'fr', 'La cuisine'),
   ('main-interest', 'scenery', 'ja', '自然の絶景'),
   ('main-interest', 'scenery', 'en', 'Natural scenery'),
   ('main-interest', 'scenery', 'es', 'Paisajes naturales'),
+  ('main-interest', 'scenery', 'fr', 'Les paysages naturels'),
   ('main-interest', 'history', 'ja', '歴史や文化'),
   ('main-interest', 'history', 'en', 'History and culture'),
   ('main-interest', 'history', 'es', 'Historia y cultura'),
+  ('main-interest', 'history', 'fr', 'L’histoire et la culture'),
   ('evening', 'quiet', 'ja', '静かに過ごしたい'),
   ('evening', 'lively', 'ja', 'にぎやかな場所に出かけたい'))
 INSERT INTO question_option_translations (option_id, locale, label)
