@@ -1,4 +1,4 @@
-<!-- source: docs/en/DEPLOYMENT.md blob 095b1ac8e602c709595dfe4717a8c0077608e6ff -->
+<!-- source: docs/en/DEPLOYMENT.md blob 10e7222e2354ada5e01572e69cf6b725b2436114 -->
 [English](../en/DEPLOYMENT.md) | 日本語 · [目次に戻る](README.md)
 
 > この文書は[英語版](../en/DEPLOYMENT.md)の翻訳。内容が異なる場合は英語版が優先する。
@@ -425,4 +425,4 @@ Phase 6（2026-10-18）時点の状態と、その後のデプロイ。詳細は
 - オーナーが `travel-discovery` と `travel-discovery-admin` を `main` につないだ（3.6）。`59b754c` を `main` に push すると最初のビルドが始まり、新しいバージョンをデプロイした。コードは Phase 17 のデプロイ（`ef6d323`）と同じだ。バージョン ID とビルド時間: *(要確認: オーナーが記録する)*。
 - `scripts/check-deployment.mjs <account subdomain> production --watch-admin 120` が通った。4 つのロケールの公開 API、AI は無効、管理のすべてのパスが 2 分間 Access のログインにリダイレクトした。
 - プレビュー環境を設定から外した（ADR-033「Amendment 2026-10-31」）。続いてオーナーが、その 2 つの Worker、Access アプリケーション、データベースを消した（3.7）。プレビューの 2 つの URL は 404 を返す。
-- インシデント: 削除の後、本番の管理 Worker が `/` と `/destinations` で Access なしに 200 を返した。少なくともチェックの 2 分間はそのままだった。`/api/admin/me` は 403 を返したので、管理データには届かなかった。オーナーが `workers.dev` を無効にし、`travel-discovery-admin` の Access アプリケーションが新しい AUD タグで作り直されているのを確かめた。スコープは All traffic、ポリシーはオーナーの Emails ルールだ。新しい AUD は `wrangler.admin.jsonc` の `env.production` に入れた。そのコミットの push で `workers.dev` が有効に戻る（ADR-033）。
+- インシデント: 削除の後、本番の管理 Worker が `/` と `/destinations` で Access なしに 200 を返した。少なくともチェックの 2 分間はそのままだった。`/api/admin/me` は 403 を返したので、管理データには届かなかった。オーナーが `workers.dev` を無効にし、`travel-discovery-admin` の Access アプリケーションが新しい AUD タグで作り直されているのを確かめた。スコープは All traffic、ポリシーはオーナーの Emails ルールだ。新しい AUD は `wrangler.admin.jsonc` の `env.production` に入れた。そのコミット（`b369997`）を push すると `workers.dev` が有効に戻り、`--watch-admin 120` つきのチェックが通り、オーナーが管理コンソールにログインできた（ADR-033）。
