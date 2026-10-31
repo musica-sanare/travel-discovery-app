@@ -236,3 +236,19 @@ Acceptance:
 - The owner approved the new destinations and any score changes, `initial-v6.json` differs from `initial-v5.json` only by them, and every cost and best-month entry has a cited source.
 - The bundle is imported on both environments with bookmarks and matches `/api/diagnosis-content` in all three locales; complete quizzes work in all three locales.
 - `npm run check` and `npm run test:e2e` pass after any change, AI is disabled in every environment, and the account stays on Workers Free.
+
+Status: **complete (2026-10-31)**; every acceptance item is met ([DECISIONS.md](DECISIONS.md) "Phase 13 verification log"):
+- Coverage: the 18 destinations of `initial-v5.json` had no destination in mainland North America, Central America and the Caribbean, Africa, the Middle East, the Nordic countries, Central and Eastern Europe, South Asia, or New Zealand, and none combining strong nature with easy travel.
+- Content: `content/initial-v6.json` adds 8 countries and 12 destinations, for 23 countries and 30 published destinations; existing content is unchanged (the proposed Rome and Seoul score changes were not chosen). Costs for two new destinations and best months for eight follow the Phase 8 and Phase 9 rules; the others are empty. The owner approved a rendered review copy in `ja`, `en`, and `es` (ADR-028).
+- Simulation (1,000 sessions, default settings): top-5 shares from `riviera-maya` 35.3% to `rome` 2.9% (`initial-v5.json`: `barcelona` 47.6% to `rome` 7.8%); every destination reaches the top 5.
+- Imported with the update mode on preview and production with Time Travel bookmarks, each on the first attempt. `/api/diagnosis-content` matches the bundle in all three locales on both, and complete quizzes were answered in all three locales on both.
+- Quiz settings unchanged at 6/10/12/5, as proposed.
+- `npm run check` (724 tests) and `npm run test:e2e` passed after the code change; AI is disabled in every environment and no paid plan or feature was enabled.
+
+Open items for later phases, each needing the owner's decision or check:
+- Rome reaches the top 5 in only 2.9% of simulated sessions; revisiting existing scores is a separate content decision.
+- Marrakech has no best months or best-season text (the official page could not be read); ten new destinations have no cost estimate.
+- Carried over: why the first Phase 12 preview import did not reach the database (要確認; both Phase 13 imports reached it on the first attempt), discrimination-based question selection and early stopping, the preview seed destinations scored on 7 attributes, the Phase 11 dashboard readings (要確認), the production quota Durable Object and production AI, the trial's `en` rejection and the 400 request (要確認), an app-wide daily cap, and removing the overrides (ADR-030).
+- Still deferred: images, a dated exchange-rate table, the out-of-policy Access check, other empty costs, and the pre-public-release checklist.
+- Dated, outside the phases: the Workers Logs and Billing check in the first week of December 2026 ([OPERATIONS.md](../en/OPERATIONS.md) section 3 "Dated").
+- Next: Phase 14 (the AI notices and limits in the UI and production readiness for AI); its prompt file is written when it starts.

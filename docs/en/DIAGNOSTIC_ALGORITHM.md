@@ -150,7 +150,7 @@ Deriving each step's random number from `(seed, step)` makes the sequence reprod
 `maxQuestions` is therefore a hard cap. `minQuestions` is not a reason to keep asking once candidates run out.
 
 ### Deferred: discrimination-based selection and early stopping
-Not implemented. They were deferred because the content was too small to validate them, with the condition to revisit them once there are at least 15 published destinations and at least `2 × maxQuestions` usable questions. Since `content/initial-v5.json` (18 destinations, 29 usable questions, `maxQuestions` 12; Phase 12) the condition is met, so they can now be evaluated, for example with `npm run quiz:simulate`; implementing them is a separate decision. Candidate definitions:
+Not implemented. They were deferred because the content was too small to validate them, with the condition to revisit them once there are at least 15 published destinations and at least `2 × maxQuestions` usable questions. Since `content/initial-v5.json` (18 destinations, 29 usable questions, `maxQuestions` 12; Phase 12) the condition is met, and `content/initial-v6.json` (30 destinations; Phase 13) exceeds it further, so they can now be evaluated, for example with `npm run quiz:simulate`; implementing them is a separate decision. Candidate definitions:
 - **Discrimination** of `q`: for each active option `o`, the population standard deviation of `Σ_a w_o[a] · x_d[a]` over the current top `2 · resultCount` destinations; averaged over options. It would multiply the weight above.
 - **Stability**: after at least `minQuestions` answers, stop when the set of the top `resultCount` destinations has not changed over the last two answers and the fit gap between rank `resultCount` and `resultCount + 1` is at least 5 points.
 
