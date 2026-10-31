@@ -2,9 +2,27 @@ English | [日本語](../ja/DATA_MODEL.md) · [Docs index](README.md)
 
 # Data Model — Travel Discovery
 
+This page describes the content data stored in D1: the entities, how they relate, the localization tables, and the design rules. It is for anyone who changes the schema, the admin API, or the seed data. The concrete schema is `server/db/schema.ts`; how it differs from the logical model below is in "Phase 1 schema notes" and "Phase 2 schema notes".
+
 This is the initial logical model. Claude Code should convert it into a concrete schema, constraints, indexes, and migrations after checking current D1/ORM compatibility.
 
-Localization rule: base tables hold only locale-neutral data (IDs, slugs, enums, numbers, URLs, dates). Every user-visible string lives in a `*_translations` table keyed by `(entity_id, locale)` with `locale` in `ja` / `en` / `es`. The missing-translation fallback is defined in [DECISIONS.md](../working/DECISIONS.md) (ADR-012).
+**Localization rule.** Base tables hold only locale-neutral data (IDs, slugs, enums, numbers, URLs, dates). Every user-visible string lives in a `*_translations` table keyed by `(entity_id, locale)`, with `locale` in `ja` / `en` / `es`. The missing-translation fallback is defined in [DECISIONS.md](../working/DECISIONS.md) (ADR-012).
+
+## Overview diagram
+
+The base tables and their relationships. Each table with user-visible text also has a `*_translations` table, omitted here; `app_settings` stands alone.
+
+```mermaid
+erDiagram
+  countries ||--o{ destinations : "has"
+  destinations ||--o{ destination_cost_estimates : "has"
+  destinations ||--o{ destination_attributes : "scored on"
+  attributes ||--o{ destination_attributes : "scores"
+  question_categories ||--o{ questions : "groups"
+  questions ||--o{ question_options : "has"
+  question_options ||--o{ option_score_effects : "applies"
+  attributes ||--o{ option_score_effects : "affected by"
+```
 
 ## Entities
 
@@ -77,6 +95,17 @@ Localization rule: base tables hold only locale-neutral data (IDs, slugs, enums,
 - `score`: initial scale 0–5
 - composite primary key `(destination_id, attribute_id)`
 
+### question_categories
+- `id`
+- `slug`: unique
+- `status`
+
+### question_category_translations
+- `category_id`
+- `locale`: `ja` / `en` / `es`
+- `name`
+- composite primary key `(category_id, locale)`
+
 ### questions
 - `id`
 - `slug`: unique
@@ -95,29 +124,18 @@ Localization rule: base tables hold only locale-neutral data (IDs, slugs, enums,
 - `description` (optional)
 - composite primary key `(question_id, locale)`
 
-### question_categories
-- `id`
-- `slug`: unique
-- `status`
-
-### question_category_translations
-- `category_id`
-- `locale`: `ja` / `en` / `es`
-- `name`
-- composite primary key `(category_id, locale)`
-
-### question_option_translations
-- `option_id`
-- `locale`: `ja` / `en` / `es`
-- `label`
-- composite primary key `(option_id, locale)`
-
 ### question_options
 - `id`
 - `question_id`
 - `value`
 - `display_order`
 - `status`
+
+### question_option_translations
+- `option_id`
+- `locale`: `ja` / `en` / `es`
+- `label`
+- composite primary key `(option_id, locale)`
 
 ### option_score_effects
 - `option_id`
@@ -145,12 +163,12 @@ Localization rule: base tables hold only locale-neutral data (IDs, slugs, enums,
 - Prefer soft archival over hard deletion for records referenced elsewhere.
 - Add foreign keys and indexes for public listing, status, slugs, and joins.
 - Validate ranges and relationships at the API boundary and, where practical, with DB constraints.
-- Keep timestamps in a consistent format (UTC ISO 8601 at API boundaries; choose a compatible DB storage convention).
+- Keep timestamps in a consistent format: UTC ISO 8601 at API boundaries, and a compatible DB storage convention.
 - Avoid storing user answers in persistent tables for MVP.
 - Do not store arbitrary executable expressions or JavaScript in question conditions. Use a small, typed condition format.
 - If JSON fields are chosen, document the tradeoff and validate them at runtime.
-- Require curated `ja`, `en`, and `es` translations for all published seeded content; enforce a documented fallback for incomplete admin-entered content.
-- Store money as integer minor units or clearly defined integer units; never mix currencies without explicit conversion metadata.
+- Require curated `ja`, `en`, and `es` translations for all published seeded content. Enforce a documented fallback for incomplete admin-entered content.
+- Store money as integer minor units or clearly defined integer units. Never mix currencies without explicit conversion metadata.
 - Cost records must include scope, basis, source, and update date.
 - External links must be generated safely and validated against an allowlist or fixed templates.
 
@@ -163,23 +181,38 @@ Each seeded destination must include a source/basis for indicative costs or expl
 
 The concrete schema is `server/db/schema.ts` (Drizzle ORM 0.45) and the generated migration in `migrations/`. Adjustments to the logical model above, with reasons:
 
-- **IDs and timestamps**: integer autoincrement primary keys (internal; the public API uses slugs only). `created_at` / `updated_at` are UTC ISO 8601 text written by the application; `cost_updated_at` is an ISO date (`YYYY-MM-DD`).
-- **Status values**: destinations and questions use `draft / published / archived`; attributes, question categories, and question options use `active / archived`. Countries have no status (they are reference data and are never deleted). CHECK constraints enforce the allowed values.
+- **IDs and timestamps**: integer autoincrement primary keys (internal; the public API uses slugs only). `created_at` / `updated_at` are UTC ISO 8601 text written by the application. `cost_updated_at` is an ISO date (`YYYY-MM-DD`).
+- **Status values**:
+  - Destinations and questions use `draft / published / archived`.
+  - Attributes, question categories, and question options use `active / archived`.
+  - Countries have no status (they are reference data and are never deleted).
+  - CHECK constraints enforce the allowed values.
 - **Translations**: `country_translations`, `attribute_translations`, and `question_category_translations` were added so every user-visible string is localized (see the localization rule above). `locale` is constrained to `ja`, `en`, `es`.
 - **Highlights**: stored as a validated JSON array of strings (`destination_translations.highlights_json`, max 8 items of 200 characters) instead of a child table. Tradeoff: simpler writes and reads for a short ordered list; validated with Zod on write and read.
-- **Indicative cost** (*superseded by "Phase 2 schema notes"*): `cost_min` / `cost_max` are integers in whole units of `cost_currency` (ISO 4217 code); indicative ranges do not need sub-unit precision. A CHECK constraint makes the cost group all-or-nothing (min, max, currency, scope, source name, updated date; source URL optional) with `0 <= cost_min <= cost_max`. When a cost is set, every provided translation must include `cost_basis` (API validation). `cost_scope` is a stable enum whose label is localized in the UI.
+- **Indicative cost** (*superseded by "Phase 2 schema notes"*):
+  - `cost_min` / `cost_max` are integers in whole units of `cost_currency` (ISO 4217 code); indicative ranges do not need sub-unit precision.
+  - A CHECK constraint makes the cost group all-or-nothing (min, max, currency, scope, source name, updated date; source URL optional) with `0 <= cost_min <= cost_max`.
+  - When a cost is set, every provided translation must include `cost_basis` (API validation).
+  - `cost_scope` is a stable enum whose label is localized in the UI.
 - **Images**: `image_url` and `image_attribution` on the destination; `image_alt` per translation (required for each provided translation when an image is set). URLs must be `https`.
-- **Scales**: `destination_attributes.score` is an integer 0–5. `option_score_effects.weight` is a non-zero integer from −5 to 5 (initial range; Phase 2 may refine it when the scoring formula is documented). `questions.priority_weight` is an integer 1–10 (default 5).
+- **Scales**:
+  - `destination_attributes.score` is an integer 0–5.
+  - `option_score_effects.weight` is a non-zero integer from −5 to 5 (initial range; Phase 2 may refine it when the scoring formula is documented).
+  - `questions.priority_weight` is an integer 1–10 (default 5).
 - **Question types**: only `single_choice` and `multiple_choice` are implemented, and both are publishable since Phase 2 ([DECISIONS.md](../working/DECISIONS.md) ADR-021). `range` from the logical model is not implemented: the only bounded numeric input, the budget, is a trip constraint (ADR-021). Adding it later is a migration that extends the CHECK constraint.
 - **Selection conditions**: not stored. Phase 2 question selection adapts through attribute coverage instead of per-question conditions ([DIAGNOSTIC_ALGORITHM.md](DIAGNOSTIC_ALGORITHM.md) §7).
 - **Options**: unique per question by `value` (stable slug), so updates match options by value. Options omitted from an admin update are archived, not deleted.
 - **Settings**: `app_settings` stores the `quiz` key (validated JSON); see [DECISIONS.md](../working/DECISIONS.md) ADR-020.
-- **Deletion**: no hard deletes through the API. Foreign keys use `ON DELETE CASCADE` only from parent rows to their translations/child rows and `RESTRICT` for references between independent entities.
+- **Deletion**: no hard deletes through the API. Foreign keys use `ON DELETE CASCADE` only from parent rows to their translations/child rows, and `RESTRICT` for references between independent entities.
 
 ## Phase 2 schema notes
 
 Migration `0001` (decision: [DECISIONS.md](../working/DECISIONS.md) ADR-021; algorithm: [DIAGNOSTIC_ALGORITHM.md](DIAGNOSTIC_ALGORITHM.md)):
 
-- **Cost estimates**: `destination_cost_estimates` replaces the cost columns on `destinations`; `destination_cost_estimate_translations.basis` replaces `destination_translations.cost_basis`. At most one estimate per `(destination_id, currency)`. `currency` is `JPY`, `USD`, or `EUR` (`shared/costs.ts`); `period` is `per_day` or `per_trip`; `min`/`max` are whole currency units with `0 <= min <= max`. Every locale for which the destination has a translation must have a basis for each estimate (API validation). Estimates are replaced as part of the destination aggregate `PUT`.
+- **Cost estimates**:
+  - `destination_cost_estimates` replaces the cost columns on `destinations`. `destination_cost_estimate_translations.basis` replaces `destination_translations.cost_basis`.
+  - At most one estimate per `(destination_id, currency)`. `currency` is `JPY`, `USD`, or `EUR` (`shared/costs.ts`). `period` is `per_day` or `per_trip`. `min`/`max` are whole currency units with `0 <= min <= max`.
+  - Every locale for which the destination has a translation must have a basis for each estimate (API validation).
+  - Estimates are replaced as part of the destination aggregate `PUT`.
 - **Best months**: `destinations.best_months_mask` is `NULL` (unknown) or 1–4095, where bit `m − 1` means month `m` is a recommended travel month. The API exchanges it as a sorted list of months (`shared/months.ts`).
 - **Migration safety**: the `destinations` rebuild preserves IDs, translations, and attribute scores (see ADR-021). Legacy single-currency cost values are discarded.
