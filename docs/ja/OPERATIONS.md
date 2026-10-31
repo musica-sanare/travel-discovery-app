@@ -1,4 +1,4 @@
-<!-- source: docs/en/OPERATIONS.md blob 5286c152e3378a57146cfa05796a21b2fb54be75 -->
+<!-- source: docs/en/OPERATIONS.md blob 78d3286ac61c2c6952abd8de9f65df00d5733dbb -->
 [English](../en/OPERATIONS.md) | 日本語 · [目次に戻る](README.md)
 
 > この文書は[英語版](../en/OPERATIONS.md)の翻訳。内容が異なる場合は英語版が優先する。
@@ -19,7 +19,7 @@
 | `production` | `main` | `travel-discovery` | `travel-discovery-admin` | `travel-discovery-production` |
 
 - 両方の Worker が Workers Builds でこのリポジトリにつながり（[DEPLOYMENT.md](DEPLOYMENT.md) 3.6）、`workers.dev`（`<worker>.<account subdomain>.workers.dev`）を使う。
-- プレビュー環境は 2026-10-31 に外した。オーナーがその Worker とデータベースを消すまで（[DEPLOYMENT.md](DEPLOYMENT.md) 3.7）は残っているが、もうデプロイもチェックもしない。
+- プレビュー環境は 2026-10-31 に外し、同じ日にオーナーがその Worker、Access アプリケーション、データベースを消した（[DEPLOYMENT.md](DEPLOYMENT.md) 3.7）。
 - アカウントは Workers Free と Zero Trust Free。AI は無効。
 - 無料枠の上限は、このアカウントのほかのプロジェクトも含めてアカウント全体で共有する（[DEPLOYMENT.md](DEPLOYMENT.md) 9 節）。
 
@@ -187,7 +187,6 @@ AI が無効でもレート制限の行が出ることがある。Phase 11 か�
 - 新しい Time Travel のブックマークを記録する。
 
 ## 9. 未解決の項目
-- **プレビューのリソース:** プレビューの 2 つの Worker、管理のプレビュー Worker の Access アプリケーション、プレビューのデータベースは、オーナーが消すまで残る（[DEPLOYMENT.md](DEPLOYMENT.md) 3.7）。
 - **Access のポリシー外のアドレスが拒否されること:** 未確認。2 つ目の Cloudflare アカウントが要り、オーナーが先送りにした（2026-10-24）。
 - **`AI_CLIENT_RATE_LIMITER` の 429 の応答。** 現在の状態（2026-10-31、Phase 14）: Durable Object による利用者ごとの厳密な上限（ADR-029）を本番にデプロイし（バージョン `cc06950d`）、そこでリミッターの確認に合格した（「Phase 14 verification log」）。本番で AI を有効にするかは、オーナーが別に判断する（ADR-026「Readiness for enabling AI」）。経緯:
   - 2026-10-25、プレビューでの AI 試行: 429 は出なかった（同じアドレスから 15 回送り、すべて 400。[DECISIONS.md](../working/DECISIONS.md)（英語のみ）「Phase 10 verification log」）。原因は要確認。これが本番で AI を有効にすることを止めている（ADR-026「Readiness for enabling AI」）。

@@ -74,7 +74,7 @@
         // Not secrets: the Access team domain and this Worker's Access
         // application audience (AUD) tag (ADR-004).
         "ACCESS_TEAM_DOMAIN": "https://spring-dew-55d0.cloudflareaccess.com",
-        "ACCESS_POLICY_AUD": "7a068c1afbcbf628060ec8cbc0def82f5218fef5225fcd037dcff88c4bcf5995"
+        "ACCESS_POLICY_AUD": "e60119d07fa10d5bac048d9e1e659c7eca1e5f5b915500fbb360a83bad34e8a3"
       }
     }
   }

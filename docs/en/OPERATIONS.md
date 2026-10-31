@@ -16,7 +16,7 @@ Last reviewed: 2026-10-31.
 | `production` | `main` | `travel-discovery` | `travel-discovery-admin` | `travel-discovery-production` |
 
 - Both Workers are connected to this repository in Workers Builds ([DEPLOYMENT.md](DEPLOYMENT.md) 3.6) and use `workers.dev` (`<worker>.<account subdomain>.workers.dev`).
-- The preview environment was removed on 2026-10-31. Until the owner deletes its Workers and database ([DEPLOYMENT.md](DEPLOYMENT.md) 3.7), they still exist but are no longer deployed or checked.
+- The preview environment was removed on 2026-10-31, and the owner deleted its Workers, Access application, and database the same day ([DEPLOYMENT.md](DEPLOYMENT.md) 3.7).
 - The account is on Workers Free and Zero Trust Free. AI is disabled.
 - Free-tier limits are shared by the whole account, including other projects on it ([DEPLOYMENT.md](DEPLOYMENT.md) section 9).
 
@@ -184,7 +184,6 @@ After:
 - Record a new Time Travel bookmark.
 
 ## 9. Open items
-- **Preview resources:** the two preview Workers, the Access application of the admin preview Worker, and the preview database still exist until the owner deletes them ([DEPLOYMENT.md](DEPLOYMENT.md) 3.7).
 - **Rejection of an address outside the Access policy:** not checked. It needs a second Cloudflare account, which the owner postponed (2026-10-24).
 - **The 429 response of `AI_CLIENT_RATE_LIMITER`.** Current state (2026-10-31, Phase 14): the strict per-client quota in a Durable Object (ADR-029) is deployed to production (version `cc06950d`), where the limiter check passed ("Phase 14 verification log"). Enabling AI on production is a separate owner decision (ADR-026 "Readiness for enabling AI"). History:
   - 2026-10-25, preview AI trial: no 429 was observed (15 requests from one address, all 400; "Phase 10 verification log" in [DECISIONS.md](../working/DECISIONS.md)); cause 要確認. This blocks enabling AI on production (ADR-026 "Readiness for enabling AI").

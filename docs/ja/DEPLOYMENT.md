@@ -1,4 +1,4 @@
-<!-- source: docs/en/DEPLOYMENT.md blob 992506cb618ac0f03e8b97d3e0264315e17ffa73 -->
+<!-- source: docs/en/DEPLOYMENT.md blob 095b1ac8e602c709595dfe4717a8c0077608e6ff -->
 [English](../en/DEPLOYMENT.md) | 日本語 · [目次に戻る](README.md)
 
 > この文書は[英語版](../en/DEPLOYMENT.md)の翻訳。内容が異なる場合は英語版が優先する。
@@ -90,7 +90,7 @@ npx wrangler d1 create travel-discovery-production
 - `--location`（ロケーションのヒント）は任意。オーナーが選ばない限り指定しない。
 
 ### 3.3 設定（C5、ADR-026「Stage 5 preparation decisions」C）
-`env.production` は両方の Wrangler の設定にある（Phase 6、2026-10-18）。専用のデータベースと、`namespace_id` の値 `2001`（公開）と `2002`（管理）を持つ。トップレベルの Worker 名を保つために `name` も設定する。`env.preview`（`1001`／`1002`）は 2026-10-31 に外した。プレビューの Worker を消すまで（3.7）、その ID は使い回さない。
+`env.production` は両方の Wrangler の設定にある（Phase 6、2026-10-18）。専用のデータベースと、`namespace_id` の値 `2001`（公開）と `2002`（管理）を持つ。トップレベルの Worker 名を保つために `name` も設定する。`env.preview`（`1001`／`1002`）は 2026-10-31 に外し、その Worker も同じ日に消した（3.7）ので、その ID は空いている。
 
 名前つきの環境は `vars` とバインディングを引き継がないので、環境は使うものをすべて宣言する:
 - **両方の Worker:**
@@ -194,15 +194,17 @@ Workers Builds にもビルド変数とビルド用の秘密情報があり、�
 - 以後、オーナーのセッションは必ず `npx wrangler logout` で終える。こうして、この手順書のどの手順もマシンに Cloudflare のログインを残さない。
 
 ### 3.7 プレビューのリソースを消す（オーナー、1 回だけ）
-プレビュー環境は 2026-10-31 に設定から外したが、Cloudflare 上のリソースはオーナーが消すまで残る。Workers Free では費用はかからないが、公開側のプレビュー Worker は古いコードとシードデータを公開 URL で出し続ける。状態: 未実施。
+プレビュー環境は 2026-10-31 に設定から外したが、Cloudflare 上のリソースはオーナーが消すまで残る。Workers Free では費用はかからないが、公開側のプレビュー Worker は古いコードとシードデータを公開 URL で出し続ける。状態: 2026-10-31 にオーナーが実施した。その途中で本番の Access アプリケーションも失われ、オーナーが `workers.dev` を無効にするまで、本番の管理 SPA が Access なしで見えていた（ADR-033「Amendment 2026-10-31」のインシデント）。下の手順には、これを見つけられたはずのチェックを入れてある。
 
 どの削除も元に戻せず、オーナーの判断だ。管理のプレビュー Worker が Access なしで届く瞬間を作らないよう、次の順に消す:
 
 1. **先に管理のプレビュー Worker。** Workers & Pages → `travel-discovery-admin-preview` → Settings → Delete *(要確認: 正確な表示名)*。Workers Builds にはつながっていない。
 2. **公開のプレビュー Worker。** Workers & Pages → `travel-discovery-preview` → Settings → Delete。Durable Object `AiClientLimiter` のデータも消えるが、中身はアドレスごとの AI のカウンターだけだ。
 3. **管理のプレビュー Worker の Access アプリケーション。** 手順 1 の後にだけ消す。Zero Trust → Access controls → Applications → `travel-discovery-admin-preview` のアプリケーション → Delete。
-   - `travel-discovery-admin` のアプリケーションには触れない。
+   - 消す前にアプリケーションを開き、ドメインが `travel-discovery-admin-preview.<account subdomain>.workers.dev` で、AUD タグが `wrangler.admin.jsonc` の `env.production` の `ACCESS_POLICY_AUD` ではないことを確かめる。2 つのアプリケーションの名前は `-preview` しか違わない。
+   - 手順 1 の後で、アプリケーションがもうないこともある。そのときはこの手順を飛ばす。代わりに別のアプリケーションを消すことは決してしない。
    - 続いて Access controls → Policies で、再利用可能なポリシー `travel-discovery-admin-preview - Production` を、どのアプリケーションも使っていない場合にだけ消す。本番のアプリケーションは専用のポリシーを持つ。
+   - その直後に `node scripts/check-deployment.mjs <account subdomain> production --watch-admin 120` を実行する。管理 Worker が 200 を返したらインシデントだ（[OPERATIONS.md](OPERATIONS.md) 4.2）。
 4. **プレビューの D1 データベース。** Storage & Databases → D1 → `travel-discovery-preview` → Settings → Delete *(要確認: 正確な表示名)*。中身は `db/seed/dev.sql` のデータと確認用に入れたコンテンツだけなので、エクスポートは要らない。データベースを消すと、Time Travel でも戻せない。
 5. **確かめる:**
    - `node scripts/check-deployment.mjs <account subdomain> production --watch-admin 120` が通る。
@@ -422,4 +424,5 @@ Phase 6（2026-10-18）時点の状態と、その後のデプロイ。詳細は
 **Workers Builds（2026-10-31）:**
 - オーナーが `travel-discovery` と `travel-discovery-admin` を `main` につないだ（3.6）。`59b754c` を `main` に push すると最初のビルドが始まり、新しいバージョンをデプロイした。コードは Phase 17 のデプロイ（`ef6d323`）と同じだ。バージョン ID とビルド時間: *(要確認: オーナーが記録する)*。
 - `scripts/check-deployment.mjs <account subdomain> production --watch-admin 120` が通った。4 つのロケールの公開 API、AI は無効、管理のすべてのパスが 2 分間 Access のログインにリダイレクトした。
-- プレビュー環境を設定から外した（ADR-033「Amendment 2026-10-31」）。その Worker、Access アプリケーション、データベースはオーナーが消す（3.7）。
+- プレビュー環境を設定から外した（ADR-033「Amendment 2026-10-31」）。続いてオーナーが、その 2 つの Worker、Access アプリケーション、データベースを消した（3.7）。プレビューの 2 つの URL は 404 を返す。
+- インシデント: 削除の後、本番の管理 Worker が `/` と `/destinations` で Access なしに 200 を返した。少なくともチェックの 2 分間はそのままだった。`/api/admin/me` は 403 を返したので、管理データには届かなかった。オーナーが `workers.dev` を無効にし、`travel-discovery-admin` の Access アプリケーションが新しい AUD タグで作り直されているのを確かめた。スコープは All traffic、ポリシーはオーナーの Emails ルールだ。新しい AUD は `wrangler.admin.jsonc` の `env.production` に入れた。そのコミットの push で `workers.dev` が有効に戻る（ADR-033）。

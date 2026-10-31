@@ -87,7 +87,7 @@ npx wrangler d1 create travel-discovery-production
 - `--location` (location hint) is optional. Leave it unset unless the owner chooses one.
 
 ### 3.3 Configuration (C5, ADR-026 "Stage 5 preparation decisions" C)
-`env.production` exists in both Wrangler configs (Phase 6, 2026-10-18), with its own database and the `namespace_id` values `2001` (public) and `2002` (admin). It also sets `name` to keep the top-level Worker names. `env.preview` (`1001`/`1002`) was removed on 2026-10-31; do not reuse those IDs until the preview Workers are deleted (3.7).
+`env.production` exists in both Wrangler configs (Phase 6, 2026-10-18), with its own database and the `namespace_id` values `2001` (public) and `2002` (admin). It also sets `name` to keep the top-level Worker names. `env.preview` (`1001`/`1002`) was removed on 2026-10-31, and its Workers were deleted the same day (3.7), so those IDs are free.
 
 `vars` and bindings are not inherited by named environments, so the environment declares everything it uses:
 - **Both Workers:**
@@ -191,15 +191,17 @@ Each Worker is connected to this repository once, in the dashboard, by the owner
 - From now on every owner session ends with `npx wrangler logout`, so no step in this runbook leaves a Cloudflare login on the machine.
 
 ### 3.7 Removing the preview resources (owner, one-time)
-The preview environment was removed from the configuration on 2026-10-31, but its Cloudflare resources stay until the owner deletes them. They cost nothing on Workers Free, but the public preview Worker keeps serving old code and seed data at a public URL. Status: not yet done.
+The preview environment was removed from the configuration on 2026-10-31, but its Cloudflare resources stay until the owner deletes them. They cost nothing on Workers Free, but the public preview Worker keeps serving old code and seed data at a public URL. Status: done by the owner on 2026-10-31. During it the production Access application was lost as well, which exposed the production admin SPA without Access until the owner disabled `workers.dev` (incident in ADR-033 "Amendment 2026-10-31"). The steps below include the checks that would have caught it.
 
 Each deletion is permanent and is the owner's decision. Delete in this order, so the admin preview Worker is never reachable without Access:
 
 1. **The admin preview Worker first.** Workers & Pages → `travel-discovery-admin-preview` → Settings → Delete *(要確認: exact labels)*. It is not connected to Workers Builds.
 2. **The public preview Worker.** Workers & Pages → `travel-discovery-preview` → Settings → Delete. This also deletes its Durable Object `AiClientLimiter` data, which holds only per-address AI counters.
 3. **The Access application of the admin preview Worker**, only after step 1. Zero Trust → Access controls → Applications → the application of `travel-discovery-admin-preview` → Delete.
-   - Do not touch the application of `travel-discovery-admin`.
+   - Before deleting, open the application and check that its domain is `travel-discovery-admin-preview.<account subdomain>.workers.dev` and that its AUD tag is not the `ACCESS_POLICY_AUD` of `env.production` in `wrangler.admin.jsonc`. The names of the two applications differ only by `-preview`.
+   - The application may already be gone after step 1. Then skip this step; never delete another application instead.
    - Then, in Access controls → Policies, delete the reusable policy `travel-discovery-admin-preview - Production` only if no application uses it any more. The production application has its own policy.
+   - Right afterwards, run `node scripts/check-deployment.mjs <account subdomain> production --watch-admin 120`. Any 200 from the admin Worker is an incident ([OPERATIONS.md](OPERATIONS.md) 4.2).
 4. **The preview D1 database.** Storage & Databases → D1 → `travel-discovery-preview` → Settings → Delete *(要確認: exact labels)*. It holds only `db/seed/dev.sql` data and the content imported for checks, so no export is needed. Deleting a database cannot be undone with Time Travel.
 5. **Check:**
    - `node scripts/check-deployment.mjs <account subdomain> production --watch-admin 120` passes.
@@ -419,4 +421,5 @@ Status as of Phase 6 (2026-10-18) and later deployments. Details are in the veri
 **Workers Builds (2026-10-31):**
 - The owner connected `travel-discovery` and `travel-discovery-admin` to `main` (3.6). The push of `59b754c` to `main` started the first builds, which deployed new versions; the code was the same as the Phase 17 deployment (`ef6d323`). Version IDs and build durations: *(要確認: to be recorded by the owner)*.
 - `scripts/check-deployment.mjs <account subdomain> production --watch-admin 120` passed: the public API in all four locales, AI disabled, and every admin path redirected to the Access login for two minutes.
-- The preview environment was removed from the configuration (ADR-033 "Amendment 2026-10-31"). Its Workers, Access application, and database are deleted by the owner (3.7).
+- The preview environment was removed from the configuration (ADR-033 "Amendment 2026-10-31"). The owner then deleted its two Workers, the Access application, and the database (3.7); both preview URLs answer 404.
+- Incident: after the deletion, the production admin Worker answered 200 on `/` and `/destinations` without Access for at least the two minutes of the check; `/api/admin/me` answered 403, so no admin data was reachable. The owner disabled `workers.dev` and found the Access application of `travel-discovery-admin` re-created with a new AUD tag. Its scope is All traffic and its policy an Emails rule for the owner. The new AUD is in `env.production` of `wrangler.admin.jsonc`; the push of that commit re-enables `workers.dev` (ADR-033).
