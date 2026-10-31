@@ -1,7 +1,7 @@
-<!-- source: docs/en/README.md blob 6d20dda4a6342ccb6e1674c8d4f7b8c1f9ed872a -->
+<!-- source: docs/en/README.md blob 2e1af70c1b42e2b730c0a520da104313fc0ef759 -->
 [English](../en/README.md) | 日本語 · [リポジトリの README](../../README.ja.md)
 
-> この文書は[英語版](../en/README.md)の翻訳です。内容が異なる場合は英語版が優先されます。
+> この文書は[英語版](../en/README.md)の翻訳。内容が異なる場合は英語版が優先する。
 
 # Travel Discovery ドキュメント
 
@@ -21,7 +21,8 @@ Travel Discovery の仕様、設計、ガイドと、開発中に使う英語の
 | 文書 | 説明 |
 |---|---|
 | [ローカル開発](DEVELOPMENT.md) | セットアップ、コマンド、プロジェクトの構成、テスト、E2E、CI。 |
-| [デプロイ手順書](DEPLOYMENT.md) | 環境、D1 とマイグレーション、Cloudflare Access、デプロイ、AI の有効化、ロールバック。 |
+| [デプロイ手順書](DEPLOYMENT.md) | 環境、D1 とマイグレーション、Cloudflare Access、デプロイ、ロールバック、デプロイの履歴。 |
+| [AI 有効化の手順書](AI_ENABLEMENT.md) | 任意の AI ノートの有効化: プレビューでの試行、リミッターの確認、本番での有効化、AI の止め方。 |
 | [運用手順書](OPERATIONS.md) | 監視、定期チェックと日付の決まったチェック、インシデント、バックアップ、コンテンツの公開。 |
 
 ## 作業用ドキュメント（英語のみ）

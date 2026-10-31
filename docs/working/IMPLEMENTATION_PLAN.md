@@ -277,7 +277,7 @@ Status: **complete (2026-10-31)**; every acceptance item is met ([DECISIONS.md](
 - `npm run check` (760 tests) and `npm run test:e2e` (64 passed) passed; no paid plan or feature was enabled.
 
 Open items for later phases, each needing the owner's decision or check:
-- Enabling AI on production with [DEPLOYMENT.md](../en/DEPLOYMENT.md) 7.3 (recommended after the December check).
+- Enabling AI on production with [AI_ENABLEMENT.md](../en/AI_ENABLEMENT.md) section 4 (recommended after the December check).
 - Durable Object dashboard readings: 22 requests shown per object where 31 checks were made, rows written, and whether the Worker's request count includes the Durable Object calls (要確認).
 - Carried over: the trial's `en` rejection and the 400 request (要確認), why the first Phase 12 preview import did not reach the database (要確認), whether preview and production share the Neuron allowance (要確認), a manual retry for AI notes, an app-wide daily cap before any move to Workers Paid, Rome's top-5 share, the preview seed data, and removing the overrides (ADR-030).
 - Still deferred: images, a dated exchange-rate table, the out-of-policy Access check, other empty costs and best months, and the pre-public-release checklist.
@@ -307,7 +307,7 @@ Status: **complete (2026-10-31)**; every acceptance item is met ([DECISIONS.md](
 - `npm run check` (783 tests) and `npm run test:e2e` (64 passed) passed; no paid plan or feature was enabled.
 
 Open items for later phases, each needing the owner's decision or check:
-- Enabling AI on production with [DEPLOYMENT.md](../en/DEPLOYMENT.md) 7.3 (recommended after the December check).
+- Enabling AI on production with [AI_ENABLEMENT.md](../en/AI_ENABLEMENT.md) section 4 (recommended after the December check).
 - Whether to ask 12 instead of 10 questions: the evaluation shows a gain similar to that of discrimination; a quiz-settings change in the admin console (owner).
 - The spread of top-5 shares widened slightly with discrimination (Rome lowest, 2.1% with random answers).
 - Carried over from Phase 14: the Durable Object dashboard readings, the trial's `en` rejection and the 400 request, the first Phase 12 preview import, Neuron sharing (all 要確認), a manual retry for AI notes, an app-wide daily cap, the preview seed data, and removing the overrides (ADR-030).

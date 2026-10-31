@@ -18,7 +18,8 @@ Specification, design, and guides for Travel Discovery, plus the English-only wo
 | Document | Description |
 |---|---|
 | [Local development](DEVELOPMENT.md) | Setup, commands, project layout, tests, E2E, and CI. |
-| [Deployment runbook](DEPLOYMENT.md) | Environments, D1 and migrations, Cloudflare Access, deploy, AI enablement, and rollback. |
+| [Deployment runbook](DEPLOYMENT.md) | Environments, D1 and migrations, Cloudflare Access, deploy, rollback, and deployment history. |
+| [AI enablement runbook](AI_ENABLEMENT.md) | Enabling the optional AI notes: preview trial, limiter check, production enablement, and how to disable AI. |
 | [Operations runbook](OPERATIONS.md) | Monitoring, routine and dated checks, incidents, backups, and publishing content. |
 
 ## Working docs (English only)
