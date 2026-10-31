@@ -1,4 +1,4 @@
-<!-- source: docs/en/DATA_MODEL.md blob 887e6f0fe55070866f45f816326ea0f5fdb8c8ad -->
+<!-- source: docs/en/DATA_MODEL.md blob 5f7acae7ee4b03e0c7ac389acf92ce28eeace580 -->
 [English](../en/DATA_MODEL.md) | 日本語 · [目次に戻る](README.md)
 
 > この文書は[英語版](../en/DATA_MODEL.md)の翻訳。内容が異なる場合は英語版が優先する。
@@ -9,7 +9,7 @@ D1 に保存するコンテンツデータを説明する。エンティティ�
 
 これは初期の論理モデルだ。Claude Code は、現在の D1／ORM の互換性を確かめたうえで、これを具体的なスキーマ、制約、インデックス、マイグレーションに落とし込む。
 
-**ローカライズのルール。** ベーステーブルには、ロケールに依存しないデータ（ID、スラッグ、列挙値、数値、URL、日付）だけを置く。ユーザーに見える文字列はすべて `*_translations` テーブルに置く。キーは `(entity_id, locale)` で、`locale` は `ja`／`en`／`es` のどれか。翻訳がないときのフォールバックは [DECISIONS.md](../working/DECISIONS.md)（英語のみ、ADR-012）で決めている。
+**ローカライズのルール。** ベーステーブルには、ロケールに依存しないデータ（ID、スラッグ、列挙値、数値、URL、日付）だけを置く。ユーザーに見える文字列はすべて `*_translations` テーブルに置く。キーは `(entity_id, locale)` で、`locale` は `ja`／`en`／`es`／`fr` のどれか。翻訳がないときのフォールバックは [DECISIONS.md](../working/DECISIONS.md)（英語のみ、ADR-012）で決めている。
 
 ## 全体の図
 
@@ -36,7 +36,7 @@ erDiagram
 
 ### country_translations
 - `country_id`
-- `locale`: `ja` / `en` / `es`
+- `locale`: `ja` / `en` / `es` / `fr`
 - `name`
 - 複合主キー `(country_id, locale)`
 
@@ -55,7 +55,7 @@ erDiagram
 
 ### destination_translations
 - `destination_id`
-- `locale`: `ja` / `en` / `es`
+- `locale`: `ja` / `en` / `es` / `fr`
 - `name`
 - `summary`
 - `highlights`（正規化した子テーブルか検証した JSON。どちらにしたかは文書化する）
@@ -76,7 +76,7 @@ erDiagram
 
 ### destination_cost_estimate_translations（Phase 2）
 - `estimate_id`
-- `locale`: `ja` / `en` / `es`
+- `locale`: `ja` / `en` / `es` / `fr`
 - `basis`: 概算に何が含まれ、何を前提にしているかの説明
 - 複合主キー `(estimate_id, locale)`
 
@@ -87,7 +87,7 @@ erDiagram
 
 ### attribute_translations
 - `attribute_id`
-- `locale`: `ja` / `en` / `es`
+- `locale`: `ja` / `en` / `es` / `fr`
 - `name`
 - `description`（任意）
 - 複合主キー `(attribute_id, locale)`
@@ -105,7 +105,7 @@ erDiagram
 
 ### question_category_translations
 - `category_id`
-- `locale`: `ja` / `en` / `es`
+- `locale`: `ja` / `en` / `es` / `fr`
 - `name`
 - 複合主キー `(category_id, locale)`
 
@@ -122,7 +122,7 @@ erDiagram
 
 ### question_translations
 - `question_id`
-- `locale`: `ja` / `en` / `es`
+- `locale`: `ja` / `en` / `es` / `fr`
 - `prompt`
 - `description`（任意）
 - 複合主キー `(question_id, locale)`
@@ -136,7 +136,7 @@ erDiagram
 
 ### question_option_translations
 - `option_id`
-- `locale`: `ja` / `en` / `es`
+- `locale`: `ja` / `en` / `es` / `fr`
 - `label`
 - 複合主キー `(option_id, locale)`
 
@@ -170,7 +170,7 @@ erDiagram
 - MVP ではユーザーの回答を永続的なテーブルに保存しない。
 - 質問の条件に、任意の実行可能な式や JavaScript を保存しない。小さく型つきの条件の形式を使う。
 - JSON の項目を選んだら、トレードオフを文書にし、実行時に検証する。
-- 公開するシードのコンテンツには、人が整えた `ja`・`en`・`es` の翻訳を必ずそろえる。管理者が入力した不完全なコンテンツには、文書化したフォールバックを適用する。
+- 公開するシードのコンテンツには、人が整えた `ja`・`en`・`es`・`fr` の翻訳を必ずそろえる。管理者が入力した不完全なコンテンツには、文書化したフォールバックを適用する。
 - 金額は整数の補助単位か、はっきり定義した整数の単位で保存する。明示的な換算のメタデータなしに通貨を混ぜない。
 - 費用のレコードには、対象範囲、基準、出典、更新日を必ず入れる。
 - 外部リンクは安全に生成し、許可リストか固定のテンプレートで検証する。
@@ -190,7 +190,7 @@ erDiagram
   - 属性、質問カテゴリー、質問の選択肢は `active / archived`。
   - 国には状態がない（参照データで、削除しない）。
   - 許可する値は CHECK 制約で守る。
-- **翻訳**: ユーザーに見える文字列をすべてローカライズするため（上のローカライズのルール参照）、`country_translations`、`attribute_translations`、`question_category_translations` を足した。`locale` は `ja`、`en`、`es` に制約する。
+- **翻訳**: ユーザーに見える文字列をすべてローカライズするため（上のローカライズのルール参照）、`country_translations`、`attribute_translations`、`question_category_translations` を足した。`locale` は `ja`、`en`、`es` に制約する（`fr` は、7 つの翻訳テーブルを作り直すマイグレーション `0002` で足した。ADR-032）。
 - **見どころ**: 子テーブルではなく、検証した文字列の JSON 配列（`destination_translations.highlights_json`、最大 8 項目、各 200 文字）で保存する。トレードオフ: 短い順序つきリストの読み書きが簡単になる。書き込み時と読み込み時に Zod で検証する。
 - **目安の費用**（*「Phase 2 のスキーマに関する注記」で置き換え済み*）:
   - `cost_min`／`cost_max` は `cost_currency`（ISO 4217 のコード）の整数の単位。目安の範囲に補助単位の精度はいらない。

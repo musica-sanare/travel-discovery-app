@@ -1,4 +1,4 @@
-<!-- source: docs/en/AI_ENABLEMENT.md blob 0934bf205ded03443b0175363a6cc8bcdaf0e660 -->
+<!-- source: docs/en/AI_ENABLEMENT.md blob 7b72ec493266865c891d5bc905536329b7d2c5c3 -->
 [English](../en/AI_ENABLEMENT.md) | 日本語 · [目次に戻る](README.md)
 
 > この文書は[英語版](../en/AI_ENABLEMENT.md)の翻訳。内容が異なる場合は英語版が優先する。
@@ -23,7 +23,7 @@ AI はすべての環境で無効になっている。AI が ON でも OFF で�
 
 手順:
 1. その環境の `vars` で `AI_ASSIST_ENABLED: "true"` にして、コミット、再ビルド、再デプロイする。
-2. 3 言語すべてで AI ノートを確かめ、ダッシュボードで Workers AI の使用量を見る。
+2. 4 言語すべてで AI ノートを確かめ、ダッシュボードで Workers AI の使用量を見る。
 3. 監視と停止: ADR-026 E と [OPERATIONS.md](OPERATIONS.md) 4.4。
 4. 本番では 4 節に従う（Phase 14 で用意したが、まだ承認されていない）。
 
@@ -53,7 +53,7 @@ AI はすべての環境で無効になっている。AI が ON でも OFF で�
    - `CLOUDFLARE_ENV=preview npm run build` を実行する。
    - ドライランを確かめる: プレビューのデータベース、`AI_ASSIST_ENABLED` が `"true"`、`AI_CLIENT_RATE_LIMITER` が 60 秒に 5 回。
    - 公開のプレビュー Worker だけをデプロイする（[DEPLOYMENT.md](DEPLOYMENT.md) 5 節）。本番と管理 Worker はデプロイしない。
-3. ノート（モデル呼び出し約 5 回）: 組み込みブラウザーで、AI のトグルを ON にして、`ja`、`en`、`es` でそれぞれクイズを最初から最後まで 1 回答える。その後、1 つの結果ページで言語を 2 回切り替える。
+3. ノート（モデル呼び出し約 6 回）: 組み込みブラウザーで、AI のトグルを ON にして、`ja`、`en`、`es`、`fr` でそれぞれクイズを最初から最後まで 1 回答える。その後、1 つの結果ページで言語を 2 回切り替える。
    - 各手順でリクエストは 1 回。すでに表示した言語に戻すときは送らない（ADR-026 C4）。
    - リミッターに拒否されないよう、クイズの間は 60 秒以上空ける。
 4. リミッター（モデル呼び出しなし）: 60 秒待ってから、1 つのアドレスから、本文が空のオブジェクトの同一オリジンのリクエストを送る。
@@ -71,8 +71,8 @@ AI はすべての環境で無効になっている。AI が ON でも OFF で�
    - 手順 3 で期待するもの: リクエストごとに `ok` の行が 1 つ。`model` は `@cf/google/gemma-4-26b-a4b-it`、`destinationCount` は表示したカードの数（既定は 5）、`latencyMs` は 8,000 未満。
    - 手順 4 で期待するもの: `latencyMs` が 0 の `rate_limited_window` の行（Phase 14 より前は `rate_limited`）。
    - `invalid_output`、`timeout`、`provider_error`、`content_mismatch` の行があれば数える。
-6. オーナーが `ja`、`en`、`es` のノートを確認する:
-   - 選んだ言語で書かれている。`ja` では UI と同じ丁寧な文体。
+6. オーナーが `ja`、`en`、`es`、`fr` のノートを確認する:
+   - 選んだ言語で書かれている。`ja` では UI と同じ丁寧な文体、`fr` では `vous` を使う。
    - 順位、スコア、旅行先同士の比較がない。
    - 旅行先の人が書いた文章にない価格、費用、日付、季節、営業時間、ビザや入国のルール、安全についての主張、施設・イベント・店の名前がない。
    - 決定的な説明と矛盾しない。
@@ -169,10 +169,10 @@ AI はすべての環境で無効になっている。AI が ON でも OFF で�
    - 公開の本番 Worker だけについて [DEPLOYMENT.md](DEPLOYMENT.md) 5 節を実行する: `npm ci`、`npm run check`、`CLOUDFLARE_ENV=production npm run build`、ドライラン。
    - ドライランには、本番のデータベース、`AI_ASSIST_ENABLED` が `"true"`、`AI_CLIENT_RATE_LIMITER` が 60 秒に 5 回、`AI_CLIENT_LIMITER (AiClientLimiter)` が出ていなければならない。
    - `travel-discovery` だけをデプロイする。プレビューと管理 Worker はデプロイしない。バージョン ID と時刻を記録する。
-3. 確認（モデル呼び出し約 3 回）:
+3. 確認（モデル呼び出し約 4 回）:
    - `GET /api/ai/status` が `{"enabled":true}` を返す。
    - `scripts/check-deployment.mjs <account subdomain> production` が、AI のチェック以外は通る。AI のチェックは、AI を有効にしている間は意図どおり失敗する（状態が `{"enabled":true}` で、503 が出ない）。
-   - 組み込みブラウザーで、AI のトグルを ON にして、`ja`、`en`、`es` でそれぞれクイズを最初から最後まで 1 回答える。間は 60 秒以上空ける。
+   - 組み込みブラウザーで、AI のトグルを ON にして、`ja`、`en`、`es`、`fr` でそれぞれクイズを最初から最後まで 1 回答える。間は 60 秒以上空ける。
    - 各ノートに AI が書いたというラベルがあり、カードの順番と決定的な文章は AI が OFF のときと同じ。
    - オーナーが、2 節の手順 6 と同じようにノートを確認する。
 4. 監視（オーナー）: 手順 2 の約 1 時間後、その UTC の日の終わり、最初の 1 週間は毎日、その後は週ごとの定期チェックのときに、次を読む:

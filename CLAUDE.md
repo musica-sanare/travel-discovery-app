@@ -15,10 +15,10 @@ Before changing code or docs, read:
 If any path does not exist, report it rather than silently inventing its contents.
 
 ## Product UI localization
-- The application UI must support Japanese, English, and Spanish from the MVP. Users must be able to switch language in the UI.
+- The application UI must support Japanese, English, and Spanish from the MVP, and French since Phase 17. Users must be able to switch language in the UI.
 - Keep UI strings out of components and domain logic. Use a consistent localization/i18n approach with typed translation keys and locale files.
 - Store locale-neutral stable IDs/slugs in data. Localize user-visible question text, option labels, destination names/descriptions, validation messages, and admin UI labels.
-- Default locale: Japanese. Supported locale codes: `ja`, `en`, `es`.
+- Default locale: Japanese. Supported locale codes: `ja`, `en`, `es`, `fr`.
 - Format numbers, dates, and currencies according to the selected locale where applicable.
 - Do not machine-translate arbitrary content at runtime as a substitute for curated translations. If a translation is unavailable, use a documented fallback strategy.
 

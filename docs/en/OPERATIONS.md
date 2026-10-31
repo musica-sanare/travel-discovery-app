@@ -163,7 +163,7 @@ Minimum for a useful diagnosis:
 - Questions spread over several categories (selection balances categories).
 
 Each published item:
-- Translations: the admin console requires `ja` or `en` to publish. Publish with `ja`, `en`, and `es` where possible, and at least `ja` and `en` ([DEPLOYMENT.md](DEPLOYMENT.md) section 10). Missing locales fall back as described in ADR-012.
+- Translations: the admin console requires `ja` or `en` to publish. Publish with `ja`, `en`, `es`, and `fr` where possible, and at least `ja` and `en` ([DEPLOYMENT.md](DEPLOYMENT.md) section 10). Missing locales fall back as described in ADR-012.
 - Costs: indicative ranges only, with currency, period, basis in every translated locale, source, and the date checked. Never use wording that suggests live prices (ADR-008).
 - Images: `https` URL, attribution, and alt text in every translated locale. Check the provider's license ([PUBLIC_RELEASE.md](../working/PUBLIC_RELEASE.md) section 4).
 - Best months, recommended days, and cautions where known. Leave unknown values empty rather than guessing.
@@ -171,7 +171,7 @@ Each published item:
 
 After:
 - Run the checks of section 3 for production.
-- Go through the public site in `ja`, `en`, and `es` on a phone-sized and a desktop window: quiz to results, back/edit/restart, cost basis and date, the AI-unavailable notice, and the outbound search links.
+- Go through the public site in `ja`, `en`, `es`, and `fr` on a phone-sized and a desktop window: quiz to results, back/edit/restart, cost basis and date, the AI-unavailable notice, and the outbound search links.
 - Record a new Time Travel bookmark.
 
 ## 9. Open items

@@ -6,7 +6,7 @@ This page describes the content data stored in D1: the entities, how they relate
 
 This is the initial logical model. Claude Code should convert it into a concrete schema, constraints, indexes, and migrations after checking current D1/ORM compatibility.
 
-**Localization rule.** Base tables hold only locale-neutral data (IDs, slugs, enums, numbers, URLs, dates). Every user-visible string lives in a `*_translations` table keyed by `(entity_id, locale)`, with `locale` in `ja` / `en` / `es`. The missing-translation fallback is defined in [DECISIONS.md](../working/DECISIONS.md) (ADR-012).
+**Localization rule.** Base tables hold only locale-neutral data (IDs, slugs, enums, numbers, URLs, dates). Every user-visible string lives in a `*_translations` table keyed by `(entity_id, locale)`, with `locale` in `ja` / `en` / `es` / `fr`. The missing-translation fallback is defined in [DECISIONS.md](../working/DECISIONS.md) (ADR-012).
 
 ## Overview diagram
 
@@ -33,7 +33,7 @@ erDiagram
 
 ### country_translations
 - `country_id`
-- `locale`: `ja` / `en` / `es`
+- `locale`: `ja` / `en` / `es` / `fr`
 - `name`
 - composite primary key `(country_id, locale)`
 
@@ -52,7 +52,7 @@ erDiagram
 
 ### destination_translations
 - `destination_id`
-- `locale`: `ja` / `en` / `es`
+- `locale`: `ja` / `en` / `es` / `fr`
 - `name`
 - `summary`
 - `highlights` (normalized child table or validated JSON, decision documented)
@@ -73,7 +73,7 @@ erDiagram
 
 ### destination_cost_estimate_translations (Phase 2)
 - `estimate_id`
-- `locale`: `ja` / `en` / `es`
+- `locale`: `ja` / `en` / `es` / `fr`
 - `basis`: explanation of what the estimate includes and its assumptions
 - composite primary key `(estimate_id, locale)`
 
@@ -84,7 +84,7 @@ erDiagram
 
 ### attribute_translations
 - `attribute_id`
-- `locale`: `ja` / `en` / `es`
+- `locale`: `ja` / `en` / `es` / `fr`
 - `name`
 - `description` (optional)
 - composite primary key `(attribute_id, locale)`
@@ -102,7 +102,7 @@ erDiagram
 
 ### question_category_translations
 - `category_id`
-- `locale`: `ja` / `en` / `es`
+- `locale`: `ja` / `en` / `es` / `fr`
 - `name`
 - composite primary key `(category_id, locale)`
 
@@ -119,7 +119,7 @@ erDiagram
 
 ### question_translations
 - `question_id`
-- `locale`: `ja` / `en` / `es`
+- `locale`: `ja` / `en` / `es` / `fr`
 - `prompt`
 - `description` (optional)
 - composite primary key `(question_id, locale)`
@@ -133,7 +133,7 @@ erDiagram
 
 ### question_option_translations
 - `option_id`
-- `locale`: `ja` / `en` / `es`
+- `locale`: `ja` / `en` / `es` / `fr`
 - `label`
 - composite primary key `(option_id, locale)`
 
@@ -167,7 +167,7 @@ erDiagram
 - Avoid storing user answers in persistent tables for MVP.
 - Do not store arbitrary executable expressions or JavaScript in question conditions. Use a small, typed condition format.
 - If JSON fields are chosen, document the tradeoff and validate them at runtime.
-- Require curated `ja`, `en`, and `es` translations for all published seeded content. Enforce a documented fallback for incomplete admin-entered content.
+- Require curated `ja`, `en`, `es`, and `fr` translations for all published seeded content. Enforce a documented fallback for incomplete admin-entered content.
 - Store money as integer minor units or clearly defined integer units. Never mix currencies without explicit conversion metadata.
 - Cost records must include scope, basis, source, and update date.
 - External links must be generated safely and validated against an allowlist or fixed templates.
@@ -187,7 +187,7 @@ The concrete schema is `server/db/schema.ts` (Drizzle ORM 0.45) and the generate
   - Attributes, question categories, and question options use `active / archived`.
   - Countries have no status (they are reference data and are never deleted).
   - CHECK constraints enforce the allowed values.
-- **Translations**: `country_translations`, `attribute_translations`, and `question_category_translations` were added so every user-visible string is localized (see the localization rule above). `locale` is constrained to `ja`, `en`, `es`.
+- **Translations**: `country_translations`, `attribute_translations`, and `question_category_translations` were added so every user-visible string is localized (see the localization rule above). `locale` is constrained to `ja`, `en`, `es` (`fr` added by migration `0002`, which rebuilds the seven translation tables; ADR-032).
 - **Highlights**: stored as a validated JSON array of strings (`destination_translations.highlights_json`, max 8 items of 200 characters) instead of a child table. Tradeoff: simpler writes and reads for a short ordered list; validated with Zod on write and read.
 - **Indicative cost** (*superseded by "Phase 2 schema notes"*):
   - `cost_min` / `cost_max` are integers in whole units of `cost_currency` (ISO 4217 code); indicative ranges do not need sub-unit precision.

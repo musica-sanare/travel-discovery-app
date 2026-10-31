@@ -125,7 +125,7 @@ curl "http://localhost:5173/api/destinations?locale=en"
 
 ## Accessibility checks
 
-`src/app/accessibility.test.tsx` runs axe-core (dev dependency) on every public page state in ja/en/es, including validation errors, the error state, and expanded result details.
+`src/app/accessibility.test.tsx` runs axe-core (dev dependency) on every public page state in ja/en/es/fr, including validation errors, the error state, and expanded result details.
 
 - jsdom cannot compute colors, so `color-contrast` is disabled there. Check contrast in a real browser (light and dark color schemes) when changing colors.
 - Keyboard behavior and screen-reader output still need manual checks.

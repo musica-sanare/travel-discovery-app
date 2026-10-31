@@ -7,7 +7,7 @@ This is the product specification of Travel Discovery: what the app does, for wh
 - Version: 0.1
 - Status: Initial implementation baseline
 - Product type: Personal project / public web app
-- Application languages: Japanese (`ja`), English (`en`), and Spanish (`es`) from MVP. Default locale: Japanese.
+- Application languages: Japanese (`ja`), English (`en`), and Spanish (`es`) from MVP, and French (`fr`) since Phase 17. Default locale: Japanese.
 
 ## 1. Product goal
 
@@ -29,7 +29,7 @@ No account is required. Do not persist individual answers or diagnosis history o
 ## 3. Scope
 
 ### MVP / P0
-- Responsive public UI localized in Japanese, English, and Spanish, with a visible language switcher.
+- Responsive public UI localized in Japanese, English, Spanish, and French, with a visible language switcher.
 - Question-based diagnosis with random variation and adaptive selection.
 - Core scoring and ranking implemented in deterministic TypeScript, independent of AI.
 - Destination results for city/region-level destinations associated with countries.
@@ -164,7 +164,7 @@ Admin requirements:
 
 ## 11. Internationalization and localization
 
-- Support Japanese (`ja`), English (`en`), and Spanish (`es`) in the MVP.
+- Support Japanese (`ja`), English (`en`), and Spanish (`es`) in the MVP, and French (`fr`) since Phase 17.
 - Default to Japanese on first visit. If locale persistence is implemented, store only the user's UI preference locally. Do not require an account or send it to the server unnecessarily.
 - Provide a visible, keyboard-accessible language selector.
 - Localize:
@@ -203,7 +203,7 @@ Admin requirements:
 
 ## 14. MVP acceptance criteria
 
-1. User can complete a diagnosis on mobile and desktop in Japanese, English, and Spanish.
+1. User can complete a diagnosis on mobile and desktop in Japanese, English, Spanish, and French.
 2. Questions vary across sessions and do not repeat within one session.
 3. Adaptive selection obeys configured min/max bounds.
 4. Ranking is deterministic for the same data and answers.

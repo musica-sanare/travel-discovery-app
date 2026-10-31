@@ -20,7 +20,7 @@ Preconditions (ADR-026 A):
 
 Steps:
 1. In the environment's `vars`, set `AI_ASSIST_ENABLED: "true"`, commit, rebuild, and redeploy.
-2. Check the AI notes in all three languages and the Workers AI usage in the dashboard.
+2. Check the AI notes in all four languages and the Workers AI usage in the dashboard.
 3. Monitoring and stopping: ADR-026 E and [OPERATIONS.md](OPERATIONS.md) 4.4.
 4. For production, follow section 4 (prepared in Phase 14, not yet approved).
 
@@ -50,7 +50,7 @@ Steps:
    - Run `CLOUDFLARE_ENV=preview npm run build`.
    - Check the dry run: preview database, `AI_ASSIST_ENABLED` `"true"`, `AI_CLIENT_RATE_LIMITER` 5 per 60 s.
    - Deploy only the public preview Worker ([DEPLOYMENT.md](DEPLOYMENT.md) section 5). Production and the admin Workers are not deployed.
-3. Notes (about 5 model calls): in the built-in browser, answer one complete quiz in each of `ja`, `en`, and `es` from the start with the AI toggle on. Then switch the language of one results page twice.
+3. Notes (about 6 model calls): in the built-in browser, answer one complete quiz in each of `ja`, `en`, `es`, and `fr` from the start with the AI toggle on. Then switch the language of one results page twice.
    - Each step sends one request; returning to a language already shown sends none (ADR-026 C4).
    - Wait at least 60 s between quizzes so the limiter does not refuse them.
 4. Limiter (no model calls): wait 60 s, then from one address send same-origin requests with an empty object as the body.
@@ -68,8 +68,8 @@ Steps:
    - Expected for step 3: one `ok` line per request, with `model` `@cf/google/gemma-4-26b-a4b-it`, `destinationCount` equal to the cards shown (5 by default), and `latencyMs` below 8,000.
    - Expected for step 4: `rate_limited_window` lines (before Phase 14 `rate_limited`) with `latencyMs` 0.
    - Count any `invalid_output`, `timeout`, `provider_error`, or `content_mismatch` lines.
-6. Owner review of the notes in `ja`, `en`, and `es`:
-   - Written in the selected language, and in `ja` in the polite style of the UI.
+6. Owner review of the notes in `ja`, `en`, `es`, and `fr`:
+   - Written in the selected language, in `ja` in the polite style of the UI, and in `fr` with `vous`.
    - No ranking, scores, or comparison between destinations.
    - No prices, costs, dates, seasons, opening hours, visa or entry rules, safety claims, or named facilities, events, or businesses that are not in the destination's authored text.
    - Nothing that contradicts the deterministic explanation.
@@ -166,10 +166,10 @@ Steps:
    - Run [DEPLOYMENT.md](DEPLOYMENT.md) section 5 for the public production Worker only: `npm ci`, `npm run check`, `CLOUDFLARE_ENV=production npm run build`, and the dry run.
    - The dry run must show the production database, `AI_ASSIST_ENABLED` `"true"`, `AI_CLIENT_RATE_LIMITER` 5 per 60 s, and `AI_CLIENT_LIMITER (AiClientLimiter)`.
    - Deploy only `travel-discovery`; preview and the admin Workers are not deployed. Record the version ID and the time.
-3. Check (about 3 model calls):
+3. Check (about 4 model calls):
    - `GET /api/ai/status` answers `{"enabled":true}`.
    - `scripts/check-deployment.mjs <account subdomain> production` passes except its AI checks, which fail by design while AI is enabled (status `{"enabled":true}` and no 503).
-   - In the built-in browser, answer one complete quiz in each of `ja`, `en`, and `es` with the AI toggle on, at least 60 s apart.
+   - In the built-in browser, answer one complete quiz in each of `ja`, `en`, `es`, and `fr` with the AI toggle on, at least 60 s apart.
    - Each note is labelled as AI-written, and the card order and the deterministic texts are the same as with AI off.
    - The owner reviews the notes as in section 2 step 6.
 4. Monitoring (owner): about one hour after step 2, at the end of that UTC day, then daily for the first week, then with the weekly routine checks. Read:

@@ -1,4 +1,4 @@
-<!-- source: docs/en/ARCHITECTURE.md blob 6fb351fe965396908dd179dfcc5b7d7d5e7314cc -->
+<!-- source: docs/en/ARCHITECTURE.md blob 741325c64f0e6276ecab3a3b75059fdd3ccb98e3 -->
 [English](../en/ARCHITECTURE.md) | 日本語 · [目次に戻る](README.md)
 
 > この文書は[英語版](../en/ARCHITECTURE.md)の翻訳。内容が異なる場合は英語版が優先する。
@@ -31,7 +31,7 @@ flowchart LR
 構成要素:
 - React + TypeScript + Vite。
 - 各 SPA のルーティングに React Router（data mode）。
-- `ja`・`en`・`es` の型つきメッセージカタログを持つ i18next + react-i18next（ADR-012）。
+- `ja`・`en`・`es`・`fr` の型つきメッセージカタログを持つ i18next + react-i18next（ADR-012、ADR-032）。
 - UI に Tailwind CSS と shadcn/ui。
 - 控えめなトランジションに Motion for React。
 - API エンドポイントとサーバー側のロジックに Cloudflare Workers。
@@ -50,7 +50,7 @@ flowchart LR
 - 公開のランディングページ。
 - クイズの流れ。
 - 結果ページ。
-- 管理コンソール（管理 Worker だけが提供）。日本語・英語・スペイン語にローカライズする。
+- 管理コンソール（管理 Worker だけが提供）。日本語・英語・スペイン語・フランス語にローカライズする。
 - AI アシストのトグルと、操作を妨げない利用可否・エラーのメッセージ。
 
 ### ドメインロジック（純粋な TypeScript）
@@ -184,7 +184,7 @@ Phase 4 の設計（ADR-026、提案）:
 
 - ロケールの辞書・リソースを、UI コンポーネントやドメインロジックから分ける。
 - 安定した型つきの翻訳キーと、一貫したフォールバック方針を使う。
-- コンテンツの翻訳は、安定したエンティティの ID／スラッグとは別に `*_translations` テーブルに置く（[DATA_MODEL.md](DATA_MODEL.md) 参照）。翻訳がないときは `ja → en`、`en → ja`、`es → en → ja` の順にたどる（ADR-012）。
+- コンテンツの翻訳は、安定したエンティティの ID／スラッグとは別に `*_translations` テーブルに置く（[DATA_MODEL.md](DATA_MODEL.md) 参照）。翻訳がないときは `ja → en`、`en → ja`、`es → en → ja`、`fr → en → ja` の順にたどる（ADR-012、ADR-032）。
 - 選んだロケールは公開 UI と管理 UI の両方で使えるようにする。言語を変えたら文書の言語メタデータも更新する。
 - 日付、数値、通貨は、ロケールに対応したプラットフォームの API で書式を整える。
 - 必要で文書化してある場合を除き、ロケールの設定を第三者に送らない。

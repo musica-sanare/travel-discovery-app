@@ -1,4 +1,4 @@
-<!-- source: docs/en/DEPLOYMENT.md blob 37bb39aebe6e4d96b14001233afb2529590dc466 -->
+<!-- source: docs/en/DEPLOYMENT.md blob aacbbf1e65df8a6a065e8788e1a287f33c003b81 -->
 [English](../en/DEPLOYMENT.md) | 日本語 · [目次に戻る](README.md)
 
 > この文書は[英語版](../en/DEPLOYMENT.md)の翻訳。内容が異なる場合は英語版が優先する。
@@ -195,7 +195,7 @@ node scripts/check-deployment.mjs <account subdomain> <preview|production>
 - ログインすると、管理 API がリクエストを受け付ける。`Cf-Access-Jwt-Assertion` ヘッダーが静的アセットのルーターを通って Worker に届き、トークンの検証（RS256、発行者、オーディエンス）が通る。
 - 両方の Worker で Version URL が無効になっている（デプロイ済みのバージョンは `npx wrangler versions list --name <worker>` で一覧できる）。
 - 公開 Worker と管理 Worker が同じ D1 のデータを見ている（管理で公開し、公開 API で確かめる）。
-- 公開サイトが `ja`、`en`、`es` で最後まで動く。AI が無効の間、AI のトグルは「利用できません」の通知を出す。
+- 公開サイトが `ja`、`en`、`es`、`fr` で最後まで動く。AI が無効の間、AI のトグルは「利用できません」の通知を出す。
 - Rate Limiting のバインディングがエラーなくデプロイできる（アカウントで使えるかは未確認、ADR-026）。デプロイで拒否されたら、その環境から外して結果を記録し、AI は無効のままにする（ADR-026 A、前提条件 2）。
 - Workers Logs に、AI エンドポイントの `disabled` の結果の行が、アドレスや回答なしで出ている。
 

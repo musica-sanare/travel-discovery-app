@@ -192,7 +192,7 @@ These can only be checked on a deployed Worker (from "Admin authentication statu
 - After login, the admin API accepts the request: the `Cf-Access-Jwt-Assertion` header reaches the Worker through the static-assets router and the token validates (RS256, issuer, audience).
 - Version URLs are disabled for both Workers (`npx wrangler versions list --name <worker>` lists the deployed versions).
 - The public and admin Workers see the same D1 data (publish in admin, then check the public API).
-- The public site works end to end in `ja`, `en`, and `es`. The AI toggle shows the "unavailable" notice while AI is disabled.
+- The public site works end to end in `ja`, `en`, `es`, and `fr`. The AI toggle shows the "unavailable" notice while AI is disabled.
 - The Rate Limiting bindings deploy without errors (availability on the account is unconfirmed, ADR-026). If the deployment rejects them, remove them from that environment, record the result, and keep AI disabled (ADR-026 A, precondition 2).
 - Workers Logs shows the AI endpoint's `disabled` outcome lines without addresses or answers.
 

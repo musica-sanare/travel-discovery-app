@@ -28,7 +28,7 @@ Both are TypeScript + React + Vite apps built with Cloudflare's Vite plugin. The
 Components:
 - React + TypeScript + Vite.
 - React Router (data mode) for routing in each SPA.
-- i18next + react-i18next with typed message catalogs for `ja`, `en`, and `es` (ADR-012).
+- i18next + react-i18next with typed message catalogs for `ja`, `en`, `es`, and `fr` (ADR-012, ADR-032).
 - Tailwind CSS and shadcn/ui for UI.
 - Motion for React for restrained transitions.
 - Cloudflare Workers for API endpoints and server-side logic.
@@ -47,7 +47,7 @@ Do not assume versions or compatibility from memory. Check current official docs
 - Public landing page.
 - Quiz flow.
 - Results page.
-- Admin console (served only by the admin Worker), localized in Japanese, English, and Spanish.
+- Admin console (served only by the admin Worker), localized in Japanese, English, Spanish, and French.
 - AI assistance toggle and non-blocking availability/error messages.
 
 ### Domain logic (pure TypeScript)
@@ -181,7 +181,7 @@ Phase 4 design (ADR-026, proposed):
 
 - Keep locale dictionaries/resources separate from UI components and domain logic.
 - Use stable typed translation keys and a consistent fallback policy.
-- Keep content translations separate from stable entity IDs/slugs in `*_translations` tables (see [DATA_MODEL.md](DATA_MODEL.md)). Missing translations follow `ja → en`, `en → ja`, `es → en → ja` (ADR-012).
+- Keep content translations separate from stable entity IDs/slugs in `*_translations` tables (see [DATA_MODEL.md](DATA_MODEL.md)). Missing translations follow `ja → en`, `en → ja`, `es → en → ja`, and `fr → en → ja` (ADR-012, ADR-032).
 - The selected locale must be available to public and admin UI, and language changes must update document language metadata.
 - Format dates, numbers, and currencies using locale-aware platform APIs.
 - Do not send locale preference to third parties unless necessary and documented.

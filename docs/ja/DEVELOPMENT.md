@@ -1,4 +1,4 @@
-<!-- source: docs/en/DEVELOPMENT.md blob d581d63aaeba5554ffb287dc1cbddf50330ffba6 -->
+<!-- source: docs/en/DEVELOPMENT.md blob 7f180b983715cf716a07747edadd1c30553a2863 -->
 [English](../en/DEVELOPMENT.md) | 日本語 · [目次に戻る](README.md)
 
 > この文書は[英語版](../en/DEVELOPMENT.md)の翻訳。内容が異なる場合は英語版が優先する。
@@ -128,7 +128,7 @@ curl "http://localhost:5173/api/destinations?locale=en"
 
 ## アクセシビリティのチェック
 
-`src/app/accessibility.test.tsx` は、公開ページのすべての状態について、ja／en／es で axe-core（dev dependency）を実行する。検証エラー、エラー状態、結果の詳細を開いた状態も含む。
+`src/app/accessibility.test.tsx` は、公開ページのすべての状態について、ja／en／es／fr で axe-core（dev dependency）を実行する。検証エラー、エラー状態、結果の詳細を開いた状態も含む。
 
 - jsdom は色を計算できないので、そこでは `color-contrast` を無効にしている。色を変えたら、実際のブラウザー（ライトとダークの両方の配色）でコントラストを確かめる。
 - キーボードの挙動とスクリーンリーダーの読み上げは、引き続き手で確かめる必要がある。
