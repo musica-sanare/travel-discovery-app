@@ -157,10 +157,10 @@ export const en: AdminMessages = {
   },
   import: {
     intro:
-      "Imports a content JSON file (format: travel-discovery-content, version 1). Items whose slug already exists are skipped, never overwritten. Only when “Update existing destinations” is selected are existing destinations replaced entirely by the file. Record a database restore point before importing.",
+      "Imports a content JSON file (format: travel-discovery-content, version 1). Items whose slug already exists are skipped, never overwritten. Only when “Update existing items” is selected are existing countries, attributes, categories, destinations, and questions replaced entirely by the file. Record a database restore point before importing.",
     text: "JSON",
     file: "Load from a file",
-    updateExisting: "Update existing destinations (replaced entirely by the file; countries, attributes, categories, and questions are not updated)",
+    updateExisting: "Update existing items (countries, attributes, categories, destinations, and questions are replaced entirely by the file; a question with options missing from the file blocks the import)",
     check: "Check contents",
     checking: "Checking…",
     run: "Import",
@@ -182,7 +182,8 @@ export const en: AdminMessages = {
     progress: "{{done}} of {{total}} items processed",
     done: "The import is complete.",
     stopped: "Stopped at “{{item}}”. Earlier items were created or updated. Fix the problem and check again to continue where it stopped.",
-    changedSinceCheck: "This destination was changed after the check, so it was not updated. Check again.",
+    changedSinceCheck: "This item was changed after the check, so it was not updated. Check again.",
+    rateLimitWait: "The admin request limit was reached. Continuing automatically in about a minute.",
     issuesTitle: "The file has problems",
     states: { pending: "Pending", created: "Created", updated: "Updated", skipped: "Skipped", unchanged: "Unchanged", failed: "Failed" },
     issues: {
@@ -192,6 +193,7 @@ export const en: AdminMessages = {
       invalid_slug: "The slug is not valid.",
       duplicate_slug: "The slug appears more than once in the file.",
       unknown_reference: "The referenced slug was not found.",
+      missing_option: "An option in the database is missing from the file. The update would deactivate it, so the import is blocked.",
     },
   },
 };

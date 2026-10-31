@@ -1,12 +1,12 @@
 /**
- * Field-level differences between a bundle destination and the stored one, for
- * the opt-in update mode of the Import page (ADR-028). Both sides are brought
- * into one comparable shape with slug references, applying the same defaults
- * and trimming as the admin API validation, so that a destination imported
- * unchanged compares equal to the file it came from.
+ * Field-level differences between a bundle item and the stored one, for the
+ * opt-in update mode of the Import page (ADR-028). Both sides are brought into
+ * one comparable shape with slug references, applying the same defaults and
+ * trimming as the admin API validation, so that an item imported unchanged
+ * compares equal to the file it came from.
  */
 import { SUPPORTED_LOCALES } from "../../../shared/locales";
-import { SUPPORTED_CURRENCIES, type DestinationDetail } from "../types";
+import { SUPPORTED_CURRENCIES, type DestinationDetail, type QuestionDetail } from "../types";
 
 export interface FieldChange {
   path: string;
@@ -35,22 +35,32 @@ function optionalText(value: unknown): unknown {
   return value.trim() || null;
 }
 
-function translationsOf(value: unknown): Json {
+/** Slug of a stored ID; an unknown ID stays visible in the diff. */
+export type SlugMaps = Record<"countries" | "attributes" | "categories", ReadonlyMap<number, string>>;
+
+function slugOf(map: ReadonlyMap<number, string>, id: number): string {
+  return map.get(id) ?? `#${String(id)}`;
+}
+
+function byLocale(value: unknown, shape: (entry: Json) => Json): Json {
   const source = isObject(value) ? value : {};
   const result: Json = {};
   for (const locale of SUPPORTED_LOCALES) {
     const entry = source[locale];
-    if (!isObject(entry)) continue;
-    result[locale] = {
-      name: requiredText(entry.name),
-      summary: requiredText(entry.summary),
-      highlights: list(entry.highlights).map(requiredText),
-      cautions: optionalText(entry.cautions),
-      bestSeason: optionalText(entry.bestSeason),
-      imageAlt: optionalText(entry.imageAlt),
-    };
+    if (isObject(entry)) result[locale] = shape(entry);
   }
   return result;
+}
+
+function destinationTranslationsOf(value: unknown): Json {
+  return byLocale(value, (entry) => ({
+    name: requiredText(entry.name),
+    summary: requiredText(entry.summary),
+    highlights: list(entry.highlights).map(requiredText),
+    cautions: optionalText(entry.cautions),
+    bestSeason: optionalText(entry.bestSeason),
+    imageAlt: optionalText(entry.imageAlt),
+  }));
 }
 
 /** Stored bases exist only for non-empty texts, so empty ones are dropped. */
@@ -87,10 +97,11 @@ function costsOf(value: unknown): Json {
   return result;
 }
 
-function scoresOf(scores: readonly { attribute: unknown; score: unknown }[]): Json {
+/** Attribute slug → value, sorted by slug (attribute scores and option effects). */
+function byAttribute(items: readonly { attribute: unknown; value: unknown }[]): Json {
   const result: Json = {};
-  for (const { attribute, score } of [...scores].sort((a, b) => String(a.attribute).localeCompare(String(b.attribute)))) {
-    result[String(attribute)] = score;
+  for (const { attribute, value } of [...items].sort((a, b) => String(a.attribute).localeCompare(String(b.attribute)))) {
+    result[String(attribute)] = value;
   }
   return result;
 }
@@ -105,7 +116,7 @@ function imageOf(value: unknown): unknown {
 }
 
 /** The comparable shape of a destination as written in a bundle (slug references). */
-export function comparableFromBundle(data: Json): Json {
+export function destinationFromBundle(data: Json): Json {
   const days = isObject(data.recommendedDays) ? data.recommendedDays : {};
   return {
     country: data.country,
@@ -115,21 +126,17 @@ export function comparableFromBundle(data: Json): Json {
     bestMonths: monthsOf(data.bestMonths),
     costs: costsOf(data.costs),
     image: imageOf(data.image),
-    translations: translationsOf(data.translations),
-    attributeScores: scoresOf(
+    translations: destinationTranslationsOf(data.translations),
+    attributeScores: byAttribute(
       list(data.attributeScores)
         .filter(isObject)
-        .map((score) => ({ attribute: score.attribute, score: score.score })),
+        .map((score) => ({ attribute: score.attribute, value: score.score })),
     ),
   };
 }
 
 /** The comparable shape of a stored destination; IDs are turned back into slugs. */
-export function comparableFromStored(
-  item: DestinationDetail,
-  slugs: { countries: ReadonlyMap<number, string>; attributes: ReadonlyMap<number, string> },
-): Json {
-  const slugOf = (map: ReadonlyMap<number, string>, id: number) => map.get(id) ?? `#${String(id)}`;
+export function destinationFromStored(item: DestinationDetail, slugs: SlugMaps): Json {
   return {
     country: slugOf(slugs.countries, item.countryId),
     type: item.type,
@@ -138,9 +145,107 @@ export function comparableFromStored(
     bestMonths: monthsOf(item.bestMonths),
     costs: costsOf(item.costs),
     image: imageOf(item.image),
-    translations: translationsOf(item.translations),
-    attributeScores: scoresOf(
-      item.attributeScores.map((score) => ({ attribute: slugOf(slugs.attributes, score.attributeId), score: score.score })),
+    translations: destinationTranslationsOf(item.translations),
+    attributeScores: byAttribute(
+      item.attributeScores.map((score) => ({ attribute: slugOf(slugs.attributes, score.attributeId), value: score.score })),
+    ),
+  };
+}
+
+/**
+ * The comparable shape of a country, attribute, or category. Bundle entries and
+ * stored items share it: countries have no status, and only attributes have a
+ * description.
+ */
+export function taxonomyComparable(
+  kind: "countries" | "attributes" | "categories",
+  data: { status?: unknown; translations?: unknown },
+): Json {
+  return {
+    ...(kind === "countries" ? {} : { status: data.status }),
+    translations: byLocale(data.translations, (entry) => ({
+      name: requiredText(entry.name),
+      ...(kind === "attributes" ? { description: optionalText(entry.description) } : {}),
+    })),
+  };
+}
+
+interface ComparableOption {
+  value: unknown;
+  displayOrder: unknown;
+  translations: unknown;
+  effects: readonly { attribute: unknown; value: unknown }[];
+}
+
+/** Options keyed by their stable value, in value order. */
+function optionsOf(options: readonly ComparableOption[]): Json {
+  const result: Json = {};
+  for (const option of [...options].sort((a, b) => String(a.value).localeCompare(String(b.value)))) {
+    result[String(option.value)] = {
+      displayOrder: option.displayOrder,
+      translations: byLocale(option.translations, (entry) => ({ label: requiredText(entry.label) })),
+      effects: byAttribute(option.effects),
+    };
+  }
+  return result;
+}
+
+function questionTranslationsOf(value: unknown): Json {
+  return byLocale(value, (entry) => ({
+    prompt: requiredText(entry.prompt),
+    description: optionalText(entry.description),
+  }));
+}
+
+/** The comparable shape of a question as written in a bundle (slug references). */
+export function questionFromBundle(data: Json): Json {
+  return {
+    category: data.category,
+    type: data.type,
+    status: data.status,
+    priorityWeight: data.priorityWeight,
+    displayOrder: data.displayOrder ?? null,
+    translations: questionTranslationsOf(data.translations),
+    options: optionsOf(
+      list(data.options)
+        .filter(isObject)
+        .map((option) => ({
+          value: option.value,
+          displayOrder: option.displayOrder,
+          translations: option.translations,
+          effects: list(option.effects)
+            .filter(isObject)
+            .map((effect) => ({ attribute: effect.attribute, value: effect.weight })),
+        })),
+    ),
+  };
+}
+
+/**
+ * The comparable shape of a stored question. Archived options are left out:
+ * an update keeps them archived unless the file lists them again, which then
+ * shows as an added option.
+ */
+export function questionFromStored(item: QuestionDetail, slugs: SlugMaps): Json {
+  return {
+    category: slugOf(slugs.categories, item.categoryId),
+    type: item.type,
+    status: item.status,
+    priorityWeight: item.priorityWeight,
+    displayOrder: item.displayOrder,
+    translations: questionTranslationsOf(item.translations),
+    options: optionsOf(
+      item.options
+        .filter((option) => option.status !== "archived")
+        .map((option) => ({
+          value: option.value,
+          displayOrder: option.displayOrder,
+          translations: option.translations,
+          effects: option.effects.map((effect) => ({
+            attribute: slugOf(slugs.attributes, effect.attributeId),
+            value: effect.weight,
+          })),
+        })),
     ),
   };
 }

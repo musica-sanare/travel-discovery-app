@@ -1,6 +1,14 @@
 import { describe, expect, it } from "vitest";
-import type { DestinationDetail } from "../types";
-import { IMPORT_KINDS, parseBundle, planImport, toPayload, type ExistingIds, type ImportBundle } from "./bundle";
+import type { DestinationDetail, QuestionDetail, TaxonomyItem } from "../types";
+import {
+  IMPORT_KINDS,
+  parseBundle,
+  planImport,
+  toPayload,
+  type CurrentContent,
+  type ExistingIds,
+  type ImportBundle,
+} from "./bundle";
 
 function noneExisting(): ExistingIds {
   return Object.fromEntries(IMPORT_KINDS.map((kind) => [kind, new Map<string, number>()])) as ExistingIds;
@@ -168,8 +176,47 @@ describe("planImport in update mode", () => {
     updatedAt: "2026-10-24T03:40:00.000Z",
   };
 
-  it("plans an update with the changes and the stored updatedAt, and still skips other kinds", () => {
-    const current = new Map([["bangkok", { ...STORED, bestMonths: [1, 2] }]]);
+  const UPDATED_AT = "2026-10-24T03:40:00.000Z";
+
+  const STORED_QUESTION: QuestionDetail = {
+    id: 30,
+    slug: "focus",
+    categoryId: 5,
+    type: "single_choice",
+    status: "published",
+    priorityWeight: 5,
+    displayOrder: null,
+    translations: { ja: { prompt: "何をしたい？", description: null } },
+    options: [
+      { value: "eat", displayOrder: 0, status: "active", translations: { ja: { label: "食べる" } }, effects: [{ attributeId: 11, weight: 3 }] },
+      { value: "rest", displayOrder: 1, status: "active", translations: { ja: { label: "休む" } }, effects: [] },
+      { value: "shop", displayOrder: 2, status: "archived", translations: { ja: { label: "買う" } }, effects: [] },
+    ],
+    updatedAt: UPDATED_AT,
+  };
+
+  function taxonomy(id: number, slug: string, fields: Partial<TaxonomyItem>): Map<string, TaxonomyItem> {
+    return new Map([[slug, { id, slug, translations: {}, updatedAt: UPDATED_AT, ...fields }]]);
+  }
+
+  /** Stored content that matches `VALID`; `overrides` replaces whole kinds. */
+  function currentContent(overrides: Partial<CurrentContent> = {}): CurrentContent {
+    return {
+      countries: taxonomy(3, "thailand", { translations: { ja: { name: "タイ" } } }),
+      attributes: taxonomy(11, "food", { status: "active", translations: { ja: { name: "食", description: null } } }),
+      categories: taxonomy(5, "style", { status: "active", translations: { ja: { name: "スタイル" } } }),
+      destinations: new Map([["bangkok", STORED]]),
+      questions: new Map([["focus", STORED_QUESTION]]),
+      ...overrides,
+    };
+  }
+
+  function emptyContent(): CurrentContent {
+    return { countries: new Map(), attributes: new Map(), categories: new Map(), destinations: new Map(), questions: new Map() };
+  }
+
+  it("plans an update with the changes and the stored updatedAt, and skips items that were not loaded", () => {
+    const current = { ...emptyContent(), destinations: new Map([["bangkok", { ...STORED, bestMonths: [1, 2] }]]) };
     const { steps, issues } = planImport(parsed(), existingContent(), current);
     expect(issues).toEqual([]);
     expect(steps.map((step) => `${step.kind}:${step.action}`)).toEqual([
@@ -188,9 +235,75 @@ describe("planImport in update mode", () => {
     });
   });
 
-  it("plans an existing destination that matches the file as unchanged", () => {
-    const { steps } = planImport(parsed(), existingContent(), new Map([["bangkok", STORED]]));
-    expect(steps[3]).toEqual({ kind: "destinations", slug: "bangkok", action: "unchanged" });
+  it("plans every existing item that matches the file as unchanged, ignoring archived options", () => {
+    const { steps, issues } = planImport(parsed(), existingContent(), currentContent());
+    expect(issues).toEqual([]);
+    expect(steps.map((step) => step.action)).toEqual(["unchanged", "unchanged", "unchanged", "unchanged", "unchanged"]);
+  });
+
+  it("plans updates for countries, attributes, and categories with new translations", () => {
+    const file = {
+      ...VALID,
+      countries: [{ ...COUNTRY, translations: { ...COUNTRY.translations, fr: { name: "Thaïlande" } } }],
+      attributes: [{ slug: "food", status: "active", translations: { ja: { name: "食" }, fr: { name: " Gastronomie ", description: "" } } }],
+      categories: [{ slug: "style", status: "archived", translations: { ja: { name: "スタイル" } } }],
+    };
+    const { steps } = planImport(parsed(file), existingContent(), currentContent());
+    expect(steps.slice(0, 3)).toEqual([
+      {
+        kind: "countries",
+        slug: "thailand",
+        action: "update",
+        changes: [{ path: "translations.fr", before: undefined, after: { name: "Thaïlande" } }],
+        updatedAt: UPDATED_AT,
+      },
+      {
+        kind: "attributes",
+        slug: "food",
+        action: "update",
+        changes: [{ path: "translations.fr", before: undefined, after: { name: "Gastronomie", description: null } }],
+        updatedAt: UPDATED_AT,
+      },
+      {
+        kind: "categories",
+        slug: "style",
+        action: "update",
+        changes: [{ path: "status", before: "active", after: "archived" }],
+        updatedAt: UPDATED_AT,
+      },
+    ]);
+  });
+
+  it("plans a question update with option-level changes and a re-listed archived option", () => {
+    const [eat, rest] = QUESTION.options;
+    const file = {
+      ...VALID,
+      questions: [
+        {
+          ...QUESTION,
+          translations: { ...QUESTION.translations, fr: { prompt: "Que voulez-vous faire ?" } },
+          options: [
+            { ...eat, translations: { ...eat?.translations, fr: { label: "Manger" } } },
+            rest,
+            { value: "shop", displayOrder: 2, translations: { ja: { label: "買う" } }, effects: [] },
+          ],
+        },
+      ],
+    };
+    const { steps, issues } = planImport(parsed(file), existingContent(), currentContent());
+    expect(issues).toEqual([]);
+    expect(steps[4]).toMatchObject({ kind: "questions", slug: "focus", action: "update", updatedAt: UPDATED_AT });
+    expect(steps[4]?.action === "update" && steps[4].changes.map((change) => change.path)).toEqual([
+      "translations.fr",
+      "options.eat.translations.fr",
+      "options.shop",
+    ]);
+  });
+
+  it("refuses a question update that would archive an active option", () => {
+    const file = { ...VALID, questions: [{ ...QUESTION, options: QUESTION.options.slice(0, 1) }] };
+    const { issues } = planImport(parsed(file), existingContent(), currentContent());
+    expect(issues).toEqual([{ code: "missing_option", path: "questions[0].options[value=rest]" }]);
   });
 
   it("skips existing destinations without update mode", () => {

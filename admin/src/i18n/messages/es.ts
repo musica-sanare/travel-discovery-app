@@ -157,10 +157,10 @@ export const es: AdminMessages = {
   },
   import: {
     intro:
-      "Importa un archivo JSON de contenido (format: travel-discovery-content, version 1). Los elementos cuyo slug ya existe se omiten y nunca se sobrescriben. Solo si se selecciona «Actualizar los destinos existentes», los destinos existentes se sustituyen por completo con el archivo. Registra un punto de restauración de la base de datos antes de importar.",
+      "Importa un archivo JSON de contenido (format: travel-discovery-content, version 1). Los elementos cuyo slug ya existe se omiten y nunca se sobrescriben. Solo si se selecciona «Actualizar los elementos existentes», los países, atributos, categorías, destinos y preguntas existentes se sustituyen por completo con el archivo. Registra un punto de restauración de la base de datos antes de importar.",
     text: "JSON",
     file: "Cargar desde un archivo",
-    updateExisting: "Actualizar los destinos existentes (se sustituyen por completo con el archivo; no se actualizan países, atributos, categorías ni preguntas)",
+    updateExisting: "Actualizar los elementos existentes (países, atributos, categorías, destinos y preguntas se sustituyen por completo con el archivo; una pregunta con opciones que faltan en el archivo bloquea la importación)",
     check: "Comprobar contenido",
     checking: "Comprobando…",
     run: "Importar",
@@ -182,7 +182,8 @@ export const es: AdminMessages = {
     progress: "{{done}} de {{total}} elementos procesados",
     done: "La importación ha terminado.",
     stopped: "Se detuvo en «{{item}}». Los elementos anteriores ya se crearon o actualizaron. Corrige el problema y vuelve a comprobar para continuar desde ahí.",
-    changedSinceCheck: "Este destino cambió después de la comprobación, así que no se actualizó. Vuelve a comprobar.",
+    changedSinceCheck: "Este elemento cambió después de la comprobación, así que no se actualizó. Vuelve a comprobar.",
+    rateLimitWait: "Se alcanzó el límite de solicitudes de administración. Se continuará automáticamente en un minuto aproximadamente.",
     issuesTitle: "El archivo tiene problemas",
     states: { pending: "Pendiente", created: "Creado", updated: "Actualizado", skipped: "Omitido", unchanged: "Sin cambios", failed: "Error" },
     issues: {
@@ -192,6 +193,7 @@ export const es: AdminMessages = {
       invalid_slug: "El slug no es válido.",
       duplicate_slug: "El slug aparece más de una vez en el archivo.",
       unknown_reference: "No se encontró el slug referenciado.",
+      missing_option: "Falta en el archivo una opción que está en la base de datos. La actualización la desactivaría, así que la importación se bloquea.",
     },
   },
 };

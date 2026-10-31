@@ -160,10 +160,10 @@ export const fr: AdminMessages = {
   },
   import: {
     intro:
-      "Importe un fichier JSON de contenu (format : travel-discovery-content, version 1). Les éléments dont le slug existe déjà sont ignorés, jamais écrasés. Les destinations existantes ne sont entièrement remplacées par le fichier que si « Mettre à jour les destinations existantes » est coché. Enregistrez un point de restauration de la base de données avant d’importer.",
+      "Importe un fichier JSON de contenu (format : travel-discovery-content, version 1). Les éléments dont le slug existe déjà sont ignorés, jamais écrasés. Les pays, attributs, catégories, destinations et questions existants ne sont entièrement remplacés par le fichier que si « Mettre à jour les éléments existants » est coché. Enregistrez un point de restauration de la base de données avant d’importer.",
     text: "JSON",
     file: "Charger depuis un fichier",
-    updateExisting: "Mettre à jour les destinations existantes (entièrement remplacées par le fichier ; les pays, attributs, catégories et questions ne sont pas mis à jour)",
+    updateExisting: "Mettre à jour les éléments existants (pays, attributs, catégories, destinations et questions sont entièrement remplacés par le fichier ; une question dont des options manquent dans le fichier bloque l’importation)",
     check: "Vérifier le contenu",
     checking: "Vérification…",
     run: "Importer",
@@ -185,7 +185,8 @@ export const fr: AdminMessages = {
     progress: "{{done}} élément(s) traité(s) sur {{total}}",
     done: "L’importation est terminée.",
     stopped: "Arrêt à « {{item}} ». Les éléments précédents ont été créés ou mis à jour. Corrigez le problème et vérifiez à nouveau pour reprendre là où l’importation s’est arrêtée.",
-    changedSinceCheck: "Cette destination a été modifiée après la vérification, elle n’a donc pas été mise à jour. Vérifiez à nouveau.",
+    changedSinceCheck: "Cet élément a été modifié après la vérification, il n’a donc pas été mis à jour. Vérifiez à nouveau.",
+    rateLimitWait: "La limite de requêtes d’administration est atteinte. Reprise automatique dans une minute environ.",
     issuesTitle: "Le fichier contient des problèmes",
     states: { pending: "En attente", created: "Créé", updated: "Mis à jour", skipped: "Ignoré", unchanged: "Inchangé", failed: "Échec" },
     issues: {
@@ -195,6 +196,7 @@ export const fr: AdminMessages = {
       invalid_slug: "Le slug n’est pas valide.",
       duplicate_slug: "Le slug apparaît plusieurs fois dans le fichier.",
       unknown_reference: "Le slug référencé est introuvable.",
+      missing_option: "Une option présente dans la base de données manque dans le fichier. La mise à jour la désactiverait, l’importation est donc bloquée.",
     },
   },
 };

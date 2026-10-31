@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { DestinationDetail } from "../types";
-import { comparableFromBundle, comparableFromStored, diffComparable } from "./diff";
+import { destinationFromBundle, destinationFromStored, diffComparable } from "./diff";
 
 const SLUGS = {
   countries: new Map([[1, "peru"]]),
@@ -8,6 +8,7 @@ const SLUGS = {
     [10, "nature"],
     [11, "food"],
   ]),
+  categories: new Map([[20, "interests"]]),
 };
 
 const JPY = {
@@ -63,7 +64,7 @@ const ENTRY = {
 };
 
 function diff(entry: Record<string, unknown>, item = stored()) {
-  return diffComparable(comparableFromStored(item, SLUGS), comparableFromBundle(entry));
+  return diffComparable(destinationFromStored(item, SLUGS), destinationFromBundle(entry));
 }
 
 describe("diffComparable on destinations", () => {

@@ -5,8 +5,17 @@
  * the server when it is created.
  */
 import { isSlug } from "../../../shared/slug";
-import type { DestinationDetail } from "../types";
-import { comparableFromBundle, comparableFromStored, diffComparable, type FieldChange } from "./diff";
+import type { DestinationDetail, QuestionDetail, TaxonomyItem } from "../types";
+import {
+  destinationFromBundle,
+  destinationFromStored,
+  diffComparable,
+  questionFromBundle,
+  questionFromStored,
+  taxonomyComparable,
+  type FieldChange,
+  type SlugMaps,
+} from "./diff";
 
 export const BUNDLE_FORMAT = "travel-discovery-content";
 export const BUNDLE_VERSION = 1;
@@ -30,7 +39,8 @@ export type BundleIssueCode =
   | "invalid_entry"
   | "invalid_slug"
   | "duplicate_slug"
-  | "unknown_reference";
+  | "unknown_reference"
+  | "missing_option";
 
 export interface BundleIssue {
   code: BundleIssueCode;
@@ -40,14 +50,23 @@ export interface BundleIssue {
 /** Slug → ID of the content that already exists, per kind. */
 export type ExistingIds = Record<ImportKind, Map<string, number>>;
 
+/** The stored version of every existing bundle item, by kind and slug (update mode). */
+export interface CurrentContent {
+  countries: ReadonlyMap<string, TaxonomyItem>;
+  attributes: ReadonlyMap<string, TaxonomyItem>;
+  categories: ReadonlyMap<string, TaxonomyItem>;
+  destinations: ReadonlyMap<string, DestinationDetail>;
+  questions: ReadonlyMap<string, QuestionDetail>;
+}
+
 /**
- * `update` is planned only in update mode, and only for existing destinations
- * whose stored content differs from the file; `updatedAt` is the stored value
- * at check time, re-checked just before the update is sent.
+ * `update` is planned only in update mode, and only for existing items whose
+ * stored content differs from the file; `updatedAt` is the stored value at
+ * check time, re-checked just before the update is sent.
  */
 export type PlanStep =
   | { kind: ImportKind; slug: string; action: "create" | "skip" | "unchanged" }
-  | { kind: "destinations"; slug: string; action: "update"; changes: FieldChange[]; updatedAt: string };
+  | { kind: ImportKind; slug: string; action: "update"; changes: FieldChange[]; updatedAt: string };
 
 function isObject(value: unknown): value is Json {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -138,22 +157,62 @@ function invert(map: ReadonlyMap<string, number>): Map<number, string> {
   return new Map([...map].map(([slug, id]) => [id, slug]));
 }
 
+interface StoredComparison {
+  stored: Json;
+  file: Json;
+  updatedAt: string;
+}
+
+/** Both comparable shapes of an existing item, or undefined when it was not loaded. */
+function compare(kind: ImportKind, entry: BundleEntry, current: CurrentContent, slugs: SlugMaps): StoredComparison | undefined {
+  switch (kind) {
+    case "countries":
+    case "attributes":
+    case "categories": {
+      const item = current[kind].get(entry.slug);
+      return item && { stored: taxonomyComparable(kind, item), file: taxonomyComparable(kind, entry.data), updatedAt: item.updatedAt };
+    }
+    case "destinations": {
+      const item = current.destinations.get(entry.slug);
+      return item && { stored: destinationFromStored(item, slugs), file: destinationFromBundle(entry.data), updatedAt: item.updatedAt };
+    }
+    case "questions": {
+      const item = current.questions.get(entry.slug);
+      return item && { stored: questionFromStored(item, slugs), file: questionFromBundle(entry.data), updatedAt: item.updatedAt };
+    }
+  }
+}
+
+/**
+ * Active options of a stored question that the file lacks. A question `PUT`
+ * archives them, so the import refuses instead of archiving silently.
+ */
+function missingOptions(entry: BundleEntry, stored: QuestionDetail | undefined): string[] {
+  if (!stored) return [];
+  const listed = new Set(list(entry.data.options).map((option) => (isObject(option) ? option.value : undefined)));
+  return stored.options.filter((option) => option.status !== "archived" && !listed.has(option.value)).map((option) => option.value);
+}
+
 /**
  * Plans the import against existing content; every reference must resolve to
  * the bundle or to existing content. Entries whose slug exists are skipped,
- * except that destinations found in `current` (given only in update mode) are
+ * except that items found in `current` (given only in update mode) are
  * compared with the file and planned as `update` or `unchanged`.
  */
 export function planImport(
   bundle: ImportBundle,
   existing: ExistingIds,
-  current?: ReadonlyMap<string, DestinationDetail>,
+  current?: CurrentContent,
 ): { steps: PlanStep[]; issues: BundleIssue[] } {
   const issues: BundleIssue[] = [];
   const known = (kind: ImportKind, slug: string) =>
     existing[kind].has(slug) || bundle[kind].some((entry) => entry.slug === slug);
 
-  const slugs = { countries: invert(existing.countries), attributes: invert(existing.attributes) };
+  const slugs: SlugMaps = {
+    countries: invert(existing.countries),
+    attributes: invert(existing.attributes),
+    categories: invert(existing.categories),
+  };
 
   const steps = IMPORT_KINDS.flatMap((kind) =>
     bundle[kind].map((entry, index): PlanStep => {
@@ -165,14 +224,19 @@ export function planImport(
       if (!existing[kind].has(entry.slug)) {
         return { kind, slug: entry.slug, action: "create" };
       }
-      const stored = kind === "destinations" ? current?.get(entry.slug) : undefined;
-      if (!stored) {
+      const comparison = current && compare(kind, entry, current, slugs);
+      if (!comparison) {
         return { kind, slug: entry.slug, action: "skip" };
       }
-      const changes = diffComparable(comparableFromStored(stored, slugs), comparableFromBundle(entry.data));
+      if (kind === "questions") {
+        for (const value of missingOptions(entry, current.questions.get(entry.slug))) {
+          issues.push({ code: "missing_option", path: `${kind}[${String(index)}].options[value=${value}]` });
+        }
+      }
+      const changes = diffComparable(comparison.stored, comparison.file);
       return changes.length === 0
         ? { kind, slug: entry.slug, action: "unchanged" }
-        : { kind: "destinations", slug: entry.slug, action: "update", changes, updatedAt: stored.updatedAt };
+        : { kind, slug: entry.slug, action: "update", changes, updatedAt: comparison.updatedAt };
     }),
   );
   return { steps, issues };

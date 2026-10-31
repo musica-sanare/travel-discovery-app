@@ -154,13 +154,21 @@ test.describe("admin content import on the dev server", () => {
     const country = `e2e-land-${suffix}`;
     const destination = `e2e-import-${suffix}`;
     const question = `e2e-import-q-${suffix}`;
-    const bundle = (destinationCountry: string, bestMonths: number[] = []) =>
+    // Portugal comes from the seed; it is listed only outside update mode, which would replace it.
+    const bundle = ({
+      destinationCountry = country,
+      bestMonths = [] as number[],
+      withPortugal = true,
+      countryName = "E2E国",
+      yesLabel = "はい",
+      withNo = true,
+    } = {}) =>
       JSON.stringify({
         format: "travel-discovery-content",
         version: 1,
         countries: [
-          { slug: "portugal", translations: { ja: { name: "ポルトガル" } } },
-          { slug: country, translations: { ja: { name: "E2E国" } } },
+          ...(withPortugal ? [{ slug: "portugal", translations: { ja: { name: "ポルトガル" } } }] : []),
+          { slug: country, translations: { ja: { name: countryName } } },
         ],
         destinations: [
           {
@@ -185,8 +193,8 @@ test.describe("admin content import on the dev server", () => {
             displayOrder: null,
             translations: { ja: { prompt: "E2E の質問ですか？" } },
             options: [
-              { value: "yes", displayOrder: 0, translations: { ja: { label: "はい" } }, effects: [{ attribute: "nature", weight: 2 }] },
-              { value: "no", displayOrder: 1, translations: { ja: { label: "いいえ" } }, effects: [] },
+              { value: "yes", displayOrder: 0, translations: { ja: { label: yesLabel } }, effects: [{ attribute: "nature", weight: 2 }] },
+              ...(withNo ? [{ value: "no", displayOrder: 1, translations: { ja: { label: "いいえ" } }, effects: [] }] : []),
             ],
           },
         ],
@@ -197,13 +205,13 @@ test.describe("admin content import on the dev server", () => {
     const input = page.getByLabel("JSON", { exact: true });
     const checkButton = page.getByRole("button", { name: "内容を確認" });
 
-    await input.fill(bundle("no-such-country"));
+    await input.fill(bundle({ destinationCountry: "no-such-country" }));
     await checkButton.click();
     await expect(page.getByRole("alert")).toContainText("destinations[0].country");
     await expect(page.getByRole("alert")).toContainText("参照先のスラッグが見つかりません。");
     await expect(page.getByRole("button", { name: "取り込む" })).toHaveCount(0);
 
-    await input.fill(bundle(country));
+    await input.fill(bundle());
     await checkButton.click();
     await expect(page.getByRole("row", { name: /^国/ })).toContainText("portugal");
     await page.getByRole("button", { name: "取り込む" }).click();
@@ -223,10 +231,10 @@ test.describe("admin content import on the dev server", () => {
     await expect(page.getByRole("status").filter({ hasText: "作成または更新する項目はありません。" })).toBeVisible();
 
     // Update mode: only the changed destination is replaced, after a field-level diff.
-    await input.fill(bundle(country, [5, 4]));
+    await input.fill(bundle({ bestMonths: [5, 4], withPortugal: false }));
     await checkButton.click();
     await expect(page.getByRole("status").filter({ hasText: "作成または更新する項目はありません。" })).toBeVisible();
-    await page.getByLabel(/既存の旅行先を更新する/).check();
+    await page.getByLabel(/既存の項目を更新する/).check();
     await checkButton.click();
     await expect(page.getByRole("row", { name: /^旅行先/ })).toContainText(destination);
     await page.getByText(`旅行先: ${destination} の変更点（1 件）`).click();
@@ -244,10 +252,41 @@ test.describe("admin content import on the dev server", () => {
     };
     expect(detail.item).toMatchObject({ bestMonths: [4, 5], status: "draft" });
 
-    // The stored destination now matches the file, including the API defaults.
+    // The stored items now match the file, including the API defaults.
     await checkButton.click();
     await expect(page.getByRole("row", { name: /^旅行先/ })).toContainText(destination);
     await expect(page.getByRole("status").filter({ hasText: "作成または更新する項目はありません。" })).toBeVisible();
+
+    // Countries and questions are updated the same way.
+    await input.fill(bundle({ bestMonths: [5, 4], withPortugal: false, countryName: "E2E国（更新）", yesLabel: "はい（更新）" }));
+    await checkButton.click();
+    await expect(page.getByRole("row", { name: /^国/ })).toContainText(country);
+    await expect(page.getByRole("row", { name: /^質問\s/ })).toContainText(question);
+    await page.getByText(`質問: ${question} の変更点（1 件）`).click();
+    await expect(page.getByRole("row", { name: /options\.yes\.translations\.ja\.label/ })).toContainText("はい（更新）");
+    await page.getByRole("button", { name: "取り込む" }).click();
+    await expect(page.getByRole("status").filter({ hasText: "取り込みが完了しました。" })).toBeVisible();
+
+    const countries = (await (await request.get("/api/admin/countries")).json()) as {
+      items: { slug: string; translations: { ja?: { name: string } } }[];
+    };
+    expect(countries.items.find((item) => item.slug === country)?.translations.ja?.name).toBe("E2E国（更新）");
+    const [storedQuestion] = (
+      (await (await request.get(`/api/admin/questions?q=${question}`)).json()) as { items: { id: number }[] }
+    ).items;
+    const questionDetail = (await (await request.get(`/api/admin/questions/${String(storedQuestion?.id)}`)).json()) as {
+      item: { options: { value: string; status: string; translations: { ja?: { label: string } } }[] };
+    };
+    expect(questionDetail.item.options.map((option) => [option.value, option.status, option.translations.ja?.label])).toEqual([
+      ["yes", "active", "はい（更新）"],
+      ["no", "active", "いいえ"],
+    ]);
+
+    // A question update that would archive an option is refused before anything is written.
+    await input.fill(bundle({ bestMonths: [5, 4], withPortugal: false, countryName: "E2E国（更新）", yesLabel: "はい（更新）", withNo: false }));
+    await checkButton.click();
+    await expect(page.getByRole("alert")).toContainText("questions[0].options[value=no]");
+    await expect(page.getByRole("button", { name: "取り込む" })).toHaveCount(0);
   });
 });
 

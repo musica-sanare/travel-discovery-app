@@ -25,6 +25,7 @@ export interface TaxonomyItem {
   slug: string;
   status?: TaxonomyStatus;
   translations: Translated<{ name: string; description?: string | null }>;
+  updatedAt: string;
 }
 
 export interface Page<T> {
@@ -101,6 +102,7 @@ export interface QuestionDetail {
   displayOrder: number | null;
   translations: Translated<{ prompt: string; description: string | null }>;
   options: QuestionOption[];
+  updatedAt: string;
 }
 
 export interface QuizSettings {

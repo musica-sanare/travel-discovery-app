@@ -4,8 +4,10 @@ import { parseBundle, planImport, type ImportBundle } from "./bundle";
 import type { DestinationDetail } from "../types";
 import {
   ImportConflictError,
-  loadCurrentDestinations,
+  RATE_LIMIT_WAIT_MS,
+  loadCurrent,
   loadExisting,
+  retryOnRateLimit,
   runImport,
   type AdminCall,
   type StepState,
@@ -145,32 +147,44 @@ describe("update mode", () => {
     updatedAt: "2026-10-24T03:40:00.000Z",
   };
 
+  const PERU = { id: 1, slug: "peru", translations: { ja: { name: "ペルー" } }, updatedAt: "2026-10-24T01:00:00.000Z" };
+  const NATURE = {
+    id: 4,
+    slug: "nature",
+    status: "active",
+    translations: { ja: { name: "自然", description: null } },
+    updatedAt: "2026-10-24T01:00:00.000Z",
+  };
+
   const LISTS = {
     ...EMPTY_LISTS,
-    "/countries": { items: [{ id: 1, slug: "peru", translations: {} }] },
-    "/attributes": { items: [{ id: 4, slug: "nature", translations: {} }] },
+    "/countries": { items: [PERU] },
+    "/attributes": { items: [NATURE] },
     "/destinations?page=1": { items: [{ id: 2, slug: "cusco" }], hasMore: false },
   };
 
-  async function plannedRun(stored: () => DestinationDetail) {
-    const { api, calls } = fakeApi({ ...LISTS, "/destinations/2": () => ({ item: stored() }) });
+  async function plannedRun(stored: () => DestinationDetail, lists: Record<string, unknown> = LISTS) {
+    const { api, calls } = fakeApi({ ...lists, "/destinations/2": () => ({ item: stored() }) });
     const existing = await loadExisting(api);
-    const current = await loadCurrentDestinations(api, bundle(), existing);
+    const current = await loadCurrent(api, bundle(), existing);
     const { steps } = planImport(bundle(), existing, current);
     const outcome = await runImport(api, bundle(), steps, existing, () => undefined);
     return { calls, current, steps, outcome };
   }
 
-  it("loads only the bundle destinations that already exist", async () => {
+  it("loads only the bundle items that already exist", async () => {
     const { current, calls } = await plannedRun(() => STORED);
-    expect([...current.keys()]).toEqual(["cusco"]);
+    expect([...current.destinations.keys()]).toEqual(["cusco"]);
+    expect([...current.countries.keys()]).toEqual(["peru"]);
+    expect(current.categories.size).toBe(0);
+    expect(calls.filter((call) => call.path === "/categories")).toHaveLength(1);
     expect(calls.filter((call) => call.path.startsWith("/destinations/"))).toHaveLength(3);
   });
 
   it("re-reads the destination and replaces it with PUT when it has not changed since the check", async () => {
     const { calls, steps, outcome } = await plannedRun(() => STORED);
-    expect(steps.map((step) => step.action)).toEqual(["skip", "skip", "update", "create"]);
-    expect(outcome).toEqual({ states: ["skipped", "skipped", "updated", "created"], error: null });
+    expect(steps.map((step) => step.action)).toEqual(["unchanged", "unchanged", "update", "create"]);
+    expect(outcome).toEqual({ states: ["unchanged", "unchanged", "updated", "created"], error: null });
     const put = calls.find((call) => call.method === "PUT");
     expect(put?.path).toBe("/destinations/2");
     expect(put?.body).toMatchObject({ slug: "cusco", countryId: 1, attributeScores: [{ attributeId: 4, score: 4 }] });
@@ -182,14 +196,74 @@ describe("update mode", () => {
       reads += 1;
       return reads === 1 ? STORED : { ...STORED, updatedAt: "2026-10-24T04:00:00.000Z" };
     });
-    expect(outcome.states).toEqual(["skipped", "skipped", "failed", "pending"]);
+    expect(outcome.states).toEqual(["unchanged", "unchanged", "failed", "pending"]);
     expect(outcome.error).toBeInstanceOf(ImportConflictError);
     expect(calls.filter((call) => call.method !== "GET")).toEqual([]);
   });
 
   it("sends nothing for a destination that matches the file", async () => {
     const { calls, outcome } = await plannedRun(() => ({ ...STORED, attributeScores: [{ attributeId: 4, score: 4 }] }));
-    expect(outcome.states).toEqual(["skipped", "skipped", "unchanged", "created"]);
+    expect(outcome.states).toEqual(["unchanged", "unchanged", "unchanged", "created"]);
     expect(calls.filter((call) => call.method === "PUT")).toEqual([]);
+  });
+
+  it("re-reads the taxonomy list and replaces a country with PUT", async () => {
+    const renamed = { ...PERU, translations: { ja: { name: "ペルー共和国" } } };
+    const { calls, outcome } = await plannedRun(() => STORED, { ...LISTS, "/countries": { items: [renamed] } });
+    expect(outcome.states[0]).toBe("updated");
+    const put = calls.find((call) => call.method === "PUT");
+    expect(put).toEqual({ path: "/countries/1", method: "PUT", body: { slug: "peru", translations: { ja: { name: "ペルー" } } } });
+  });
+
+  it("stops when a country changed after the check", async () => {
+    let reads = 0;
+    const renamed = { ...PERU, translations: { ja: { name: "ペルー共和国" } } };
+    const { calls, outcome } = await plannedRun(() => STORED, {
+      ...LISTS,
+      "/countries": () => {
+        reads += 1;
+        return { items: [reads <= 2 ? renamed : { ...renamed, updatedAt: "2026-10-24T02:00:00.000Z" }] };
+      },
+    });
+    expect(outcome.states).toEqual(["failed", "pending", "pending", "pending"]);
+    expect(outcome.error).toBeInstanceOf(ImportConflictError);
+    expect(calls.filter((call) => call.method !== "GET")).toEqual([]);
+  });
+});
+
+describe("retryOnRateLimit", () => {
+  function failing(times: number, code: "rate_limited" | "internal_error" = "rate_limited") {
+    let calls = 0;
+    const api: AdminCall = <T,>() => {
+      calls += 1;
+      return calls <= times ? Promise.reject(new AdminApiError(code)) : Promise.resolve({ ok: true } as T);
+    };
+    return { api, count: () => calls };
+  }
+
+  it("waits and retries a rate-limited call, reporting the wait", async () => {
+    const { api, count } = failing(2);
+    const sleep = vi.fn(() => Promise.resolve());
+    const onWait = vi.fn();
+    await expect(retryOnRateLimit(api, onWait, sleep)("/countries")).resolves.toEqual({ ok: true });
+    expect(count()).toBe(3);
+    expect(sleep).toHaveBeenCalledWith(RATE_LIMIT_WAIT_MS);
+    expect(onWait.mock.calls).toEqual([[true], [false], [true], [false]]);
+  });
+
+  it("gives up after three retries", async () => {
+    const { api, count } = failing(10);
+    await expect(retryOnRateLimit(api, () => undefined, () => Promise.resolve())("/countries")).rejects.toMatchObject({
+      code: "rate_limited",
+    });
+    expect(count()).toBe(4);
+  });
+
+  it("does not retry other errors", async () => {
+    const { api, count } = failing(1, "internal_error");
+    const sleep = vi.fn(() => Promise.resolve());
+    await expect(retryOnRateLimit(api, () => undefined, sleep)("/countries")).rejects.toMatchObject({ code: "internal_error" });
+    expect(count()).toBe(1);
+    expect(sleep).not.toHaveBeenCalled();
   });
 });

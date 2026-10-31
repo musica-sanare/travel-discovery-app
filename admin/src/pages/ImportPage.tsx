@@ -1,4 +1,4 @@
-import { useId, useState, type SyntheticEvent } from "react";
+import { useId, useMemo, useState, type SyntheticEvent } from "react";
 import { useTranslation } from "react-i18next";
 import { adminApi } from "../api";
 import { ErrorBanner } from "../components/ErrorBanner";
@@ -13,8 +13,9 @@ import {
 } from "../import/bundle";
 import {
   ImportConflictError,
-  loadCurrentDestinations,
+  loadCurrent,
   loadExisting,
+  retryOnRateLimit,
   runImport,
   type StepState,
 } from "../import/runImport";
@@ -36,8 +37,8 @@ function formatValue(value: unknown, empty: string): string {
 /**
  * Imports a content bundle through the regular admin API (ADR-028): check
  * first (nothing is written), then create the new items one by one. In the
- * opt-in update mode, existing destinations that differ from the file are
- * shown field by field and replaced with `PUT`.
+ * opt-in update mode, existing items that differ from the file are shown field
+ * by field and replaced with `PUT`.
  */
 export function ImportPage() {
   const { t } = useTranslation();
@@ -50,6 +51,8 @@ export function ImportPage() {
   const [checkError, setCheckError] = useState<unknown>(null);
   const [states, setStates] = useState<StepState[] | null>(null);
   const [runError, setRunError] = useState<unknown>(null);
+  const [waiting, setWaiting] = useState(false);
+  const api = useMemo(() => retryOnRateLimit(adminApi, setWaiting), []);
 
   const reset = () => {
     setIssues([]);
@@ -69,8 +72,8 @@ export function ImportPage() {
     }
     setBusy("checking");
     try {
-      const existing = await loadExisting(adminApi);
-      const current = updateExisting ? await loadCurrentDestinations(adminApi, parsed.bundle, existing) : undefined;
+      const existing = await loadExisting(api);
+      const current = updateExisting ? await loadCurrent(api, parsed.bundle, existing) : undefined;
       const planned = planImport(parsed.bundle, existing, current);
       if (planned.issues.length > 0) {
         setIssues(planned.issues);
@@ -88,7 +91,7 @@ export function ImportPage() {
     if (!plan) return;
     setBusy("importing");
     setRunError(null);
-    const outcome = await runImport(adminApi, plan.bundle, plan.steps, plan.existing, setStates);
+    const outcome = await runImport(api, plan.bundle, plan.steps, plan.existing, setStates);
     setRunError(outcome.error);
     setBusy(null);
   };
@@ -209,7 +212,7 @@ export function ImportPage() {
             <>
               <h3>{t("import.changes")}</h3>
               {updates.map((step) => (
-                <details key={step.slug}>
+                <details key={`${step.kind}:${step.slug}`}>
                   <summary>
                     {t("import.changesOf", { item: label(step), count: step.changes.length })}
                     {step.changes.some((change) => change.path === "status") && (
@@ -254,6 +257,8 @@ export function ImportPage() {
           )}
         </>
       )}
+
+      {waiting && <p role="status">{t("import.rateLimitWait")}</p>}
 
       {plan && states && (
         <>
