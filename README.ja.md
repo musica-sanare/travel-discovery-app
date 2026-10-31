@@ -1,4 +1,4 @@
-<!-- source: README.md blob a7a1aa745668cafd6e37088f67379d902189ccbc -->
+<!-- source: README.md blob 762fbe30afba1a1b8813de86f4baad613b0cbe56 -->
 [English](README.md) | 日本語
 
 > この文書は[英語版](README.md)の翻訳です。内容が異なる場合は英語版が優先されます。
@@ -7,7 +7,7 @@
 
 Travel Discovery は、短く変化のあるクイズと任意の旅行の条件（日数、月、予算）から、都市・地域単位の海外の旅行先を推薦するレスポンシブな Web アプリです。診断は決定的で、AI なしで動きます。任意の AI ノートは既定で OFF で、順位を変えることはありません。結果には出典と日付を伴う目安の費用の範囲を表示し（リアルタイム価格ではありません）、航空券とホテルの検索にリンクします。UI は日本語・英語・スペイン語に対応し、既定は日本語です。
 
-**状態:** Phase 0〜14 は完了しています。プレビューと本番は `workers.dev` 上で AI を無効にして動いており、どちらも 11 の属性で採点した 23 か国・30 件の旅行先と、29 問のクイズの質問を提供しています。Phase 14 では、AI の上限と提供状況を UI に表示し、利用者ごとの厳密な回数制限を両方の環境にデプロイしました。本番で AI を有効にする手順は用意してありますが、オーナーが承認するまで AI は無効のままです（[Implementation plan](docs/working/IMPLEMENTATION_PLAN.md)、英語のみ）。ライセンスはまだ決めていません（[Public release checklist](docs/working/PUBLIC_RELEASE.md)、英語のみ）。
+**状態:** Phase 0〜15 は完了しています。プレビューと本番は `workers.dev` 上で AI を無効にして動いており、どちらも 11 の属性で採点した 23 か国・30 件の旅行先と、29 問のクイズの質問を提供しています。Phase 14 では、AI の上限と提供状況を UI に表示し、利用者ごとの厳密な回数制限を両方の環境にデプロイしました。Phase 15 では、有力な旅行先を見分けやすい質問をクイズが優先して出すようにしました。本番で AI を有効にする手順は用意してありますが、オーナーが承認するまで AI は無効のままです（[Implementation plan](docs/working/IMPLEMENTATION_PLAN.md)、英語のみ）。ライセンスはまだ決めていません（[Public release checklist](docs/working/PUBLIC_RELEASE.md)、英語のみ）。
 
 ## クイックスタート
 

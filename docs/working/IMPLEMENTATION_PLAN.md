@@ -279,7 +279,7 @@ Status: **complete (2026-10-31)**; every acceptance item is met ([DECISIONS.md](
 Open items for later phases, each needing the owner's decision or check:
 - Enabling AI on production with [DEPLOYMENT.md](../en/DEPLOYMENT.md) 7.3 (recommended after the December check).
 - Durable Object dashboard readings: 22 requests shown per object where 31 checks were made, rows written, and whether the Worker's request count includes the Durable Object calls (要確認).
-- Carried over: the trial's `en` rejection and the 400 request (要確認), why the first Phase 12 preview import did not reach the database (要確認), whether preview and production share the Neuron allowance (要確認), a manual retry for AI notes, an app-wide daily cap before any move to Workers Paid, Rome's top-5 share, discrimination-based question selection and early stopping, the preview seed data, and removing the overrides (ADR-030).
+- Carried over: the trial's `en` rejection and the 400 request (要確認), why the first Phase 12 preview import did not reach the database (要確認), whether preview and production share the Neuron allowance (要確認), a manual retry for AI notes, an app-wide daily cap before any move to Workers Paid, Rome's top-5 share, the preview seed data, and removing the overrides (ADR-030).
 - Still deferred: images, a dated exchange-rate table, the out-of-policy Access check, other empty costs and best months, and the pre-public-release checklist.
 - Dated, outside the phases: the Workers Logs and Billing check in the first week of December 2026 ([OPERATIONS.md](../en/OPERATIONS.md) section 3 "Dated").
 - Next: Phase 15 (discrimination-based question selection and early stopping, `prompts/15-question-selection-and-early-stopping.md`).
@@ -298,3 +298,19 @@ Acceptance:
 - Approved changes are implemented with tests, selection stays deterministic, and the owner approved a rendered review copy of any new texts in all three locales.
 - If code changed, it is deployed to preview and production with complete quizzes checked in all three locales and recorded in the "Phase 15 verification log".
 - `npm run check` and `npm run test:e2e` pass after any change, AI is disabled in every environment, and the account stays on Workers Free.
+
+Status: **complete (2026-10-31)**; every acceptance item is met ([DECISIONS.md](DECISIONS.md) "Phase 15 verification log"):
+- Baseline and method: random-answer variety as in Phase 13; an opt-in evaluation with simulated respondents who answer from a hidden profile (`npm run quiz:simulate`), approved by the owner before the comparison.
+- Comparison: discrimination-weighted selection raised the overlap with the respondents' ideal top 5 by 0.05–0.10 and lowered the fit loss by 0.29–0.42 points, consistently in both profile families and on both seeds; early stopping saved 0.1–0.8 questions on average and lowered quality.
+- Adopted and implemented (commit `47ea787`, ADR-031): discrimination-weighted selection; not adopted: early stopping. No UI text, setting, or migration changed.
+- Deployed with AI disabled to preview (`a378ee7d`) and production (`15c9fbe6`); `scripts/check-deployment.mjs` and complete quizzes in `ja`, `en`, and `es` passed on both.
+- `npm run check` (783 tests) and `npm run test:e2e` (64 passed) passed; no paid plan or feature was enabled.
+
+Open items for later phases, each needing the owner's decision or check:
+- Enabling AI on production with [DEPLOYMENT.md](../en/DEPLOYMENT.md) 7.3 (recommended after the December check).
+- Whether to ask 12 instead of 10 questions: the evaluation shows a gain similar to that of discrimination; a quiz-settings change in the admin console (owner).
+- The spread of top-5 shares widened slightly with discrimination (Rome lowest, 2.1% with random answers).
+- Carried over from Phase 14: the Durable Object dashboard readings, the trial's `en` rejection and the 400 request, the first Phase 12 preview import, Neuron sharing (all 要確認), a manual retry for AI notes, an app-wide daily cap, the preview seed data, and removing the overrides (ADR-030).
+- Still deferred: images, a dated exchange-rate table, the out-of-policy Access check, other empty costs and best months, and the pre-public-release checklist.
+- Dated, outside the phases: the Workers Logs and Billing check in the first week of December 2026 ([OPERATIONS.md](../en/OPERATIONS.md) section 3 "Dated").
+- Next: not planned yet (要確認: the owner chooses the next phase).
