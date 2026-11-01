@@ -6,10 +6,12 @@ Travel Discovery is a responsive web app that recommends overseas city/region-le
 
 ## Status
 
-- Phases 0–15 are complete.
-- Preview and production run on `workers.dev` with AI disabled. Both serve 30 destinations in 23 countries, scored on 11 attributes, and 29 quiz questions.
+- Phases 0–17 are complete.
+- Production runs on `workers.dev` with AI disabled and deploys through Cloudflare Workers Builds on each push to `main`. It serves 30 destinations in 23 countries, scored on 11 attributes, and 29 quiz questions.
 - Phase 14 made the AI limits and status visible in the UI and deployed the strict per-client AI quota to both environments.
 - Phase 15 made the quiz prefer questions that separate the likely destinations.
+- Phase 16 added sourced cost estimates: 10 destinations now have indicative costs in `JPY`, `USD`, and `EUR`.
+- Phase 17 added French to the UI and all published content.
 - The steps for enabling AI on production are prepared. AI stays disabled until the owner approves them ([Implementation plan](docs/working/IMPLEMENTATION_PLAN.md)).
 - No license has been chosen yet ([Public release checklist](docs/working/PUBLIC_RELEASE.md)).
 

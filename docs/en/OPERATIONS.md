@@ -100,7 +100,7 @@ This is any unauthenticated 200 from an admin URL. The admin API still answers 4
 5. Record the incident in [DECISIONS.md](../working/DECISIONS.md).
 
 ### 4.3 Wrong content published
-Archive or correct it in the admin console. To undo a larger mistake, restore the database with Time Travel (section 5).
+Archive or correct it in the admin console. To undo a bundle import, import the previous bundle from `content/` with "Update existing items". It overwrites the changed items and keeps the rest of the database, but it does not remove items the import created (archive those) or bring back values edited in the forms after that bundle. Restore the database with Time Travel (section 5) only when this cannot fix it.
 
 ### 4.4 AI problems or abuse (once AI is enabled)
 Stop AI with the kill switch ([AI_ENABLEMENT.md](AI_ENABLEMENT.md), ADR-026 E); the diagnosis keeps working. Stop when:
@@ -115,7 +115,7 @@ The previous version keeps serving; nothing is broken for users.
 4. No build starts, or the build minutes are used up: stop pushing. Never upgrade the plan to get builds back. Wait for the monthly reset, or deploy locally only by owner decision ([DEPLOYMENT.md](DEPLOYMENT.md) section 5 "Local deployment"). Record it in [DECISIONS.md](../working/DECISIONS.md).
 
 ## 5. Backups and restore
-- D1 Time Travel keeps 7 days on Workers Free. Before bulk content changes, record a bookmark in an owner session ([DEPLOYMENT.md](DEPLOYMENT.md) 3.1): `npx wrangler d1 time-travel info travel-discovery-production`.
+- D1 Time Travel keeps 7 days on Workers Free and can restore any point in that window by timestamp, so a content import needs no bookmark beforehand. The date of each import is in the verification logs; to restore, pick a time shortly before it. A bookmark is optional, for example when a session is logged in anyway (`npx wrangler d1 time-travel info travel-discovery-production`, owner session, [DEPLOYMENT.md](DEPLOYMENT.md) 3.1). Migrations still record one (DEPLOYMENT.md section 4).
 - A restore replaces the whole database and is destructive ([DEPLOYMENT.md](DEPLOYMENT.md) section 8). It always needs the owner's approval.
 - Optional SQL exports (`npx wrangler d1 export … --remote --output <file>`) stay outside the repository.
 
@@ -142,16 +142,13 @@ Volume (owner, dashboard, 2026-10-24; "Phase 9 verification log" in [DECISIONS.m
 ## 8. Publishing production content
 Content is entered only through the production admin console, either in the forms or on the **Import** page with a reviewed bundle from `content/` (ADR-028). `db/seed/dev.sql` is never loaded into production. The rules below come from [SPEC.md](SPEC.md), [DIAGNOSTIC_ALGORITHM.md](DIAGNOSTIC_ALGORITHM.md), and the admin validation (`server/admin/validation.ts`).
 
-Before:
-- Record a Time Travel bookmark (section 5).
-
 Importing a bundle (ADR-028):
 1. Open Import in the production admin console and load the file (for example `content/initial-v1.json`).
 2. Select "Check". The summary lists what will be created and what is skipped because the slug exists. Fix any reported problem in the file first.
 3. Select "Import" and wait for "The import is complete". If it stops, the message names the item and the reason. Fix the file, check again, and import again (created items are skipped).
 
 Updating existing items (ADR-028 "Update mode"):
-1. Record a Time Travel bookmark, open Import, load the file, and select **Update existing items** before "Check".
+1. Open Import, load the file, and select **Update existing items** before "Check".
 2. Read the "Changes" of every item to update.
    - Each country, attribute, category, destination, and question is replaced entirely by the file, so a value changed in the forms since the file was written is overwritten. Fix the file first if that change must stay.
    - Treat a highlighted change of the publication status as a mistake unless it is intended.
@@ -181,7 +178,7 @@ Each published item:
 After:
 - Run the checks of section 3 for production.
 - Go through the public site in `ja`, `en`, `es`, and `fr` on a phone-sized and a desktop window: quiz to results, back/edit/restart, cost basis and date, the AI-unavailable notice, and the outbound search links.
-- Record a new Time Travel bookmark.
+- Record the import and its date in the phase's verification log. If something is wrong, undo it as in section 4.3.
 
 ## 9. Open items
 - **Rejection of an address outside the Access policy:** not checked. It needs a second Cloudflare account, which the owner postponed (2026-10-24).

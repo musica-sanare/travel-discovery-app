@@ -1,4 +1,4 @@
-<!-- source: docs/en/OPERATIONS.md blob 78d3286ac61c2c6952abd8de9f65df00d5733dbb -->
+<!-- source: docs/en/OPERATIONS.md blob f04f88cd1cdaa0a2a9eb6e1769bc63c0edc06045 -->
 [English](../en/OPERATIONS.md) | 日本語 · [目次に戻る](README.md)
 
 > この文書は[英語版](../en/OPERATIONS.md)の翻訳。内容が異なる場合は英語版が優先する。
@@ -103,7 +103,7 @@ AI が無効でもレート制限の行が出ることがある。Phase 11 か�
 5. インシデントを [DECISIONS.md](../working/DECISIONS.md)（英語のみ）に記録する。
 
 ### 4.3 誤ったコンテンツを公開した
-管理コンソールでアーカイブするか直す。大きな誤りを取り消すには、Time Travel でデータベースを復元する（5 節）。
+管理コンソールでアーカイブするか直す。バンドルのインポートを取り消すには、`content/` にある一つ前のバンドルを「Update existing items」で取り込む。変わった項目だけが上書きされ、データベースのほかの部分はそのまま残る。ただし、インポートで作られた項目は消えない（アーカイブする）。そのバンドルより後にフォームで直した値も戻らない。これで直せないときだけ、Time Travel でデータベースを復元する（5 節）。
 
 ### 4.4 AI の問題や悪用（AI を有効にした後）
 停止スイッチで AI を止める（[AI_ENABLEMENT.md](AI_ENABLEMENT.md)、ADR-026 E）。診断は動き続ける。止めるのは次のとき:
@@ -118,7 +118,7 @@ AI が無効でもレート制限の行が出ることがある。Phase 11 か�
 4. ビルドが始まらない、またはビルド時間を使い切った: push を止める。ビルドを取り戻すためにプランを上げることは決してしない。月のリセットを待つか、オーナーの判断でだけローカルからデプロイする（[DEPLOYMENT.md](DEPLOYMENT.md) 5 節「ローカルからのデプロイ」）。[DECISIONS.md](../working/DECISIONS.md)（英語のみ）に記録する。
 
 ## 5. バックアップと復元
-- D1 の Time Travel は、Workers Free では 7 日分を保持する。コンテンツをまとめて変える前に、オーナーのセッション（[DEPLOYMENT.md](DEPLOYMENT.md) 3.1）でブックマークを記録する: `npx wrangler d1 time-travel info travel-discovery-production`。
+- D1 の Time Travel は、Workers Free では 7 日分を保持し、その間の任意の時点に時刻を指定して戻せる。そのため、コンテンツのインポートの前にブックマークを取らなくてよい。インポートした日は各フェーズの検証ログに残るので、戻すときはその少し前の時刻を選ぶ。ブックマークは任意で、例えばどうせログインしているセッションで取ればよい（`npx wrangler d1 time-travel info travel-discovery-production`、オーナーのセッション、[DEPLOYMENT.md](DEPLOYMENT.md) 3.1）。マイグレーションでは引き続き記録する（DEPLOYMENT.md 4 節）。
 - 復元はデータベース全体を置き換える破壊的な操作だ（[DEPLOYMENT.md](DEPLOYMENT.md) 8 節）。必ずオーナーの承認が要る。
 - 任意の SQL のエクスポート（`npx wrangler d1 export … --remote --output <file>`）は、リポジトリの外に置く。
 
@@ -145,16 +145,13 @@ AI が無効でもレート制限の行が出ることがある。Phase 11 か�
 ## 8. 本番のコンテンツの公開
 コンテンツは本番の管理コンソールからだけ入れる。フォームで入力するか、`content/` にある確認済みのバンドルを **Import** ページで取り込む（ADR-028）。`db/seed/dev.sql` は本番に決して読み込まない。以下のルールは [SPEC.md](SPEC.md)、[DIAGNOSTIC_ALGORITHM.md](DIAGNOSTIC_ALGORITHM.md)、管理画面の検証（`server/admin/validation.ts`）に基づく。
 
-事前:
-- Time Travel のブックマークを記録する（5 節）。
-
 バンドルのインポート（ADR-028）:
 1. 本番の管理コンソールで Import を開き、ファイル（例えば `content/initial-v1.json`）を読み込む。
 2. 「Check」を選ぶ。概要に、作られるものと、スラッグがすでにあるので飛ばすものが並ぶ。問題が出たら、先にファイルを直す。
 3. 「Import」を選び、「The import is complete」と出るまで待つ。途中で止まったら、メッセージに項目と理由が出る。ファイルを直し、もう一度チェックしてインポートし直す（作成済みの項目は飛ばされる）。
 
 既存の項目の更新（ADR-028「Update mode」）:
-1. Time Travel のブックマークを記録し、Import を開いてファイルを読み込み、「Check」の前に **Update existing items** を選ぶ。
+1. Import を開いてファイルを読み込み、「Check」の前に **Update existing items** を選ぶ。
 2. 更新する項目すべての「Changes」を読む。
    - 国、属性、カテゴリー、旅行先、質問は、どれもファイルの内容で丸ごと置き換わる。ファイルを書いた後にフォームで変えた値は上書きされるので、残したい変更があれば先にファイルを直す。
    - 公開状態の変更が強調表示されていたら、意図したものでない限り誤りとして扱う。
@@ -184,7 +181,7 @@ AI が無効でもレート制限の行が出ることがある。Phase 11 か�
 事後:
 - 本番について 3 節のチェックを実行する。
 - スマートフォン大とデスクトップのウィンドウで、公開サイトを `ja`、`en`、`es`、`fr` で確かめる: クイズから結果まで、戻る・直す・やり直す、費用の基準と日付、AI が使えない旨の通知、外部の検索リンク。
-- 新しい Time Travel のブックマークを記録する。
+- インポートしたことと日付を、そのフェーズの検証ログに記録する。問題があれば 4.3 節のとおりに取り消す。
 
 ## 9. 未解決の項目
 - **Access のポリシー外のアドレスが拒否されること:** 未確認。2 つ目の Cloudflare アカウントが要り、オーナーが先送りにした（2026-10-24）。

@@ -322,15 +322,21 @@ Open items for later phases, each needing the owner's decision or check:
 Owner decision (2026-10-31): after Phase 15 and Phase 17 (French locale, done first by owner decision of the same day), extend the sourced cost estimates and best months, because only 8 of 30 destinations have a cost estimate and 18 have best months, so the budget and season notes are `unknown` for most destinations. Enabling AI on production follows in a later phase, after the December Workers Logs and Billing check. Documentation fixes are done separately before this phase.
 - Inventory the gaps per destination with the rule that excluded each one in Phases 8, 9, and 13.
 - Re-check sources within the current rules, time-boxed; propose rule options (for example converted `USD` and `EUR` estimates for `AUD` and `NZD` sources) for the owner's decision before adding values.
-- Add only sourced values in `content/initial-v8.json` with a rendered review copy in all four locales; import on preview, then production, with Time Travel bookmarks.
+- Add only sourced values in `content/initial-v8.json` with a rendered review copy in all four locales; rehearse the import locally, then import on production (amended 2026-11-01: the preview environment was removed, ADR-033, and imports need no bookmark, OPERATIONS.md section 5).
 - Not in this phase: new destinations, attributes, or questions; score or effect changes; the number of questions; production AI; images; the out-of-policy Access check; removing the overrides (ADR-030); and the pre-public-release checklist.
 
 Acceptance:
 - The gap inventory and re-check are recorded, and the owner decided on each rule option before any value was added.
 - Every new value has a cited source that meets the approved rules; items without one stay empty.
 - `content/initial-v8.json` differs from `initial-v7.json` only by the approved values, and the owner approved the rendered review copy.
-- The bundle is imported on preview and production with bookmarks, matches `/api/diagnosis-content` in all four locales, and complete quizzes with `JPY`, `USD`, and `EUR` budgets pass on both.
+- The bundle is imported in a local rehearsal and on production, matches `/api/diagnosis-content` in all four locales, and complete quizzes with `JPY`, `USD`, and `EUR` budgets pass on both.
 - `npm run check` passes (and `npm run test:e2e` if code changed), AI is disabled in every environment, and the account stays on Workers Free.
+
+Status: **complete (2026-11-01)**; every acceptance item, as amended on 2026-11-01, is met ([DECISIONS.md](DECISIONS.md) "Phase 16 verification log"):
+- Rules: every destination with an estimate has `JPY`, `USD`, and `EUR`, converted at cited official annual average rates where the source uses another currency (ADR-008 update); Santorini and Bali use wider-area official figures stated in the basis.
+- Content: `content/initial-v8.json` adds 17 cost estimates to `initial-v7.json`; 10 of 30 destinations have estimates (8 before), and no budget is `incomparable`. Best months are unchanged. Seoul stays empty (要確認: its 2025 report).
+- Rollout: a local rehearsal replaced preview (ADR-033). Production already matched the bundle; `/api/diagnosis-content` matches in all four locales, and complete quizzes with `JPY`, `USD`, and `EUR` budgets pass locally and on production. Imports no longer need a Time Travel bookmark ([OPERATIONS.md](../en/OPERATIONS.md) section 5).
+- No code changed; `npm run check` passed, AI is disabled, and the account stays on Workers Free.
 
 ## Phase 17 — French locale
 Owner decision (2026-10-31): add French (`fr`) to the public UI, the admin UI, and all published content, before Phase 16. Started with the shared `add-ui-locale` task prompt; the plan below was approved by the owner on the same day (ADR-032).

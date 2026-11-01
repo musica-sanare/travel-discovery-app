@@ -1,4 +1,4 @@
-<!-- source: README.md blob f3695f9769c637d78cce8340a464d8f3088f5d99 -->
+<!-- source: README.md blob c3b2a878994a23464839ff5b3bfa50e126a02d26 -->
 [English](README.md) | 日本語
 
 > この文書は[英語版](README.md)の翻訳。内容が異なる場合は英語版が優先する。
@@ -9,10 +9,12 @@ Travel Discovery は、都市・地域単位の海外の旅行先を推薦する
 
 ## 状態
 
-- Phase 0〜15 は完了。
-- プレビューと本番は `workers.dev` 上で AI を無効にして動いている。どちらも 23 か国・30 件の旅行先（11 の属性で採点）と、29 問のクイズの質問を提供している。
+- Phase 0〜17 は完了。
+- 本番は `workers.dev` 上で AI を無効にして動いている。`main` に push するたびに Cloudflare Workers Builds がデプロイする。23 か国・30 件の旅行先（11 の属性で採点）と、29 問のクイズの質問を提供している。
 - Phase 14 で、AI の上限と提供状況を UI に表示し、利用者ごとの厳密な AI の回数制限を両方の環境にデプロイした。
 - Phase 15 で、有力な旅行先を見分けやすい質問をクイズが優先して出すようにした。
+- Phase 16 で、出典つきの費用の目安を増やした。10 件の旅行先で `JPY`・`USD`・`EUR` の目安を出せる。
+- Phase 17 で、UI と公開中のすべてのコンテンツにフランス語を加えた。
 - 本番で AI を有効にする手順は用意してある。オーナーが承認するまで AI は無効のまま（[Implementation plan](docs/working/IMPLEMENTATION_PLAN.md)、英語のみ）。
 - ライセンスはまだ決めていない（[Public release checklist](docs/working/PUBLIC_RELEASE.md)、英語のみ）。
 
