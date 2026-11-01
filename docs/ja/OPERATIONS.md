@@ -1,4 +1,4 @@
-<!-- source: docs/en/OPERATIONS.md blob f04f88cd1cdaa0a2a9eb6e1769bc63c0edc06045 -->
+<!-- source: docs/en/OPERATIONS.md blob 293f7115e48c3fecf92a8b67a550f17ad246dbc8 -->
 [English](../en/OPERATIONS.md) | 日本語 · [目次に戻る](README.md)
 
 > この文書は[英語版](../en/OPERATIONS.md)の翻訳。内容が異なる場合は英語版が優先する。
@@ -185,11 +185,7 @@ AI が無効でもレート制限の行が出ることがある。Phase 11 か�
 
 ## 9. 未解決の項目
 - **Access のポリシー外のアドレスが拒否されること:** 未確認。2 つ目の Cloudflare アカウントが要り、オーナーが先送りにした（2026-10-24）。
-- **`AI_CLIENT_RATE_LIMITER` の 429 の応答。** 現在の状態（2026-10-31、Phase 14）: Durable Object による利用者ごとの厳密な上限（ADR-029）を本番にデプロイし（バージョン `cc06950d`）、そこでリミッターの確認に合格した（「Phase 14 verification log」）。本番で AI を有効にするかは、オーナーが別に判断する（ADR-026「Readiness for enabling AI」）。経緯:
-  - 2026-10-25、プレビューでの AI 試行: 429 は出なかった（同じアドレスから 15 回送り、すべて 400。[DECISIONS.md](../working/DECISIONS.md)（英語のみ）「Phase 10 verification log」）。原因は要確認。これが本番で AI を有効にすることを止めている（ADR-026「Readiness for enabling AI」）。
-  - 2026-10-25、Phase 11: IPv4 と IPv6 でキーが分かれる可能性と、Workers Free でバインディングが使えない可能性は否定された。リミッターは停止スイッチより先に動くようにした。
-  - プレビューで AI を無効にしたままの確認（[AI_ENABLEMENT.md](AI_ENABLEMENT.md) 3 節、2026-10-25）では、1 本の接続では 6 回送った後に 429 を返したが、毎回新しい接続を開いた 15 回では 1 度も返さなかった。つまり、クライアントはバインディングを回避できる。
-  - オーナーは Durable Object による利用者ごとの厳密な上限を選んだ（ADR-029、2026-10-25）。そのプレビューでの確認（[AI_ENABLEMENT.md](AI_ENABLEMENT.md) 3 節、2026-10-25）では、1 本の接続でも新しい接続でも、ちょうど 5 回通した後に 429 を返した（「Phase 11 verification log」）。
+- **Workers Free のビルド時間:** 月 3,000 分のビルド時間を使い切ったときに、ビルドが止まるのか課金されるのかは、Workers Builds の制限のページに書かれていない（2026-11-01 に再確認、ページの更新は 2026-10-28）。課金の可能性があるものとして扱う。毎月残りを確かめ（3 節）、上限が近づいたら `main` への push を止める。プランは上げない。
 - **2026-12-01 の Cloudflare Observability の料金変更後のログの取り込み量:** 2026 年 12 月第 1 週に一度確かめる（3 節「日付の決まったもの」）。変更前の量は 2026-10-24 に記録した（7 節）。
 
 ## 10. 課金が始まる操作

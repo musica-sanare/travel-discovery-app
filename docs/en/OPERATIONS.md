@@ -182,11 +182,7 @@ After:
 
 ## 9. Open items
 - **Rejection of an address outside the Access policy:** not checked. It needs a second Cloudflare account, which the owner postponed (2026-10-24).
-- **The 429 response of `AI_CLIENT_RATE_LIMITER`.** Current state (2026-10-31, Phase 14): the strict per-client quota in a Durable Object (ADR-029) is deployed to production (version `cc06950d`), where the limiter check passed ("Phase 14 verification log"). Enabling AI on production is a separate owner decision (ADR-026 "Readiness for enabling AI"). History:
-  - 2026-10-25, preview AI trial: no 429 was observed (15 requests from one address, all 400; "Phase 10 verification log" in [DECISIONS.md](../working/DECISIONS.md)); cause 要確認. This blocks enabling AI on production (ADR-026 "Readiness for enabling AI").
-  - 2026-10-25, Phase 11: different keys for IPv4 and IPv6 and the binding being unavailable on Workers Free were ruled out. The limiter now runs before the kill switch.
-  - The check with AI disabled on preview ([AI_ENABLEMENT.md](AI_ENABLEMENT.md) section 3, 2026-10-25) returned 429 after six requests on one connection, but none for 15 requests that each opened a new connection. So a client can bypass the binding.
-  - The owner chose a strict per-client quota in a Durable Object (ADR-029, 2026-10-25). Its preview check ([AI_ENABLEMENT.md](AI_ENABLEMENT.md) section 3, 2026-10-25) let exactly five requests pass on one connection and on new connections alike, then answered 429 ("Phase 11 verification log").
+- **Build minutes on Workers Free:** what happens when the 3,000 monthly build minutes run out (builds stop, or a charge) is not stated on the Workers Builds limits page (re-read 2026-11-01, page updated 2026-10-28). Treated as possibly billing: watch the minutes monthly (section 3) and stop pushing to `main` near the limit, never upgrade.
 - **Log ingestion after the Cloudflare Observability pricing change of 2026-12-01:** check once in the first week of December 2026 (section 3 "Dated"). The volume before the change was recorded on 2026-10-24 (section 7).
 
 ## 10. Actions that start charges
