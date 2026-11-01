@@ -1398,6 +1398,23 @@ Order proposed: preview trial ([DEPLOYMENT.md](../en/DEPLOYMENT.md) 7.1) → sep
   - Whether a narrower custom token (for example without D1, AI, storage, and zone permissions) would work; the generated token is used until the owner decides. Whether the token could create a usage-billed resource on this Workers Free account is not known; the build commands create none.
   - Resolved 2026-10-31: the `CLOUDFLARE_ENV=production` prefix works in the build command (the builds deployed the production bindings); the flattened configs carry the expected Worker names (local build); choosing `dev` as a production branch is no longer needed.
 
+## ADR-034: Public hostname on musica-sanare.com
+- Status: **Accepted** (owner, 2026-11-01). Configured in this repository; the hostname is attached by the deployment of the owner's next push to `main`. Until the checks below pass, the registry of `musica-sanare-home` lists it as `planned`.
+- Context: the owner serves the hub page, the artist page, and every web app under the domain `musica-sanare.com`. The `musica-sanare-home` repository owns the hostname rules and the registry (its `docs/en/DOMAINS.md`); app repositories record only their own decision. The public site so far ran only on `workers.dev`, which Cloudflare recommends for personal or hobby use ("Phase 0 verification log").
+- Decision:
+  - The public Worker `travel-discovery` serves **`travel-discovery.apps.musica-sanare.com`**, the name the hub's rule `<full-app-name>.apps.musica-sanare.com` gives the product name in full.
+  - It is attached as a **Workers Custom Domain**, through `routes` with `"custom_domain": true` in `env.production` of `wrangler.jsonc`, so the config stays the source of truth and each Workers Builds deployment applies it. No DNS record is created by hand for it.
+  - `workers_dev` stays `true` on the public Worker, so that earlier links keep working. Both URLs serve the same Worker and the same data.
+  - The admin Worker gets no custom domain and stays on `workers.dev` behind Worker-level Access (ADR-004).
+  - `scripts/check-deployment.mjs` checks the public Worker on the custom domain, plus `/api/health` on its `workers.dev` URL.
+- Verified facts:
+  - Universal SSL covers only the apex and first-level subdomains; a Workers Custom Domain gets its own certificate, also for multi-level subdomains, with no Advanced Certificate Manager subscription, and cannot be created on a hostname that already has a CNAME record ([Universal SSL limitations](https://developers.cloudflare.com/ssl/edge-certificates/universal-ssl/limitations/), [Custom Domains](https://developers.cloudflare.com/workers/configuration/routing/custom-domains/), read 2026-11-01).
+  - The documented build token includes Workers Routes edit for all zones ([Builds configuration](https://developers.cloudflare.com/workers/ci-cd/builds/configuration/), updated 2026-09-22). The hub Worker of `musica-sanare-home` attached the apex the same way through its Workers Builds deployment, and its registry lists the apex as `live` (2026-11-01).
+  - The app needs no code change: the AI endpoint compares `Origin` with the request's own origin (`hasSameOrigin` in `server/http/request.ts`), and the app sets no canonical URL, `og:url`, CORS origin, or callback URL.
+- Cost: Workers Free; the zone is on the Free plan (owner, 2026-11-01). No Cloudflare page lists a fee for Workers Custom Domains, but none states that they are free. The owner checks Billing the day after the deployment ([DEPLOYMENT.md](../en/DEPLOYMENT.md) "5.1 Public hostname").
+- Alternatives considered: disabling `workers.dev` on the public Worker (one URL only; rejected for now, because earlier links would break); a first-level hostname such as `travel-discovery.musica-sanare.com` (rejected by the hub's rules, which keep apps under `apps.`).
+- Open (要確認): whether the attachment succeeds through the generated build token with the zone's current DNS records, and whether Billing stays unchanged. Both are checked after the owner's push; then the hub's registry row becomes `live`.
+
 ## Admin authentication status (2026-10-17)
 
 Separates what exists today from what is only designed, so nothing is claimed as protected before it is.

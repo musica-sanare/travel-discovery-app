@@ -1,4 +1,4 @@
-<!-- source: docs/en/DEPLOYMENT.md blob 554c046d04521e99feacfc241ac37272d276137d -->
+<!-- source: docs/en/DEPLOYMENT.md blob 6e544f67d936779a51de024392c39f122b6132ce -->
 [English](../en/DEPLOYMENT.md) | 日本語 · [目次に戻る](README.md)
 
 > この文書は[英語版](../en/DEPLOYMENT.md)の翻訳。内容が異なる場合は英語版が優先する。
@@ -32,6 +32,7 @@ Cloudflare 上の本番の Worker について、準備、マイグレーショ�
 - 2026-10-18 から 2026-10-31 までは `preview` 環境（`travel-discovery-preview`、`travel-discovery-admin-preview`、データベース `travel-discovery-preview`）もあった。用途はローカルのチェックと本番のチェックで足りるので外した（ADR-033「Amendment 2026-10-31」）。Cloudflare 上のリソースはオーナーが消す（3.7）。
 - 本番の前の確認はローカルで行う。`npm run check`、`npm run test:e2e`、危ないマイグレーションでは本番のローカルコピーでのリハーサルだ（4 節）。
 - Worker の名前で `workers.dev` の URL（`<worker>.<account subdomain>.workers.dev`）が決まる。
+- 公開 Worker は `travel-discovery.apps.musica-sanare.com` でも配信する。Workers のカスタムドメインとして付ける（ADR-034、5.1）。管理 Worker にカスタムドメインはない。
 - トップレベルの設定はローカル専用のまま。`npm run dev`、テスト、E2E が使う。
 - `wrangler.admin.jsonc` の `env.e2e` はローカルのテスト用で、決してデプロイしない。
 
@@ -99,6 +100,7 @@ npx wrangler d1 create travel-discovery-production
   - `"workers_dev": true` と `"preview_urls": false`。ダッシュボードの設定が黙ってずれないよう、明示的に書く。
   - `upload_source_maps`。
 - **公開 Worker:**
+  - `routes` に `{ "pattern": "travel-discovery.apps.musica-sanare.com", "custom_domain": true }`（ADR-034）。`workers_dev` は `true` のままなので、`workers.dev` の URL も使い続けられる。
   - `ai` バインディング。
   - `vars` の `AI_ASSIST_ENABLED: "false"` と `AI_MODEL: "@cf/google/gemma-4-26b-a4b-it"`。
   - `ratelimits` バインディング `AI_CLIENT_RATE_LIMITER`（`simple: { limit: 5, period: 60 }`）。
@@ -333,6 +335,24 @@ npx wrangler deploy --dry-run --config dist-admin/admin_worker/wrangler.json
 
 **ローカルからのデプロイ（例外）。** このマシンからデプロイするのは、まだつなげない新しい Worker（3.4）か、Workers Builds がデプロイできず（障害やビルド時間の使い切りなど）オーナーがそう決めて [DECISIONS.md](../working/DECISIONS.md)（英語のみ）に記録したときだけだ。オーナーのセッション（3.1）で、上のとおりビルドし、同じコマンドから `--dry-run` を外してデプロイし、確かめて（6 節）、ログアウトする。
 
+### 5.1 公開ホスト名
+公開 Worker のカスタムドメイン `travel-discovery.apps.musica-sanare.com` は、`wrangler.jsonc` の `env.production` にある `routes` から付く（ADR-034）。Workers Builds がデプロイするたびにこの設定を反映するので、DNS レコードを手で作ることはない。ホスト名は `musica-sanare-home` リポジトリのドメイン方針に従っていて、その台帳に載っている。
+
+> [!WARNING]
+> `travel-discovery.apps.musica-sanare.com` の DNS レコードを手で作らない。2 階層目のホスト名は Universal SSL の対象外で、既存のレコードがあるとカスタムドメインを付けられない。
+
+最初に付けるとき（オーナーの作業、1 回だけ）:
+1. push の前に、ゾーンの DNS レコードに `travel-discovery.apps.musica-sanare.com` のレコードがないことを確かめる。
+2. ルートを足したコミットを、セクション 5 の手順 1〜4 で push する。`travel-discovery` のデプロイでカスタムドメインが付く。
+3. 両方のビルドが終わったら:
+   - `travel-discovery` のビルドログで、デプロイされたトリガーにカスタムドメインが出ている *（要確認: 正確な表記）*。
+   - `https://travel-discovery.apps.musica-sanare.com/` が有効な証明書でアプリを開く。
+   - Worker の Settings → Domains & Routes にこのホスト名がカスタムドメインとして出ていて、`workers.dev` も有効のままだ。
+   - `travel-discovery-admin` にはカスタムドメインがない。
+   - セクション 6 が通る。
+4. 翌日に Billing を開き、新しい請求がないことを確かめる。請求があれば、`routes` の項目を消して同じ手順で push する。それでも残るなら Domains & Routes でカスタムドメインを外し *（要確認: 項目を消したデプロイで外れるか）*、[DECISIONS.md](../working/DECISIONS.md)（英語のみ）に記録する。
+5. 結果を ADR-034 に記録し、`musica-sanare-home` の台帳でこのホスト名を `live` にする（そのリポジトリの `prompts/publish-app-on-domain.md` の Phase B）。
+
 ## 6. 各デプロイ後のチェック
 下の認証なしのチェックは自動化してある:
 
@@ -340,7 +360,7 @@ npx wrangler deploy --dry-run --config dist-admin/admin_worker/wrangler.json
 node scripts/check-deployment.mjs <account subdomain> production
 ```
 
-管理 Worker をデプロイした後は `--watch-admin 120` を足す。日々の監視、定期チェック、インシデント対応は [OPERATIONS.md](OPERATIONS.md) にある。
+このスクリプトは、公開 Worker を `travel-discovery.apps.musica-sanare.com` で確かめ、`/api/health` だけ `workers.dev` の URL でも確かめる。アカウントのサブドメインは、そのチェックと管理 Worker のチェックに使う。管理 Worker をデプロイした後は `--watch-admin 120` を足す。日々の監視、定期チェック、インシデント対応は [OPERATIONS.md](OPERATIONS.md) にある。
 
 次の項目は、デプロイした Worker でしか確かめられない（[DECISIONS.md](../working/DECISIONS.md)（英語のみ）の「Admin authentication status」と検証ログより）:
 - 管理用のすべての URL（`workers.dev`、ルート、カスタムドメイン）が、未ログインなら Access のログインにリダイレクトする。管理の静的アセットにも、ログインなしでは届かない。

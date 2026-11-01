@@ -42,6 +42,9 @@
       // Owner decision (2026-10-18): production keeps the top-level Worker name
       // instead of the default "travel-discovery-production".
       "name": "travel-discovery",
+      // Public hostname under the musica-sanare-home domain plan (ADR-034).
+      // workers.dev stays enabled so that earlier links keep working.
+      "routes": [{ "pattern": "travel-discovery.apps.musica-sanare.com", "custom_domain": true }],
       "workers_dev": true,
       "preview_urls": false,
       "upload_source_maps": true,

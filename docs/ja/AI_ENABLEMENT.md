@@ -1,4 +1,4 @@
-<!-- source: docs/en/AI_ENABLEMENT.md blob 0e50b705c9b7b89e9b61dcba42734fc8aa6f359d -->
+<!-- source: docs/en/AI_ENABLEMENT.md blob 84547a8e213b762d6717a9e4c59ce1e264b92892 -->
 [English](../en/AI_ENABLEMENT.md) | 日本語 · [目次に戻る](README.md)
 
 > この文書は[英語版](../en/AI_ENABLEMENT.md)の翻訳。内容が異なる場合は英語版が優先する。
@@ -124,13 +124,13 @@
 3. 実行 A、接続 1 本: 1 回の `curl` で 15 リクエストを送り、接続を使い回す（`num_connects` は最初のリクエストが 1、残りは 0）。`-4` でリクエストを IPv4 にそろえ、同じキーを共有させる:
 
    ```bash
-   URL=https://travel-discovery.<account subdomain>.workers.dev; args=(); for i in $(seq 1 15); do args+=("$URL/api/ai/explanations" -o /dev/null); done; curl -4 -s -X POST -H "Origin: $URL" -H "Content-Type: application/json" --data "{}" -w "%{http_code} %{num_connects}\n" "${args[@]}"
+   URL=https://travel-discovery.apps.musica-sanare.com; args=(); for i in $(seq 1 15); do args+=("$URL/api/ai/explanations" -o /dev/null); done; curl -4 -s -X POST -H "Origin: $URL" -H "Content-Type: application/json" --data "{}" -w "%{http_code} %{num_connects}\n" "${args[@]}"
    ```
 
 4. 60 秒以上待ってから、実行 B。リクエストごとに新しい接続を使う:
 
    ```bash
-   URL=https://travel-discovery.<account subdomain>.workers.dev; for i in $(seq 1 15); do curl -4 -s -o /dev/null -X POST -H "Origin: $URL" -H "Content-Type: application/json" --data "{}" -w "%{http_code} %{num_connects}\n" "$URL/api/ai/explanations"; done
+   URL=https://travel-discovery.apps.musica-sanare.com; for i in $(seq 1 15); do curl -4 -s -o /dev/null -X POST -H "Origin: $URL" -H "Content-Type: application/json" --data "{}" -w "%{http_code} %{num_connects}\n" "$URL/api/ai/explanations"; done
    ```
 
 5. 60 秒以上待ってから、`node scripts/check-deployment.mjs <account subdomain> production` を実行する。この AI のチェックは 503 と、Phase 14 からは `GET /api/ai/status` が `{"enabled":false}` を返すことを期待する。

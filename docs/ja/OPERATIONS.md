@@ -1,4 +1,4 @@
-<!-- source: docs/en/OPERATIONS.md blob 293f7115e48c3fecf92a8b67a550f17ad246dbc8 -->
+<!-- source: docs/en/OPERATIONS.md blob 5e55c4cef5c800a03a6dbbeb947f934e5cb258ca -->
 [English](../en/OPERATIONS.md) | 日本語 · [目次に戻る](README.md)
 
 > この文書は[英語版](../en/OPERATIONS.md)の翻訳。内容が異なる場合は英語版が優先する。
@@ -10,7 +10,7 @@
 > [!WARNING]
 > `main` への push は本番にデプロイする。`dev` への push では CI だけが走る（[DEPLOYMENT.md](DEPLOYMENT.md) 5 節）。リモートでの Wrangler のコマンド、ロールバック、復元、アカウントや Access の変更は、どれもオーナーの手順だ。ダッシュボードでの作業と、`npx wrangler logout` で終えるオーナーのセッション（[DEPLOYMENT.md](DEPLOYMENT.md) 3.1）で行う。Claude は用意するが、自分では実行しない。
 
-最終確認日: 2026-10-31。
+最終確認日: 2026-11-01。
 
 ## 1. 何がどこで動いているか
 
@@ -19,6 +19,7 @@
 | `production` | `main` | `travel-discovery` | `travel-discovery-admin` | `travel-discovery-production` |
 
 - 両方の Worker が Workers Builds でこのリポジトリにつながり（[DEPLOYMENT.md](DEPLOYMENT.md) 3.6）、`workers.dev`（`<worker>.<account subdomain>.workers.dev`）を使う。
+- 公開サイトのアドレスは `https://travel-discovery.apps.musica-sanare.com` だ。公開 Worker の Workers カスタムドメインとして付いている（[DEPLOYMENT.md](DEPLOYMENT.md) 5.1、ADR-034）。`workers.dev` の URL も使える。管理 Worker にカスタムドメインはない。
 - プレビュー環境は 2026-10-31 に外し、同じ日にオーナーがその Worker、Access アプリケーション、データベースを消した（[DEPLOYMENT.md](DEPLOYMENT.md) 3.7）。
 - アカウントは Workers Free と Zero Trust Free。AI は無効。
 - 無料枠の上限は、このアカウントのほかのプロジェクトも含めてアカウント全体で共有する（[DEPLOYMENT.md](DEPLOYMENT.md) 9 節）。
@@ -51,7 +52,7 @@ AI が無効でもレート制限の行が出ることがある。Phase 11 か�
 
 **毎週と、Access タブ、Zero Trust のポリシー、アカウントのサブドメインを変えた後:**
 - 認証なしのチェックを実行する。どれかが失敗するとスクリプトは 1 で終わる。確かめる内容:
-  - すべてのロケールでの公開 API と、セキュリティヘッダー
+  - カスタムドメインでの、すべてのロケールの公開 API とセキュリティヘッダー。公開の `workers.dev` の URL での `/api/health`
   - AI が無効の間の、AI エンドポイントと AI の状態（`{"enabled":false}`）
   - 管理 Worker の `/`、`/destinations`、`/api/admin/me` の Access のリダイレクト（`https://<team>.cloudflareaccess.com/...` への 302）
 

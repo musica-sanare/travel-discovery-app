@@ -121,13 +121,13 @@ Steps:
 3. Run A, one connection: 15 requests in one `curl` call, which reuses the connection (`num_connects` is 1 for the first request and 0 for the others). `-4` keeps the requests on IPv4, so they share one key:
 
    ```bash
-   URL=https://travel-discovery.<account subdomain>.workers.dev; args=(); for i in $(seq 1 15); do args+=("$URL/api/ai/explanations" -o /dev/null); done; curl -4 -s -X POST -H "Origin: $URL" -H "Content-Type: application/json" --data "{}" -w "%{http_code} %{num_connects}\n" "${args[@]}"
+   URL=https://travel-discovery.apps.musica-sanare.com; args=(); for i in $(seq 1 15); do args+=("$URL/api/ai/explanations" -o /dev/null); done; curl -4 -s -X POST -H "Origin: $URL" -H "Content-Type: application/json" --data "{}" -w "%{http_code} %{num_connects}\n" "${args[@]}"
    ```
 
 4. Wait at least 60 s, then run B, a new connection per request:
 
    ```bash
-   URL=https://travel-discovery.<account subdomain>.workers.dev; for i in $(seq 1 15); do curl -4 -s -o /dev/null -X POST -H "Origin: $URL" -H "Content-Type: application/json" --data "{}" -w "%{http_code} %{num_connects}\n" "$URL/api/ai/explanations"; done
+   URL=https://travel-discovery.apps.musica-sanare.com; for i in $(seq 1 15); do curl -4 -s -o /dev/null -X POST -H "Origin: $URL" -H "Content-Type: application/json" --data "{}" -w "%{http_code} %{num_connects}\n" "$URL/api/ai/explanations"; done
    ```
 
 5. Wait at least 60 s, then run `node scripts/check-deployment.mjs <account subdomain> production`. Its AI checks expect 503 and, since Phase 14, `GET /api/ai/status` answering `{"enabled":false}`.

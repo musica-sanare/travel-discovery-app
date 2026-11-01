@@ -29,6 +29,7 @@ There is one deployment environment, `production`, with its own D1 database. A n
 - A `preview` environment (`travel-discovery-preview`, `travel-discovery-admin-preview`, and the database `travel-discovery-preview`) existed from 2026-10-18 to 2026-10-31. It was removed because local checks and the production checks cover what it was used for (ADR-033 "Amendment 2026-10-31"). Its Cloudflare resources are removed by the owner (3.7).
 - Verification before production is local: `npm run check`, `npm run test:e2e`, and for risky migrations a rehearsal on a local copy of production (section 4).
 - The Worker name determines the `workers.dev` URL (`<worker>.<account subdomain>.workers.dev`).
+- The public Worker also serves `travel-discovery.apps.musica-sanare.com`, attached as a Workers Custom Domain (ADR-034, 5.1). The admin Worker has no custom domain.
 - The top-level configuration stays local-only. It is what `npm run dev`, the tests, and E2E use.
 - `env.e2e` in `wrangler.admin.jsonc` is for local tests and must never be deployed.
 
@@ -96,6 +97,7 @@ npx wrangler d1 create travel-discovery-production
   - `"workers_dev": true` and `"preview_urls": false`, set explicitly so the dashboard cannot silently diverge.
   - `upload_source_maps`.
 - **Public Worker:**
+  - `routes` with `{ "pattern": "travel-discovery.apps.musica-sanare.com", "custom_domain": true }` (ADR-034). `workers_dev` stays `true`, so the `workers.dev` URL keeps working.
   - `ai` binding.
   - `vars` `AI_ASSIST_ENABLED: "false"` and `AI_MODEL: "@cf/google/gemma-4-26b-a4b-it"`.
   - `ratelimits` binding `AI_CLIENT_RATE_LIMITER` (`simple: { limit: 5, period: 60 }`).
@@ -330,6 +332,24 @@ npx wrangler deploy --dry-run --config dist-admin/admin_worker/wrangler.json
 
 **Local deployment (exception).** Deploying from this machine is only for a new Worker that cannot be connected yet (3.4), or when Workers Builds cannot deploy (for example an outage or no build minutes left) and the owner decides so, recorded in [DECISIONS.md](../working/DECISIONS.md). It is an owner session (3.1): build as above, deploy with the same commands without `--dry-run`, verify (section 6), and log out.
 
+### 5.1 Public hostname
+The public Worker's custom domain `travel-discovery.apps.musica-sanare.com` comes from `routes` in `env.production` of `wrangler.jsonc` (ADR-034). Each deployment by Workers Builds applies it; no DNS record is created by hand. The hostname follows the domain plan of the `musica-sanare-home` repository, which lists it in its registry.
+
+> [!WARNING]
+> Never create a DNS record for `travel-discovery.apps.musica-sanare.com` by hand. A second-level hostname is not covered by Universal SSL, and an existing record blocks the custom domain.
+
+First attachment (owner steps, once):
+1. Before the push: in the zone's DNS records, confirm that no record exists for `travel-discovery.apps.musica-sanare.com`.
+2. Push the commit that adds the route through steps 1–4 of section 5. The deployment of `travel-discovery` attaches the custom domain.
+3. After both builds:
+   - The build log of `travel-discovery` shows the custom domain among the deployed triggers *(要確認: exact wording)*.
+   - `https://travel-discovery.apps.musica-sanare.com/` loads the app with a valid certificate.
+   - The Worker's Settings → Domains & Routes lists the hostname as a custom domain, and `workers.dev` is still enabled.
+   - `travel-discovery-admin` still has no custom domain.
+   - Section 6 passes.
+4. The next day: open Billing and confirm that no new charge appears. If one appears, remove the `routes` entry, push it the same way, remove the custom domain in Domains & Routes if it stays *(要確認: whether a deployment without the entry detaches it)*, and record it in [DECISIONS.md](../working/DECISIONS.md).
+5. Record the result in ADR-034, then mark the hostname `live` in the `musica-sanare-home` registry (its `prompts/publish-app-on-domain.md`, Phase B).
+
 ## 6. Checks after each deployment
 The unauthenticated checks below are automated:
 
@@ -337,7 +357,7 @@ The unauthenticated checks below are automated:
 node scripts/check-deployment.mjs <account subdomain> production
 ```
 
-Add `--watch-admin 120` after an admin deployment. Ongoing monitoring, routine checks, and incident response are in [OPERATIONS.md](OPERATIONS.md).
+The script checks the public Worker on `travel-discovery.apps.musica-sanare.com` and `/api/health` on its `workers.dev` URL; the account subdomain is needed for those and for the admin Worker. Add `--watch-admin 120` after an admin deployment. Ongoing monitoring, routine checks, and incident response are in [OPERATIONS.md](OPERATIONS.md).
 
 These can only be checked on a deployed Worker (from "Admin authentication status" and the verification logs in [DECISIONS.md](../working/DECISIONS.md)):
 - Every admin URL (`workers.dev`, routes, custom domains) redirects to the Access login when not signed in. The admin static assets are not reachable without login.

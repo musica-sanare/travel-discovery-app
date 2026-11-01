@@ -7,7 +7,7 @@ This runbook covers running the deployed app: where to look, routine and dated c
 > [!WARNING]
 > A push to `main` deploys production; a push to `dev` runs CI only ([DEPLOYMENT.md](DEPLOYMENT.md) section 5). Every remote Wrangler command, rollback, restore, and account or Access change is an owner step: dashboard steps and owner sessions ([DEPLOYMENT.md](DEPLOYMENT.md) 3.1) that end with `npx wrangler logout`. Claude prepares them but never runs them.
 
-Last reviewed: 2026-10-31.
+Last reviewed: 2026-11-01.
 
 ## 1. What runs where
 
@@ -16,6 +16,7 @@ Last reviewed: 2026-10-31.
 | `production` | `main` | `travel-discovery` | `travel-discovery-admin` | `travel-discovery-production` |
 
 - Both Workers are connected to this repository in Workers Builds ([DEPLOYMENT.md](DEPLOYMENT.md) 3.6) and use `workers.dev` (`<worker>.<account subdomain>.workers.dev`).
+- The public site's address is `https://travel-discovery.apps.musica-sanare.com`, a Workers Custom Domain of the public Worker ([DEPLOYMENT.md](DEPLOYMENT.md) 5.1, ADR-034). Its `workers.dev` URL keeps working. The admin Worker has no custom domain.
 - The preview environment was removed on 2026-10-31, and the owner deleted its Workers, Access application, and database the same day ([DEPLOYMENT.md](DEPLOYMENT.md) 3.7).
 - The account is on Workers Free and Zero Trust Free. AI is disabled.
 - Free-tier limits are shared by the whole account, including other projects on it ([DEPLOYMENT.md](DEPLOYMENT.md) section 9).
@@ -48,7 +49,7 @@ Rate-limit lines can also appear while AI is disabled, because since Phase 11 th
 
 **Weekly, and after any change on the Access tab, a Zero Trust policy, or the account subdomain:**
 - Run the unauthenticated checks. The script exits 1 on any failure. It covers:
-  - the public API in all locales and the security headers;
+  - the public API in all locales and the security headers, on the custom domain, and `/api/health` on the public `workers.dev` URL;
   - the AI endpoint and the AI status (`{"enabled":false}`) while AI is disabled;
   - the Access redirect (302 to `https://<team>.cloudflareaccess.com/...`) of `/`, `/destinations`, and `/api/admin/me` on the admin Worker.
 

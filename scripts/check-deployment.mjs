@@ -1,6 +1,9 @@
 // Unauthenticated checks of a deployed environment (docs/en/DEPLOYMENT.md
 // "6. Checks after each deployment", docs/en/OPERATIONS.md "3. Routine checks").
 // Sends only anonymous GET/POST/DELETE requests; never signs in or changes data.
+// The public Worker is checked on its custom domain (docs/working/DECISIONS.md
+// ADR-034); the account subdomain is still needed for the admin Worker and the
+// public Worker's workers.dev URL.
 //
 // Usage: node scripts/check-deployment.mjs <account subdomain> production [--watch-admin <seconds>]
 // --watch-admin repeats the admin Access checks every 10 s for that long (use it
@@ -9,7 +12,11 @@ import { createSecureContext } from "node:tls";
 
 // The preview environment was removed on 2026-10-31 (docs/working/DECISIONS.md ADR-033).
 const WORKERS = {
-  production: { public: "travel-discovery", admin: "travel-discovery-admin" },
+  production: {
+    public: "travel-discovery",
+    publicHost: "travel-discovery.apps.musica-sanare.com",
+    admin: "travel-discovery-admin",
+  },
 };
 const LOCALES = ["ja", "en", "es", "fr"];
 const ADMIN_PATHS = ["/", "/destinations", "/api/admin/me"];
@@ -20,7 +27,8 @@ if (!subdomain || !workers || (flag !== undefined && (flag !== "--watch-admin" |
   console.error("Usage: node scripts/check-deployment.mjs <account subdomain> production [--watch-admin <seconds>]");
   process.exit(2);
 }
-const publicBase = `https://${workers.public}.${subdomain}.workers.dev`;
+const publicBase = `https://${workers.publicHost}`;
+const publicWorkersDevBase = `https://${workers.public}.${subdomain}.workers.dev`;
 const adminBase = `https://${workers.admin}.${subdomain}.workers.dev`;
 
 // The first TLS use in a Node process loads the CA store, which took 4-7 s on
@@ -51,6 +59,7 @@ async function expectStatus(name, url, status, init) {
 
 async function checkPublic() {
   const health = await expectStatus("public /api/health 200", `${publicBase}/api/health`, 200);
+  await expectStatus("public workers.dev /api/health 200", `${publicWorkersDevBase}/api/health`, 200);
   if (health) {
     report(health.headers.get("cache-control") === "no-store", "public API Cache-Control no-store", health.headers.get("cache-control"));
   }
