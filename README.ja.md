@@ -1,4 +1,4 @@
-<!-- source: README.md blob 113f13cfa918029d747c712199e182d1ce15e2fa -->
+<!-- source: README.md blob fa1a8d268d487272f0ee1a9ef0030b27bc70a3fb -->
 [English](README.md) | 日本語
 
 > この文書は[英語版](README.md)の翻訳。内容が異なる場合は英語版が優先する。
@@ -38,6 +38,10 @@ http://localhost:5173 を開く。
 - [ドキュメントの目次](docs/ja/README.md): 仕様、アーキテクチャ、ガイド、作業用ドキュメント。
 - [ローカル開発](docs/ja/DEVELOPMENT.md): すべてのコマンド、管理アプリ、テスト、プロジェクトの構成。
 - `CLAUDE.md` と `prompts/` には Claude Code 向けの指示がある。
+
+## セキュリティ
+
+脆弱性は公開の Issue ではなく、非公開で報告する。報告の方法と対象範囲は [Security policy](SECURITY.md)（英語のみ）にある。
 
 ## ライセンス
 

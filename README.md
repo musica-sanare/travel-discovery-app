@@ -36,6 +36,10 @@ Open http://localhost:5173.
 - [Local development](docs/en/DEVELOPMENT.md): all commands, the admin app, tests, and the project layout.
 - `CLAUDE.md` and `prompts/` hold the instructions for Claude Code.
 
+## Security
+
+Report vulnerabilities privately, not in public issues. How to report and what is in scope: [Security policy](SECURITY.md).
+
 ## License
 
 [MIT](LICENSE), for the code, the docs, and the content bundles in `content/`. Cited sources keep their own terms; the bundles cite them and do not copy them.

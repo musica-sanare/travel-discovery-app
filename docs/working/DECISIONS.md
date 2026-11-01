@@ -640,6 +640,12 @@ Local history review and owner decisions for the public release checklist (`prom
   - Identifiers: keep all of them in the repository (not secrets; the builds need the D1 ID and the `ACCESS_*` values). Recommended option; the alternative was moving the `ACCESS_*` values to Worker secrets.
   - The other project's name is replaced by "another project of the owner" in DEPLOYMENT.md (with the Japanese twin) and ADR-033; it stays in history.
   - License: MIT for the code, the docs, and the content bundles (`LICENSE`, `package.json` `license`, README "License"). Recommended option; the alternatives were Apache-2.0, no license, or CC BY 4.0 for docs and content.
+- *Third-party material and private notes* (2026-11-01, task 4, local review):
+  - `content/initial-v8.json` has no image. Its cost sources are linked official statistics on nine government or central bank sites, and no summary, best-season text, or caution has a quotation of 25 characters or more.
+  - No font or image file is tracked, no third-party icon set is used, and only `Decorations.tsx` and `DestinationBand.tsx` contain SVGs (drawn for this project). `test/ai-eval/cases.json` contains no email address or other personal data.
+  - No `*.workers.dev` hostname other than placeholders is in the history, so the former subdomain (which contained part of the owner's email address) was never committed.
+- *Owner decisions* (2026-11-01, task 4; recommended options): `prompts/`, `CLAUDE.md`, the verification logs, and the incident records stay public; `main` and `dev` are published (there are no tags). PUBLIC_RELEASE.md sections 1, 4, and 5 are checked, with images not applicable yet.
+- *Repository presentation and GitHub settings* (2026-11-01, tasks 5 and 6): `SECURITY.md` added (English only, a GitHub community file; reports go through private vulnerability reporting). GitHub Docs read on 2026-11-01: rulesets are described for GitHub Team and Enterprise, and the plans page lists protected branches in private repositories under GitHub Pro; secret scanning "runs automatically for free" on public repositories; repository push protection "requires GitHub Secret Protection" and is off by default, while push protection for users is on by default; private vulnerability reporting is described for public repositories (Settings → Security and quality → Advanced Security). So the GitHub settings in PUBLIC_RELEASE.md section 6 are owner steps right after publishing, with no paid plan.
 
 ## ADR-001: SPA and hosting
 - Status: **Accepted** (Phase 0)
