@@ -377,3 +377,9 @@ Acceptance:
 - The owner chose a license (or none, recorded), and no dependency license conflicts with it.
 - Every PUBLIC_RELEASE.md item is checked, deferred with a reason, or not applicable, and the applied GitHub settings are recorded.
 - `npm run check` and `npm run test:e2e` pass, `npm audit --omit=dev` reports no vulnerabilities, AI is disabled, and the account stays on Workers Free.
+
+Status: **complete (2026-11-01)**; every acceptance item is met or deferred with a reason ([DECISIONS.md](DECISIONS.md) "Phase 18 verification log"):
+- History: no private file, local path, real email address, or account ID in any commit; the D1 IDs, the Access team domain, and the AUD tags stay by owner decision. gitleaks 8.30.1 found four matches over 123 commits, none a secret.
+- License: MIT for code, docs, and content (`LICENSE`); no dependency license conflicts. `SECURITY.md` is added and linked from the README.
+- [PUBLIC_RELEASE.md](PUBLIC_RELEASE.md): every item is checked or deferred with a reason. Deferred: README screenshots (optional) and the GitHub settings, which are owner steps right after publishing because GitHub Free offers them only for public repositories.
+- `npm ci`, `npm run check` (816 tests), and `npm run test:e2e` passed; `npm audit --omit=dev` reports 0, and 16 moderate development-only advisories are held (ADR-003 `esbuild`, new `minimatch`). AI is disabled, and the account stays on Workers Free. Publishing is the owner's decision.
