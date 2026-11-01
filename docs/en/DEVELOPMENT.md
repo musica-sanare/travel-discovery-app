@@ -104,7 +104,7 @@ Verified in this repository (2026-10-17, `@cloudflare/vite-plugin` 1.64.0):
 - When a `.dev.vars` file exists, `npm run build` copies it to `dist/worker/.dev.vars` and `dist-admin/admin_worker/.dev.vars`.
 - A production build served with `npm run preview:admin` still returns 403 for admin API requests even with that copy present, because the dev identity code is not in the build.
 
-Documented by Cloudflare, not verified here (no deployment has been made): the copy is "only used when running `vite preview` and is not deployed with your Worker" ([Vite plugin: Secrets](https://developers.cloudflare.com/workers/vite-plugin/reference/secrets/)).
+Documented by Cloudflare, not verified here: the copy is "only used when running `vite preview` and is not deployed with your Worker" ([Vite plugin: Secrets](https://developers.cloudflare.com/workers/vite-plugin/reference/secrets/)).
 
 Recommendations:
 - Never share, upload, or publish `dist/` or `dist-admin/` (for example as CI artifacts, in archives, or on a static host) while a `.dev.vars` file exists. Delete the copied `.dev.vars` files or rebuild without `.dev.vars` first.

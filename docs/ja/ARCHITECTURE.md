@@ -1,4 +1,4 @@
-<!-- source: docs/en/ARCHITECTURE.md blob 741325c64f0e6276ecab3a3b75059fdd3ccb98e3 -->
+<!-- source: docs/en/ARCHITECTURE.md blob 3600a6af130b9ecacf5f983461d9760d504abea1 -->
 [English](../en/ARCHITECTURE.md) | 日本語 · [目次に戻る](README.md)
 
 > この文書は[英語版](../en/ARCHITECTURE.md)の翻訳。内容が異なる場合は英語版が優先する。
@@ -207,7 +207,7 @@ Phase 4 の設計（ADR-026、提案）:
 
 - ローカル開発は、ローカルの D1 バインディングとシードしたテストデータで動くようにする。公開 Worker と管理 Worker は 1 つのローカル D1 の状態を共有しなければならない。
 - Workers Free から始める（ADR-015）。上限のエラーでは機能を穏やかに縮退させる。プランを黙ってアップグレードしてはならない。
-- プレビュー環境と本番環境は分けなければならない。
+- デプロイする環境は本番だけだ（ADR-033）。変更は `main` に入る前に、ローカル（ローカルの D1）で確かめる。
 - 本番の秘密情報は、プラットフォームの secret の仕組みで設定する。
 - AI の設定（`ai` とレート制限のバインディング、`AI_ASSIST_ENABLED`、`AI_MODEL`）は、ビルド時に `CLOUDFLARE_ENV` で選ぶ名前つきのデプロイ環境にだけ置く。ローカル開発とテストが使うトップレベルの設定には決して置かない（ADR-026「Stage 5 preparation decisions」、C）。
 - `.dev.vars` と `.env` を Git に入れない。

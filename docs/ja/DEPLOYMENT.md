@@ -1,4 +1,4 @@
-<!-- source: docs/en/DEPLOYMENT.md blob 578eaa472fbcc44d6ef12962ac8f5422cae2d07b -->
+<!-- source: docs/en/DEPLOYMENT.md blob 7cbe51426157d8242a8024207a4c48642b2c21c2 -->
 [English](../en/DEPLOYMENT.md) | 日本語 · [目次に戻る](README.md)
 
 > この文書は[英語版](../en/DEPLOYMENT.md)の翻訳。内容が異なる場合は英語版が優先する。
@@ -194,19 +194,19 @@ Workers Builds にもビルド変数とビルド用の秘密情報があり、�
 
 - 以後、オーナーのセッションは必ず `npx wrangler logout` で終える。こうして、この手順書のどの手順もマシンに Cloudflare のログインを残さない。
 
-### 3.7 プレビューのリソースを消す（オーナー、1 回だけ）
-プレビュー環境は 2026-10-31 に設定から外したが、Cloudflare 上のリソースはオーナーが消すまで残る。Workers Free では費用はかからないが、公開側のプレビュー Worker は古いコードとシードデータを公開 URL で出し続ける。状態: 2026-10-31 にオーナーが実施した。その途中で本番の Access アプリケーションも失われ、オーナーが `workers.dev` を無効にするまで、本番の管理 SPA が Access なしで見えていた（ADR-033「Amendment 2026-10-31」のインシデント）。下の手順には、これを見つけられたはずのチェックを入れてある。
+### 3.7 プレビューのリソースを消す（2026-10-31 に実施済み）
+プレビュー環境を設定から外したあと、2026-10-31 にオーナーがプレビューの Worker、管理のプレビュー Worker の Access アプリケーション、プレビューのデータベースを消した。どちらのプレビューの URL も 404 を返す。手順は記録として、また Access アプリケーションを持つ Worker を消すときのチェックリストとして残す。その途中で本番の Access アプリケーションも失われ、オーナーが `workers.dev` を無効にするまで、本番の管理 SPA が Access なしで見えていた（ADR-033「Amendment 2026-10-31」のインシデント）。下の手順には、これを見つけられたはずのチェックを入れてある。
 
 どの削除も元に戻せず、オーナーの判断だ。管理のプレビュー Worker が Access なしで届く瞬間を作らないよう、次の順に消す:
 
-1. **先に管理のプレビュー Worker。** Workers & Pages → `travel-discovery-admin-preview` → Settings → Delete *(要確認: 正確な表示名)*。Workers Builds にはつながっていない。
+1. **先に管理のプレビュー Worker。** Workers & Pages → `travel-discovery-admin-preview` → Settings → Delete。Workers Builds にはつながっていない。
 2. **公開のプレビュー Worker。** Workers & Pages → `travel-discovery-preview` → Settings → Delete。Durable Object `AiClientLimiter` のデータも消えるが、中身はアドレスごとの AI のカウンターだけだ。
 3. **管理のプレビュー Worker の Access アプリケーション。** 手順 1 の後にだけ消す。Zero Trust → Access controls → Applications → `travel-discovery-admin-preview` のアプリケーション → Delete。
    - 消す前にアプリケーションを開き、ドメインが `travel-discovery-admin-preview.<account subdomain>.workers.dev` で、AUD タグが `wrangler.admin.jsonc` の `env.production` の `ACCESS_POLICY_AUD` ではないことを確かめる。2 つのアプリケーションの名前は `-preview` しか違わない。
    - 手順 1 の後で、アプリケーションがもうないこともある。そのときはこの手順を飛ばす。代わりに別のアプリケーションを消すことは決してしない。
    - 続いて Access controls → Policies で、再利用可能なポリシー `travel-discovery-admin-preview - Production` を、どのアプリケーションも使っていない場合にだけ消す。本番のアプリケーションは専用のポリシーを持つ。
    - その直後に `node scripts/check-deployment.mjs <account subdomain> production --watch-admin 120` を実行する。管理 Worker が 200 を返したらインシデントだ（[OPERATIONS.md](OPERATIONS.md) 4.2）。
-4. **プレビューの D1 データベース。** Storage & Databases → D1 → `travel-discovery-preview` → Settings → Delete *(要確認: 正確な表示名)*。中身は `db/seed/dev.sql` のデータと確認用に入れたコンテンツだけなので、エクスポートは要らない。データベースを消すと、Time Travel でも戻せない。
+4. **プレビューの D1 データベース。** Storage & Databases → D1 → `travel-discovery-preview` → Settings → Delete。中身は `db/seed/dev.sql` のデータと確認用に入れたコンテンツだけなので、エクスポートは要らない。データベースを消すと、Time Travel でも戻せない。
 5. **確かめる:**
    - `node scripts/check-deployment.mjs <account subdomain> production --watch-admin 120` が通る。
    - `https://travel-discovery-preview.<account subdomain>.workers.dev/` と `https://travel-discovery-admin-preview.<account subdomain>.workers.dev/` が 200 を返さなくなっている。
@@ -356,7 +356,7 @@ node scripts/check-deployment.mjs <account subdomain> production
 AI の有効化には専用の手順書がある: [AI_ENABLEMENT.md](AI_ENABLEMENT.md)。以前の小節は次の場所に移った:
 
 - 前提条件と一般的な手順: [AI_ENABLEMENT.md](AI_ENABLEMENT.md) 1 節。
-- 7.1 プレビューでの試行: [AI_ENABLEMENT.md](AI_ENABLEMENT.md) 2 節。
+- 7.1 以前のプレビューでの試行の記録: [AI_ENABLEMENT.md](AI_ENABLEMENT.md) 2 節。
 - 7.2 AI を無効にしたままのリミッターの確認: [AI_ENABLEMENT.md](AI_ENABLEMENT.md) 3 節。
 - 7.3 本番での AI の有効化: [AI_ENABLEMENT.md](AI_ENABLEMENT.md) 4 節。
 

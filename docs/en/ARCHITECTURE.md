@@ -204,7 +204,7 @@ Deployed Workers use Workers Logs with invocation logs disabled, because those w
 
 - Local development should work with local D1 bindings and seeded test data. The public and admin Workers must share one local D1 state.
 - Start on Workers Free (ADR-015). Quota errors must degrade gracefully, never silently upgrade the plan.
-- Preview and production environments must be distinct.
+- Production is the only deployed environment (ADR-033). Changes are checked locally, with local D1 state, before they reach `main`.
 - Production secrets must be set through the platform secret mechanism.
 - AI configuration (`ai` and rate-limit bindings, `AI_ASSIST_ENABLED`, `AI_MODEL`) exists only in named deployment environments selected with `CLOUDFLARE_ENV` at build time. It is never in the top-level configuration used by local development and tests (ADR-026 "Stage 5 preparation decisions", C).
 - Keep `.dev.vars` and `.env` out of Git.

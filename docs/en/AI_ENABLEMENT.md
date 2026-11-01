@@ -101,7 +101,7 @@ The diagnosis keeps working throughout. A dashboard edit of the variable is fast
 - the account not on Workers Free, or a new charge in Billing;
 - the Workers Logs volume close to the Free allowance ([OPERATIONS.md](OPERATIONS.md) section 7).
 
-Whether preview and production share the Neuron allowance stays 要確認 and is planned as shared. Enabling AI on production is a separate owner decision under this runbook, taken only after this record exists.
+Whether preview and production shared the Neuron allowance no longer matters, because the preview environment was removed; the allowance is per account (section 4, "Budget"). Enabling AI on production is a separate owner decision under this runbook, taken only after this record exists.
 
 ## 3. Limiter check with AI disabled (separate approval)
 The limiters can be checked on a deployment with `AI_ASSIST_ENABLED` `"false"`: no model is called and nobody can use AI during the check. This works because, since Phase 11, the public Worker consults `AI_CLIENT_RATE_LIMITER` and then the quota Durable Object `AI_CLIENT_LIMITER` (ADR-029) before the kill switch.

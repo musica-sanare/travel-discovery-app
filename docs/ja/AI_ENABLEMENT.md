@@ -1,4 +1,4 @@
-<!-- source: docs/en/AI_ENABLEMENT.md blob 71c72e9a606a921fa34902dc78bf2747706ec27b -->
+<!-- source: docs/en/AI_ENABLEMENT.md blob 0e50b705c9b7b89e9b61dcba42734fc8aa6f359d -->
 [English](../en/AI_ENABLEMENT.md) | 日本語 · [目次に戻る](README.md)
 
 > この文書は[英語版](../en/AI_ENABLEMENT.md)の翻訳。内容が異なる場合は英語版が優先する。
@@ -104,7 +104,7 @@
 - アカウントが Workers Free でない、または Billing に新しい請求がある。
 - Workers Logs の量が Free の上限に近い（[OPERATIONS.md](OPERATIONS.md) 7 節）。
 
-プレビューと本番で Neurons の割り当てを共有するかは要確認のままで、共有する前提で計画している。本番で AI を有効にするのは、この手順書に沿った別のオーナーの判断で、この記録ができてから下す。
+プレビューと本番で Neurons の割り当てを共有していたかは、プレビュー環境を消したので、もう問題にならない。割り当てはアカウントごとだ（4 節「予算」）。本番で AI を有効にするのは、この手順書に沿った別のオーナーの判断で、この記録ができてから下す。
 
 ## 3. AI を無効にしたままのリミッターの確認（別途承認）
 リミッターは、`AI_ASSIST_ENABLED` が `"false"` のデプロイでも確かめられる。モデルは呼ばれず、確認の間に AI を使える人はいない。Phase 11 から、公開 Worker は停止スイッチより前に `AI_CLIENT_RATE_LIMITER`、続いて上限用の Durable Object `AI_CLIENT_LIMITER`（ADR-029）を参照するからだ。

@@ -191,19 +191,19 @@ Each Worker is connected to this repository once, in the dashboard, by the owner
 
 - From now on every owner session ends with `npx wrangler logout`, so no step in this runbook leaves a Cloudflare login on the machine.
 
-### 3.7 Removing the preview resources (owner, one-time)
-The preview environment was removed from the configuration on 2026-10-31, but its Cloudflare resources stay until the owner deletes them. They cost nothing on Workers Free, but the public preview Worker keeps serving old code and seed data at a public URL. Status: done by the owner on 2026-10-31. During it the production Access application was lost as well, which exposed the production admin SPA without Access until the owner disabled `workers.dev` (incident in ADR-033 "Amendment 2026-10-31"). The steps below include the checks that would have caught it.
+### 3.7 Removing the preview resources (done 2026-10-31)
+The owner deleted the preview Workers, the Access application of the admin preview Worker, and the preview database on 2026-10-31, after the preview environment was removed from the configuration. Both preview URLs answer 404. The steps stay as a record and as a checklist for removing any Worker that has an Access application. During it the production Access application was lost as well, which exposed the production admin SPA without Access until the owner disabled `workers.dev` (incident in ADR-033 "Amendment 2026-10-31"). The steps below include the checks that would have caught it.
 
 Each deletion is permanent and is the owner's decision. Delete in this order, so the admin preview Worker is never reachable without Access:
 
-1. **The admin preview Worker first.** Workers & Pages → `travel-discovery-admin-preview` → Settings → Delete *(要確認: exact labels)*. It is not connected to Workers Builds.
+1. **The admin preview Worker first.** Workers & Pages → `travel-discovery-admin-preview` → Settings → Delete. It is not connected to Workers Builds.
 2. **The public preview Worker.** Workers & Pages → `travel-discovery-preview` → Settings → Delete. This also deletes its Durable Object `AiClientLimiter` data, which holds only per-address AI counters.
 3. **The Access application of the admin preview Worker**, only after step 1. Zero Trust → Access controls → Applications → the application of `travel-discovery-admin-preview` → Delete.
    - Before deleting, open the application and check that its domain is `travel-discovery-admin-preview.<account subdomain>.workers.dev` and that its AUD tag is not the `ACCESS_POLICY_AUD` of `env.production` in `wrangler.admin.jsonc`. The names of the two applications differ only by `-preview`.
    - The application may already be gone after step 1. Then skip this step; never delete another application instead.
    - Then, in Access controls → Policies, delete the reusable policy `travel-discovery-admin-preview - Production` only if no application uses it any more. The production application has its own policy.
    - Right afterwards, run `node scripts/check-deployment.mjs <account subdomain> production --watch-admin 120`. Any 200 from the admin Worker is an incident ([OPERATIONS.md](OPERATIONS.md) 4.2).
-4. **The preview D1 database.** Storage & Databases → D1 → `travel-discovery-preview` → Settings → Delete *(要確認: exact labels)*. It holds only `db/seed/dev.sql` data and the content imported for checks, so no export is needed. Deleting a database cannot be undone with Time Travel.
+4. **The preview D1 database.** Storage & Databases → D1 → `travel-discovery-preview` → Settings → Delete. It holds only `db/seed/dev.sql` data and the content imported for checks, so no export is needed. Deleting a database cannot be undone with Time Travel.
 5. **Check:**
    - `node scripts/check-deployment.mjs <account subdomain> production --watch-admin 120` passes.
    - `https://travel-discovery-preview.<account subdomain>.workers.dev/` and `https://travel-discovery-admin-preview.<account subdomain>.workers.dev/` no longer return 200.
@@ -353,7 +353,7 @@ These can only be checked on a deployed Worker (from "Admin authentication statu
 Enabling AI has its own runbook: [AI_ENABLEMENT.md](AI_ENABLEMENT.md). The former subsections moved there:
 
 - Preconditions and general steps: [AI_ENABLEMENT.md](AI_ENABLEMENT.md) section 1.
-- 7.1 Preview trial: [AI_ENABLEMENT.md](AI_ENABLEMENT.md) section 2.
+- 7.1 Record of the former preview trial: [AI_ENABLEMENT.md](AI_ENABLEMENT.md) section 2.
 - 7.2 Limiter check with AI disabled: [AI_ENABLEMENT.md](AI_ENABLEMENT.md) section 3.
 - 7.3 Enabling AI on production: [AI_ENABLEMENT.md](AI_ENABLEMENT.md) section 4.
 

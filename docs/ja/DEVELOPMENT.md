@@ -1,4 +1,4 @@
-<!-- source: docs/en/DEVELOPMENT.md blob 7f180b983715cf716a07747edadd1c30553a2863 -->
+<!-- source: docs/en/DEVELOPMENT.md blob 0ee45dc2807e9a9ad37b660239173db23c1cf544 -->
 [English](../en/DEVELOPMENT.md) | 日本語 · [目次に戻る](README.md)
 
 > この文書は[英語版](../en/DEVELOPMENT.md)の翻訳。内容が異なる場合は英語版が優先する。
@@ -107,7 +107,7 @@ npm run dev:admin
 - `.dev.vars` があると、`npm run build` はそれを `dist/worker/.dev.vars` と `dist-admin/admin_worker/.dev.vars` にコピーする。
 - `npm run preview:admin` で配信した本番ビルドは、そのコピーがあっても管理 API のリクエストに 403 を返す。開発用の身元を扱うコードがビルドに入っていないからだ。
 
-Cloudflare の文書にはあるが、ここでは確認していないこと（デプロイはまだしていない）: このコピーは "only used when running `vite preview` and is not deployed with your Worker" とされている（[Vite plugin: Secrets](https://developers.cloudflare.com/workers/vite-plugin/reference/secrets/)）。
+Cloudflare の文書にはあるが、ここでは確認していないこと: このコピーは "only used when running `vite preview` and is not deployed with your Worker" とされている（[Vite plugin: Secrets](https://developers.cloudflare.com/workers/vite-plugin/reference/secrets/)）。
 
 推奨:
 - `.dev.vars` があるうちは、`dist/` や `dist-admin/` を共有、アップロード、公開しない（CI のアーティファクト、アーカイブ、静的ホストなど）。先にコピーされた `.dev.vars` を消すか、`.dev.vars` なしでビルドし直す。
