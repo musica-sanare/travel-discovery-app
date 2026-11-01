@@ -1,0 +1,29 @@
+# Prompt 18 — Public release preparation
+
+The repository is private, and [PUBLIC_RELEASE.md](../docs/working/PUBLIC_RELEASE.md) lists what must be done before the owner makes it public. Only section 2 (commit identities) is done. This phase works through the rest of the checklist, so that the owner can decide to publish with every item checked or consciously deferred. It also adds the GitHub protections that matter now that a push to `main` deploys production (ADR-033). Making the repository public is the owner's decision and action, not part of this phase.
+
+The first response is investigation and a proposal only: no file change, no tool install, no GitHub setting, and no history rewrite. Do not install tools, change dependencies, rewrite history, push, commit, change GitHub settings, or create issues, pull requests, releases, or files on GitHub without the owner's explicit approval for that action. GitHub settings and the visibility change are the owner's steps; describe them, do not perform them. No paid service: the account stays on Workers Free, and any GitHub feature must be free for this repository. AI stays disabled.
+
+## Read first
+`CLAUDE.md`, [PUBLIC_RELEASE.md](../docs/working/PUBLIC_RELEASE.md), [DEPLOYMENT.md](../docs/en/DEPLOYMENT.md) sections 3.3–3.6 (configuration, Access, secrets, Workers Builds), `docs/working/DECISIONS.md` (ADR-003, ADR-016, ADR-026 "Model decision", ADR-027, ADR-030, ADR-033), `.gitignore`, `wrangler.jsonc`, `wrangler.admin.jsonc`, `.github/workflows/`, and `package.json`.
+
+## Tasks
+1. **History inventory (local, no new tool).** For every branch and tag that would be published, list:
+   - files ever committed under the paths of PUBLIC_RELEASE.md section 1 (`.env*`, `.dev.vars*`, `.wrangler/`, `dist/`, `dist-admin/`, `.ai-eval/`, `.claude/settings.local.json`), with `git log --all`;
+   - account identifiers in the current tree and in history: the D1 database ID, the Access team domain and AUD tags (current and former), Durable Object or rate-limit namespace IDs, the account subdomain, email addresses, and local absolute paths;
+   - for each, whether it is a secret, whether a deployment needs it in the repository (Workers Builds builds from the repository, so `database_id` and the `ACCESS_*` values are read from the Wrangler configs), and the options to keep it out of the public repository with their cost.
+2. **Secret scan (owner approval to install).** Propose a scanner (for example gitleaks), with its current version, install method (Homebrew, not a project dependency), license, and the exact command over the full history. After approval, run it, review every finding, and report the tool, command, and result. A real secret is reported at once and treated as compromised; rotating it is the owner's call, and history is not rewritten without the owner's explicit instruction.
+3. **License (owner decision).** Present license options for the code (for example MIT, Apache-2.0, or none) and, separately, for the curated content in `content/` and the docs, with what each allows. Check the licenses of all production and development dependencies locally (`npm ls --all` and each package's license field) and report any that conflict with the options. Add the chosen `LICENSE` and the README "License" section only after the owner decides.
+4. **Third-party material and private notes (owner decisions).** Go through PUBLIC_RELEASE.md sections 4 and 5: the sources cited in the content bundles, images (none yet), fonts and icons, the Gemma terms, and the AI evaluation cases; and whether `prompts/`, `CLAUDE.md`, the verification logs, and the incident records stay public. For each, recommend keep, edit, or remove, with the reason.
+5. **Repository presentation.** Draft `SECURITY.md` (private vulnerability reporting), and `CONTRIBUTING.md` only if the owner wants outside contributions. README screenshots come from a local build with seed data only (the preview environment no longer exists).
+6. **GitHub settings (owner steps).** Describe, with the exact setting names checked against current GitHub documentation: secret scanning and push protection, Dependabot alerts, private vulnerability reporting, branch protection or a ruleset for `main` (no force push or deletion, required CI check), and Actions permissions. State which are free for a private repository and which only after publishing. Note that branch protection does not stop Workers Builds from deploying a push to `main`.
+7. **Final checks and documentation.** `npm ci`, `npm run check`, and `npm run test:e2e` pass; `npm audit --omit=dev` reports no vulnerabilities, and the development-only advisories (ADR-003, ADR-030) are re-evaluated. Update PUBLIC_RELEASE.md (each item checked, deferred with a reason, or not applicable), the README status and its Japanese twin, and record the findings and owner decisions in a "Phase 18 verification log" in `docs/working/DECISIONS.md`.
+
+Deferred, not part of this phase: making the repository public; rewriting history unless a finding requires it and the owner instructs it; enabling AI on production; images; new content; and the out-of-policy Access check.
+
+## Acceptance
+- The history inventory covers every branch and tag to be published, and every identifier has an owner decision (keep, move, or remove).
+- A secret scanner ran over the full history after the owner's approval; its tool, command, and result are recorded, and every finding is resolved.
+- The owner chose a license (or chose none, recorded), and no dependency license conflicts with it.
+- Every PUBLIC_RELEASE.md item is checked, deferred with a reason, or marked not applicable, and the GitHub settings the owner applied are recorded.
+- `npm run check` and `npm run test:e2e` pass, `npm audit --omit=dev` reports no vulnerabilities, AI is disabled, and the account stays on Workers Free.

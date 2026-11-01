@@ -1,4 +1,4 @@
-<!-- source: README.md blob c3b2a878994a23464839ff5b3bfa50e126a02d26 -->
+<!-- source: README.md blob 113f13cfa918029d747c712199e182d1ce15e2fa -->
 [English](README.md) | 日本語
 
 > この文書は[英語版](README.md)の翻訳。内容が異なる場合は英語版が優先する。
@@ -16,7 +16,7 @@ Travel Discovery は、都市・地域単位の海外の旅行先を推薦する
 - Phase 16 で、出典つきの費用の目安を増やした。10 件の旅行先で `JPY`・`USD`・`EUR` の目安を出せる。
 - Phase 17 で、UI と公開中のすべてのコンテンツにフランス語を加えた。
 - 本番で AI を有効にする手順は用意してある。オーナーが承認するまで AI は無効のまま（[Implementation plan](docs/working/IMPLEMENTATION_PLAN.md)、英語のみ）。
-- ライセンスはまだ決めていない（[Public release checklist](docs/working/PUBLIC_RELEASE.md)、英語のみ）。
+- リポジトリは非公開。公開までに残っている作業は [Public release checklist](docs/working/PUBLIC_RELEASE.md)（英語のみ）で管理している。
 
 ## クイックスタート
 
@@ -38,3 +38,7 @@ http://localhost:5173 を開く。
 - [ドキュメントの目次](docs/ja/README.md): 仕様、アーキテクチャ、ガイド、作業用ドキュメント。
 - [ローカル開発](docs/ja/DEVELOPMENT.md): すべてのコマンド、管理アプリ、テスト、プロジェクトの構成。
 - `CLAUDE.md` と `prompts/` には Claude Code 向けの指示がある。
+
+## ライセンス
+
+コード、ドキュメント、`content/` のコンテンツバンドルは [MIT](LICENSE)。引用した出典はそれぞれの条件に従う。バンドルは出典を示すだけで、中身を写していない。

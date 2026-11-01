@@ -154,7 +154,7 @@ Each Worker is connected to this repository once, in the dashboard, by the owner
 
 **For each Worker** (Workers & Pages → the Worker → Settings → Build → Connect):
 1. Git provider: GitHub, this repository.
-   - If Cloudflare asks to install or extend its GitHub app, give it access to **only selected repositories** and add this repository. The app that my-music-site uses may already be installed *(要確認: whether Workers Builds uses the same app and repository list)*.
+   - If Cloudflare asks to install or extend its GitHub app, give it access to **only selected repositories** and add this repository. The app that another project of the owner uses may already be installed *(要確認: whether Workers Builds uses the same app and repository list)*.
 2. Settings, from the table in section 5:
    - Git branch: `main`.
    - Build command and deploy command exactly as in section 5. The `CLOUDFLARE_ENV=production` prefix works: the first builds deployed the production bindings (2026-10-31). Without it, the build would use the top-level configuration and the deployment would fail on the placeholder database `local-travel-discovery` (ADR-018).

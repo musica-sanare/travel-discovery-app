@@ -362,3 +362,18 @@ Status: **complete (2026-10-31)**; every acceptance item is met ([DECISIONS.md](
 - Content: `content/initial-v7.json` adds `fr` to every item and cost basis; with `fr` removed it equals `initial-v6.json`. The owner approved the rendered review copy.
 - Rollout: migration `0002`, deployments, and the import ran on preview and then production with Time Travel bookmarks, each on the first attempt. `/api/diagnosis-content` matches the bundle in all four locales on both, and complete quizzes in `fr` work on both.
 - `npm run check` (810 tests) and `npm run test:e2e` (75 passed, one mobile keyboard test skipped by design) passed after the last code change; AI is disabled in every environment and no paid plan or feature was enabled.
+
+## Phase 18 — Public release preparation
+Owner decision (2026-11-01): after Phase 16, work through the pre-public-release checklist ([PUBLIC_RELEASE.md](PUBLIC_RELEASE.md)) while enabling AI on production waits for the December Workers Logs and Billing check. Prompt: `prompts/18-public-release-preparation.md`.
+- Inventory the history of every branch and tag to be published for committed private files and account identifiers, and decide for each whether it stays, moves out of the repository, or is removed.
+- Scan the full history with a secret scanner after the owner approves installing it.
+- Present license options for code and content, and check the dependencies' licenses; add a license only after the owner decides.
+- Review third-party material and private notes, draft `SECURITY.md`, and describe the GitHub protections for `main` as owner steps.
+- Not in this phase: making the repository public, rewriting history without the owner's instruction, production AI, images, new content, and the out-of-policy Access check.
+
+Acceptance:
+- Every branch and tag to be published is inventoried, and every identifier has an owner decision.
+- A secret scan of the full history ran after approval, with its tool, command, and result recorded, and every finding resolved.
+- The owner chose a license (or none, recorded), and no dependency license conflicts with it.
+- Every PUBLIC_RELEASE.md item is checked, deferred with a reason, or not applicable, and the applied GitHub settings are recorded.
+- `npm run check` and `npm run test:e2e` pass, `npm audit --omit=dev` reports no vulnerabilities, AI is disabled, and the account stays on Workers Free.

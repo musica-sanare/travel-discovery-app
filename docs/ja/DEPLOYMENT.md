@@ -1,4 +1,4 @@
-<!-- source: docs/en/DEPLOYMENT.md blob 7cbe51426157d8242a8024207a4c48642b2c21c2 -->
+<!-- source: docs/en/DEPLOYMENT.md blob 554c046d04521e99feacfc241ac37272d276137d -->
 [English](../en/DEPLOYMENT.md) | 日本語 · [目次に戻る](README.md)
 
 > この文書は[英語版](../en/DEPLOYMENT.md)の翻訳。内容が異なる場合は英語版が優先する。
@@ -157,7 +157,7 @@ Workers Builds にもビルド変数とビルド用の秘密情報があり、�
 
 **Worker ごとに**（Workers & Pages → その Worker → Settings → Build → Connect）:
 1. Git プロバイダー: GitHub と、このリポジトリ。
-   - Cloudflare が GitHub アプリのインストールや権限の追加を求めてきたら、**選んだリポジトリだけ**にアクセスを許し、このリポジトリを足す。my-music-site が使うアプリがすでに入っているかもしれない *(要確認: Workers Builds が同じアプリとリポジトリの一覧を使うか)*。
+   - Cloudflare が GitHub アプリのインストールや権限の追加を求めてきたら、**選んだリポジトリだけ**にアクセスを許し、このリポジトリを足す。オーナーの別のプロジェクトが使うアプリがすでに入っているかもしれない *(要確認: Workers Builds が同じアプリとリポジトリの一覧を使うか)*。
 2. 設定は 5 節の表に合わせる:
    - Git ブランチ: `main`。
    - ビルドコマンドとデプロイコマンドは 5 節のとおりにする。`CLOUDFLARE_ENV=production` の前置きは効く。最初のビルドが本番のバインディングでデプロイした（2026-10-31）。前置きがないと、ビルドはトップレベルの設定を使い、デプロイはプレースホルダーのデータベース `local-travel-discovery` で失敗する（ADR-018）。

@@ -7,10 +7,15 @@ The repository is private. Making it public is a separate owner decision; this c
 A scan of the current source tree does not show what earlier commits contained: a secret that was committed and later removed is still readable in the history. Every check below therefore covers **all reachable history and every branch and tag that will be published**, not only the working tree.
 
 ## 1. History and secret scan
-- [ ] Run a dedicated secret scanner over the full history (for example gitleaks or TruffleHog). Installing one is a new tool download and needs the owner's approval; it is not a project dependency.
-- [ ] Review every finding. The regular-expression scan of 2026-10-18 found only the fake account ID in `test/node/ai-eval-runner.test.ts` ("Phase 6 verification log" in [DECISIONS.md](DECISIONS.md)); repeat it on the final history.
-- [ ] Check that no file was ever committed under `.env*` (except `.env.example`), `.dev.vars*` (except `.dev.vars.example`), `.wrangler/`, `dist/`, `dist-admin/`, `.ai-eval/`, or `.claude/settings.local.json`.
-- [ ] If a real secret is found: revoke or rotate it first. Rewriting history needs the owner's explicit instruction and does not help for copies that were already pushed or cloned.
+- [x] Run a dedicated secret scanner over the full history (for example gitleaks or TruffleHog). Installing one is a new tool download and needs the owner's approval; it is not a project dependency. Done on 2026-11-01 with gitleaks 8.30.1 over all 123 commits ("Phase 18 verification log" in [DECISIONS.md](DECISIONS.md)). Run it again on the commit to publish:
+
+  ```bash
+  gitleaks git --log-opts="--all" --redact --report-format json --report-path <file outside the repository> .
+  ```
+
+- [x] Review every finding. The regular-expression scan of 2026-10-18 found only the fake account ID in `test/node/ai-eval-runner.test.ts` ("Phase 6 verification log" in [DECISIONS.md](DECISIONS.md)). The gitleaks scan of 2026-11-01 found four matches, none a secret: three Access AUD tags in `wrangler.admin.jsonc` (identifiers, kept by owner decision) and the placeholder `<token>` in the former `docs/AI_EVALUATION.md`.
+- [x] Check that no file was ever committed under `.env*` (except `.env.example`), `.dev.vars*` (except `.dev.vars.example`), `.wrangler/`, `dist/`, `dist-admin/`, `.ai-eval/`, or `.claude/settings.local.json`. Checked on 2026-11-01 over all branches: none.
+- [x] Not applicable so far: no real secret was found on 2026-11-01. If a real secret is found: revoke or rotate it first. Rewriting history needs the owner's explicit instruction and does not help for copies that were already pushed or cloned.
 - [ ] Decide which branches and tags are published; delete or keep private everything else.
 
 ## 2. Commit identities
@@ -18,8 +23,8 @@ A scan of the current source tree does not show what earlier commits contained: 
 - [x] Commit messages contain no AI co-author trailers; the same rewrite removed them.
 
 ## 3. License
-- [ ] The owner chooses a license (none is chosen; README "License"). Do not add one automatically.
-- [ ] Check compatibility with the dependencies' licenses (`npm ls` plus each package's license field, or a license-report tool after approval).
+- [x] The owner chooses a license. Chosen on 2026-11-01: MIT for the code, docs, and content bundles (`LICENSE`, README "License").
+- [x] Check compatibility with the dependencies' licenses (`npm ls` plus each package's license field, or a license-report tool after approval). Checked on 2026-11-01 from `package-lock.json`: production dependencies are MIT, Apache-2.0, or both; LGPL-3.0 (`sharp` libvips) and MPL-2.0 (`lightningcss`, `axe-core`) come only with development tools and are not in the deployed bundles. No conflict with MIT.
 
 ## 4. Third-party material
 - [ ] Destination texts, cost estimates, and their cited sources: authored by the owner, with the right to publish them; sources are cited, not copied.
