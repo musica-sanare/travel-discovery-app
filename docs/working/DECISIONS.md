@@ -660,6 +660,10 @@ Local history review and owner decisions for the public release checklist (`prom
   - Whether preview and production shared the Neuron allowance, and the preview dashboard readings of Phases 11 and 14: moot since preview was removed.
   - Still open and listed in OPERATIONS.md section 9: the out-of-policy Access check, the build-minute behavior at the Workers Free limit, and the December log ingestion check.
 - *Status* (2026-11-01): Phase 18's acceptance is met. Every branch to be published is inventoried and every identifier has an owner decision; gitleaks ran over the full history with no real secret; the owner chose MIT and no dependency license conflicts with it; every PUBLIC_RELEASE.md item is checked or deferred with a reason (screenshots; the GitHub settings, which are owner steps right after publishing); `npm run check` and `npm run test:e2e` pass and `npm audit --omit=dev` reports 0. AI is disabled, and the account stays on Workers Free. Making the repository public remains the owner's decision; before it, repeat the gitleaks scan and the final checks on the commit to publish.
+- *Publishing and GitHub settings* (2026-11-03): the owner made the repository public on 2026-11-01 and reported applying the settings of [PUBLIC_RELEASE.md](PUBLIC_RELEASE.md) section 6.
+  - Read back without login (public GitHub API `rules/branches/main` and `rulesets`): one active ruleset `main` with the rules `deletion`, `non_fast_forward`, and `required_status_checks`. Its required status checks list was empty at first, so no CI check was enforced. The owner added `check` and `e2e` on 2026-11-03; read back the same way, both are required with the GitHub Actions app as their source.
+  - Private vulnerability reporting, Dependabot alerts, push protection, and the Actions restrictions cannot be read without login; they are recorded as reported by the owner, not verified.
+  - Still open: whether a direct push to `main` is accepted once `check` and `e2e` are required and passed on the same commit on `dev`.
 
 ## ADR-001: SPA and hosting
 - Status: **Accepted** (Phase 0)
@@ -1399,7 +1403,7 @@ Order proposed: preview trial ([DEPLOYMENT.md](../en/DEPLOYMENT.md) 7.1) → sep
   - Resolved 2026-10-31: the `CLOUDFLARE_ENV=production` prefix works in the build command (the builds deployed the production bindings); the flattened configs carry the expected Worker names (local build); choosing `dev` as a production branch is no longer needed.
 
 ## ADR-034: Public hostname on musica-sanare.com
-- Status: **Accepted** (owner, 2026-11-01). Configured in this repository; the hostname is attached by the deployment of the owner's next push to `main`. Until the checks below pass, the registry of `musica-sanare-home` lists it as `planned`.
+- Status: **Accepted** (owner, 2026-11-01) and **live**. The owner's push of `4632123` to `main` attached the custom domain; the checks and the Billing check passed (Outcome below), and the registry of `musica-sanare-home` lists the hostname as `live`.
 - Context: the owner serves the hub page, the artist page, and every web app under the domain `musica-sanare.com`. The `musica-sanare-home` repository owns the hostname rules and the registry (its `docs/en/DOMAINS.md`); app repositories record only their own decision. The public site so far ran only on `workers.dev`, which Cloudflare recommends for personal or hobby use ("Phase 0 verification log").
 - Decision:
   - The public Worker `travel-discovery` serves **`travel-discovery.apps.musica-sanare.com`**, the name the hub's rule `<full-app-name>.apps.musica-sanare.com` gives the product name in full.
@@ -1413,7 +1417,13 @@ Order proposed: preview trial ([DEPLOYMENT.md](../en/DEPLOYMENT.md) 7.1) → sep
   - The app needs no code change: the AI endpoint compares `Origin` with the request's own origin (`hasSameOrigin` in `server/http/request.ts`), and the app sets no canonical URL, `og:url`, CORS origin, or callback URL.
 - Cost: Workers Free; the zone is on the Free plan (owner, 2026-11-01). No Cloudflare page lists a fee for Workers Custom Domains, but none states that they are free. The owner checks Billing the day after the deployment ([DEPLOYMENT.md](../en/DEPLOYMENT.md) "5.1 Public hostname").
 - Alternatives considered: disabling `workers.dev` on the public Worker (one URL only; rejected for now, because earlier links would break); a first-level hostname such as `travel-discovery.musica-sanare.com` (rejected by the hub's rules, which keep apps under `apps.`).
-- Open (要確認): whether the attachment succeeds through the generated build token with the zone's current DNS records, and whether Billing stays unchanged. Both are checked after the owner's push; then the hub's registry row becomes `live`.
+- Outcome (reported by the owner; checks run by the owner after the push of `4632123`):
+  - The Workers Builds deployment of `travel-discovery` attached the custom domain with the generated build token; no DNS record was created by hand.
+  - `https://travel-discovery.apps.musica-sanare.com/` opened in the browser with a valid certificate.
+  - `scripts/check-deployment.mjs <account subdomain> production --watch-admin 120` passed every check, including the public checks on the custom domain, `/api/health` on `workers.dev`, and the admin redirects to Access for two minutes.
+  - Billing showed no new charge the day after the deployment (owner, 2026-11-03).
+  - `musica-sanare-home` marked the hostname `live` and links to the app from the hub page (its commit `ddcad70`). Checked read-only on 2026-11-03: the registry row is `live`, `https://musica-sanare.com/ja/` links to the app, and `/api/health` on the custom domain answers 200.
+- Open (要確認): the exact wording of the custom domain in the build log, and whether a deployment without the `routes` entry detaches the custom domain ([DEPLOYMENT.md](../en/DEPLOYMENT.md) 5.1).
 
 ## Admin authentication status (2026-10-17)
 

@@ -338,7 +338,7 @@ The public Worker's custom domain `travel-discovery.apps.musica-sanare.com` come
 > [!WARNING]
 > Never create a DNS record for `travel-discovery.apps.musica-sanare.com` by hand. A second-level hostname is not covered by Universal SSL, and an existing record blocks the custom domain.
 
-First attachment (owner steps, once):
+First attachment (owner steps, once; done for `4632123`, ADR-034 "Outcome"):
 1. Before the push: in the zone's DNS records, confirm that no record exists for `travel-discovery.apps.musica-sanare.com`.
 2. Push the commit that adds the route through steps 1–4 of section 5. The deployment of `travel-discovery` attaches the custom domain.
 3. After both builds:
@@ -444,3 +444,7 @@ Status as of Phase 6 (2026-10-18) and later deployments. Details are in the veri
 - `scripts/check-deployment.mjs <account subdomain> production --watch-admin 120` passed: the public API in all four locales, AI disabled, and every admin path redirected to the Access login for two minutes.
 - The preview environment was removed from the configuration (ADR-033 "Amendment 2026-10-31"). The owner then deleted its two Workers, the Access application, and the database (3.7); both preview URLs answer 404.
 - Incident: after the deletion, the production admin Worker answered 200 on `/` and `/destinations` without Access for at least the two minutes of the check; `/api/admin/me` answered 403, so no admin data was reachable. The owner disabled `workers.dev` and found the Access application of `travel-discovery-admin` re-created with a new AUD tag (by the owner in the dashboard, by the owner's recollection). Its scope is All traffic and its policy an Emails rule for the owner. The new AUD is in `env.production` of `wrangler.admin.jsonc`. After the push of that commit (`b369997`), `workers.dev` was enabled again, the checks with `--watch-admin 120` passed, and the owner signed in to the admin console (ADR-033).
+
+**Custom domain (2026-11-01 to 2026-11-03):**
+- The push of `4632123` to `main` deployed both Workers and attached `travel-discovery.apps.musica-sanare.com` to `travel-discovery` as a Workers Custom Domain (5.1, ADR-034).
+- `scripts/check-deployment.mjs <account subdomain> production --watch-admin 120` passed every check. Billing showed no new charge the next day.

@@ -1,4 +1,4 @@
-<!-- source: docs/en/DEPLOYMENT.md blob 6e544f67d936779a51de024392c39f122b6132ce -->
+<!-- source: docs/en/DEPLOYMENT.md blob 10b1c7a4a08e121ef5c9eae6ccff56d1e31e642b -->
 [English](../en/DEPLOYMENT.md) | 日本語 · [目次に戻る](README.md)
 
 > この文書は[英語版](../en/DEPLOYMENT.md)の翻訳。内容が異なる場合は英語版が優先する。
@@ -341,7 +341,7 @@ npx wrangler deploy --dry-run --config dist-admin/admin_worker/wrangler.json
 > [!WARNING]
 > `travel-discovery.apps.musica-sanare.com` の DNS レコードを手で作らない。2 階層目のホスト名は Universal SSL の対象外で、既存のレコードがあるとカスタムドメインを付けられない。
 
-最初に付けるとき（オーナーの作業、1 回だけ）:
+最初に付けるとき（オーナーの作業、1 回だけ。`4632123` で実施済み、ADR-034「Outcome」）:
 1. push の前に、ゾーンの DNS レコードに `travel-discovery.apps.musica-sanare.com` のレコードがないことを確かめる。
 2. ルートを足したコミットを、セクション 5 の手順 1〜4 で push する。`travel-discovery` のデプロイでカスタムドメインが付く。
 3. 両方のビルドが終わったら:
@@ -447,3 +447,7 @@ Phase 6（2026-10-18）時点の状態と、その後のデプロイ。詳細は
 - `scripts/check-deployment.mjs <account subdomain> production --watch-admin 120` が通った。4 つのロケールの公開 API、AI は無効、管理のすべてのパスが 2 分間 Access のログインにリダイレクトした。
 - プレビュー環境を設定から外した（ADR-033「Amendment 2026-10-31」）。続いてオーナーが、その 2 つの Worker、Access アプリケーション、データベースを消した（3.7）。プレビューの 2 つの URL は 404 を返す。
 - インシデント: 削除の後、本番の管理 Worker が `/` と `/destinations` で Access なしに 200 を返した。少なくともチェックの 2 分間はそのままだった。`/api/admin/me` は 403 を返したので、管理データには届かなかった。オーナーが `workers.dev` を無効にし、`travel-discovery-admin` の Access アプリケーションが新しい AUD タグで作り直されているのを確かめた（オーナーの記憶では、オーナー自身がダッシュボードで作り直した）。スコープは All traffic、ポリシーはオーナーの Emails ルールだ。新しい AUD は `wrangler.admin.jsonc` の `env.production` に入れた。そのコミット（`b369997`）を push すると `workers.dev` が有効に戻り、`--watch-admin 120` つきのチェックが通り、オーナーが管理コンソールにログインできた（ADR-033）。
+
+**カスタムドメイン（2026-11-01〜2026-11-03）:**
+- `4632123` を `main` に push して両方の Worker をデプロイし、`travel-discovery` に `travel-discovery.apps.musica-sanare.com` を Workers のカスタムドメインとして付けた（5.1、ADR-034）。
+- `scripts/check-deployment.mjs <account subdomain> production --watch-admin 120` はすべて通った。翌日の Billing に新しい請求はなかった。
