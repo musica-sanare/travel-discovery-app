@@ -127,6 +127,7 @@ describe("buildAiRequest", () => {
       season: "not_applicable",
       duration: "not_applicable",
       topAttributes: [],
+      strengths: [],
     })),
     excluded: [],
     notices: [],

@@ -119,6 +119,12 @@ describe("diagnosis flow", () => {
       expect(article.querySelector("[aria-hidden='true'] svg")).not.toBeNull();
       expect(within(article).queryByText("CITY")?.closest("[aria-hidden='true']")).not.toBeNull();
     }
+    // Both first options want food only: Lisbon (food 5) stands out against South Iceland (food 1).
+    const [lisbon, iceland] = screen.getAllByRole("article");
+    expect(within(lisbon as HTMLElement).getByText("この中で特に強い点").nextElementSibling?.textContent).toBe("食");
+    expect(within(iceland as HTMLElement).queryByText("この中で特に強い点")).toBeNull();
+    // The external-search note is shown once for the list, not on every card.
+    expect(screen.getAllByText(/^検索ボタンは外部サイトを新しいタブで開きます。/)).toHaveLength(1);
     // One snapshot request; answers and constraints never leave the browser.
     expect(requests).toEqual(["/api/diagnosis-content?locale=ja"]);
 

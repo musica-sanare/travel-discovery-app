@@ -52,6 +52,7 @@ export function unexpectedRequests(requests: readonly string[], baseURL: string)
       parsed.pathname === "/" ||
       parsed.pathname === "/plan" ||
       parsed.pathname.startsWith("/assets/") ||
+      parsed.pathname === "/favicon.svg" ||
       parsed.pathname === "/api/diagnosis-content" ||
       parsed.pathname === "/api/ai/status"
     );

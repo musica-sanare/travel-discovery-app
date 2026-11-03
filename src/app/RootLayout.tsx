@@ -16,7 +16,7 @@ export function RootLayout() {
 
   return (
     <QuizSessionProvider>
-      <DocumentMetadata />
+      <DocumentMetadata description={t("meta.description")} />
       <div className="flex min-h-dvh flex-col">
         <a
           href="#main"
@@ -48,6 +48,9 @@ export function RootLayout() {
           <div className="mx-auto flex max-w-5xl flex-col gap-1 px-4 py-6 text-sm text-muted">
             <p>{t("footer.privacy")}</p>
             <p>{t("footer.costs")}</p>
+            <p>
+              <a href="https://musica-sanare.com/">{t("footer.hub")}</a>
+            </p>
           </div>
         </footer>
       </div>

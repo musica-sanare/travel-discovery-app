@@ -383,3 +383,22 @@ Status: **complete (2026-11-01)**; every acceptance item is met or deferred with
 - License: MIT for code, docs, and content (`LICENSE`); no dependency license conflicts. `SECURITY.md` is added and linked from the README.
 - [PUBLIC_RELEASE.md](PUBLIC_RELEASE.md): every item is checked or deferred with a reason. Deferred: README screenshots (optional) and the GitHub settings, which are owner steps right after publishing because GitHub Free offers them only for public repositories.
 - `npm ci`, `npm run check` (816 tests), and `npm run test:e2e` passed; `npm audit --omit=dev` reports 0, and 16 moderate development-only advisories are held (ADR-003 `esbuild`, new `minimatch`). AI is disabled, and the account stays on Workers Free. Publishing is the owner's decision.
+
+## Phase 19 — Results clarity and page basics
+Owner decision (2026-11-03): after the custom domain went live (ADR-034), make the results easier to tell apart and add the page basics a real hostname needs. Prompt: `prompts/19-results-and-page-basics.md`.
+- Add a deterministic "distinctive strengths" list to each result (wanted attributes where it is clearly stronger than the other shown results), as explanation data only; ranking and fit do not change.
+- Show the strengths on the results page and show the external-search note once instead of on every card; the fit number stays.
+- Add a description, canonical URL, and Open Graph tags to `index.html`, a localized description, an SVG favicon, a `robots.txt` that allows crawlers, and a footer link to the hub page `https://musica-sanare.com/`.
+- Not in this phase: an `og:image`, a banded fit display, more cost estimates or destinations, images, shareable result URLs, and production AI.
+
+Acceptance:
+- Each result carries at most two strengths from one documented, tested rule, and ranking and fit values are unchanged.
+- The results page shows the strengths in all four locales, and the external-search note appears once.
+- `index.html` has the description, canonical, and Open Graph tags; the description follows the active locale; `/favicon.svg` and `/robots.txt` are real files.
+- The footer links to the hub page.
+- `npm run check` and `npm run test:e2e` pass, AI is disabled, and the account stays on Workers Free.
+
+Status: **implemented locally (2026-11-03)**; deployment is the owner's push to `main` ([DECISIONS.md](DECISIONS.md) "Phase 19 verification log", ADR-035):
+- Each result carries up to two distinctive strengths (margin 0.75 score points, from a simulation on `content/initial-v8.json`); ranking and fit are unchanged.
+- The results page shows them and the external-search note once; `index.html` has the description, canonical URL, and Open Graph tags; the favicon, `robots.txt`, and the hub link are added.
+- `npm run check` (826 tests) and `npm run test:e2e` (77 passed, one skipped by design) passed; AI is disabled, and the account stays on Workers Free.

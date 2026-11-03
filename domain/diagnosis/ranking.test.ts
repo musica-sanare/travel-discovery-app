@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { rankDestinations } from "./ranking";
+import { distinctiveStrengths, rankDestinations } from "./ranking";
 import { LIMITS, attributes, content, destination, estimate, option, question } from "./test-fixtures";
 import type { Answer, DiagnosisContent } from "./types";
 
@@ -160,5 +160,71 @@ describe("rankDestinations", () => {
     const result = rankDestinations(DATA, [...ANSWERS, { question: "unknown", options: ["x"] }], {}, LIMITS);
     expect(result.ignoredAnswers).toEqual([{ question: "unknown", reason: "unknown_question" }]);
     expect(result.results).toHaveLength(3);
+  });
+});
+
+describe("distinctiveStrengths", () => {
+  // x = (2 · score − 5) / 5, so a contribution is P[a] · x.
+  const x = (score: number) => (2 * score - 5) / 5;
+  const card = (preferences: Record<string, number>, scores: Record<string, number>) =>
+    Object.entries(scores).map(([attribute, score]) => ({ attribute, value: (preferences[attribute] ?? 0) * x(score) }));
+  const P = { nature: 2, food: 1, beach: 1 };
+  const preferences = new Map(Object.entries(P));
+
+  it("names an attribute at least 0.75 points above the shown mean", () => {
+    const shown = [
+      card(P, { nature: 5, food: 4 }),
+      card(P, { nature: 4, food: 4 }),
+      card(P, { nature: 4, food: 4 }),
+      card(P, { nature: 4, food: 4 }),
+      card(P, { nature: 4, food: 4 }),
+    ];
+    const strengths = distinctiveStrengths(shown, preferences);
+    // nature mean 4.2: 5 is 0.8 above it, 4 is below it.
+    expect(strengths[0]).toEqual([{ attribute: "nature", value: expect.closeTo(2 * (x(5) - x(4.2)), 10) as number }]);
+    expect(strengths.slice(1)).toEqual([[], [], [], []]);
+  });
+
+  it("names nothing below the margin, for identical results, or for one result", () => {
+    expect(distinctiveStrengths([card(P, { nature: 5 }), card(P, { nature: 4 })], preferences)).toEqual([[], []]);
+    expect(distinctiveStrengths([card(P, { nature: 5 }), card(P, { nature: 5 })], preferences)).toEqual([[], []]);
+    expect(distinctiveStrengths([card(P, { nature: 5 })], preferences)).toEqual([[]]);
+    expect(distinctiveStrengths([], preferences)).toEqual([]);
+  });
+
+  it("orders by weighted difference, ties by slug, and keeps at most two", () => {
+    const shown = [card(P, { nature: 5, food: 5, beach: 5 }), card(P, { nature: 2, food: 2, beach: 2 })];
+    // Differences are equal (1.5 points); nature weighs 2, food and beach tie at 1.
+    expect(distinctiveStrengths(shown, preferences)[0]?.map((item) => item.attribute)).toEqual(["nature", "beach"]);
+  });
+
+  it("treats a missing score as neutral in the mean but never as a strength", () => {
+    const shown = [card(P, { nature: 4 }), card(P, {}), card(P, {})];
+    // nature mean x = (x(4) + 0 + 0) / 3, the same as a score of 2.5 + 1.5 / 3 = 3.
+    expect(distinctiveStrengths(shown, preferences)).toEqual([
+      [{ attribute: "nature", value: expect.closeTo(2 * (x(4) - x(4) / 3), 10) as number }],
+      [],
+      [],
+    ]);
+  });
+
+  it("never names an attribute the user does not want", () => {
+    const disliked = new Map([["beach", -2], ["nature", 1]]);
+    const shown = [
+      [{ attribute: "beach", value: -2 * x(0) }, { attribute: "nature", value: x(3) }],
+      [{ attribute: "beach", value: -2 * x(5) }, { attribute: "nature", value: x(3) }],
+    ];
+    expect(distinctiveStrengths(shown, disliked)).toEqual([[], []]);
+  });
+
+  it("is attached to ranked results without changing fit or order", () => {
+    const { results } = rankDestinations(DATA, ANSWERS, {}, LIMITS);
+    expect(results.map((item) => item.slug)).toEqual(["south-iceland", "taipei", "lisbon"]);
+    // P = {nature: 5, city-life: 1}; nature mean (5 + 3 + 2) / 3 ≈ 3.33, city-life mean (1 + 5 + 4) / 3 ≈ 3.33.
+    expect(results.map((item) => item.strengths.map((strength) => strength.attribute))).toEqual([
+      ["nature"],
+      ["city-life"],
+      [],
+    ]);
   });
 });

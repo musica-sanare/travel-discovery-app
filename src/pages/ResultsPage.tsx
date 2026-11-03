@@ -106,6 +106,7 @@ function ResultItem({
   const { t, i18n } = useTranslation();
   const locale = isLocale(i18n.resolvedLanguage) ? i18n.resolvedLanguage : DEFAULT_LOCALE;
   const matches = ranked.topAttributes.flatMap((item) => attributeNames.get(item.attribute) ?? []);
+  const strengths = ranked.strengths.flatMap((item) => attributeNames.get(item.attribute) ?? []);
   const primaryCost = destination.costs.find((item) => item.currency === budgetCurrency) ?? destination.costs[0];
   const { min, max } = destination.recommendedDays;
   const budget = budgetNote(ranked.budget.status);
@@ -149,6 +150,18 @@ function ResultItem({
                 {matches.map((match) => (
                   <li key={match} className="rounded-full bg-match-soft px-3 py-1 text-sm font-medium text-match-ink">
                     {match}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+          {strengths.length > 0 && (
+            <div>
+              <p className="text-sm font-semibold">{t("results.strengthsLabel")}</p>
+              <ul className="mt-2 flex flex-wrap gap-2">
+                {strengths.map((strength) => (
+                  <li key={strength} className="rounded-full border border-match-ink/40 px-3 py-1 text-sm font-medium text-match-ink">
+                    {strength}
                   </li>
                 ))}
               </ul>
@@ -232,13 +245,6 @@ function ResultItem({
                 </a>
               ))}
             </div>
-            <p className="text-xs text-muted">
-              {t("results.search.note", {
-                destination: destination.country.name
-                  ? t("results.search.place", { name: destination.name, country: destination.country.name })
-                  : destination.name,
-              })}
-            </p>
           </div>
           <details className="group rounded-lg border border-line">
             <summary className="flex min-h-11 cursor-pointer items-center px-4 font-semibold text-accent">
@@ -344,6 +350,7 @@ export function ResultsPage() {
           {t("results.heading")}
         </h1>
         <p className="mt-2 text-sm text-muted">{t("results.fitNote")}</p>
+        {ranking.results.length > 0 && <p className="mt-1 text-sm text-muted">{t("results.search.note")}</p>}
       </div>
       {ai.status !== "off" && (
         <p role="status" className={noticeClass.info}>

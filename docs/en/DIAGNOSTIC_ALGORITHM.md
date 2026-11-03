@@ -109,12 +109,21 @@ Budget, season, and duration never change `fit`.
 ### Fallback explanation data
 Each result carries structured data from which the UI builds the deterministic, localized explanation (no AI):
 - the top three attributes by positive contribution `P[a] · x_d[a]` among attributes the user wants (`P[a] > 0`; ties by slug);
+- up to two **distinctive strengths** (below);
 - the budget, season, and duration statuses;
 - coverage.
 
 The UI combines these with the destination's authored summary/highlights and message-catalog templates.
 
 "Why it fits" names only what the user asked for. A disliked attribute that the destination lacks (`P[a] < 0`, low score) still raises `fit`, but it is never listed as a match. Example: with `beach` at −3, a destination with `beach 0` gains `+3` in `S_d` but does not show "Beaches". The same list is the `matches` input of the optional AI explanation.
+
+**Distinctive strengths** tell the shown results apart, because their top attributes are often the same few the user asked for. For each shown result, an attribute is a strength when:
+- the user wants it (`P[a] > 0`) and the destination has a score for it;
+- its score is at least **0.75** points above the mean score of the shown results, that is `x_d[a] − mean(x[a]) ≥ 0.3`, where a missing score counts as `x = 0` in the mean, as in the fit.
+
+At most two are listed, by `P[a] · (x_d[a] − mean(x[a]))` descending, ties by slug. A single result has none. Strengths are explanation data only: they never change `fit`, coverage, or the order, and they are not sent to the AI.
+
+Example: the shown results score `nature` 5, 4, 4, 4, 4 (mean 4.2). The first is 0.8 above the mean, so `nature` is its strength; the others are below the mean. The margin 0.75 was chosen from simulated quizzes on `content/initial-v8.json` (ADR-035).
 
 ## 5. Budget comparison
 

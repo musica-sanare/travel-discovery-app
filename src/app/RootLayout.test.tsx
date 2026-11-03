@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { I18nextProvider } from "react-i18next";
 import { createMemoryRouter, RouterProvider } from "react-router";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -64,6 +64,25 @@ describe("RootLayout", () => {
     const footer = screen.getByRole("contentinfo");
     expect(footer.textContent).toContain("回答はこのブラウザの中だけで使われ");
     expect(footer.textContent).toContain("現在の価格ではありません");
+    // An ordinary same-tab link to the hub page; it carries no user data.
+    const hub = within(footer).getByRole("link", { name: "musica-sanare.com のほかのページ" });
+    expect(hub.getAttribute("href")).toBe("https://musica-sanare.com/");
+    expect(hub.getAttribute("target")).toBeNull();
+  });
+
+  it("keeps the description in sync with the locale", async () => {
+    const meta = document.createElement("meta");
+    meta.name = "description";
+    document.head.append(meta);
+    try {
+      renderAt("/");
+      expect(meta.content).toContain("あなたの旅のスタイルに合う");
+      fireEvent.change(screen.getByLabelText("言語"), { target: { value: "en" } });
+      await screen.findByRole("heading", { level: 1, name: "Find an overseas destination that suits you" });
+      expect(meta.content).toContain("suit how you like to travel");
+    } finally {
+      meta.remove();
+    }
   });
 
   it("renders a localized not-found page for unknown routes", () => {

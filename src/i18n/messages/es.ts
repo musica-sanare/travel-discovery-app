@@ -3,6 +3,7 @@ import type { Messages } from "./ja";
 export const es: Messages = {
   meta: {
     title: "Travel Discovery — Descubre tu próximo destino en el extranjero",
+    description: "Responde algunas preguntas y descubre ciudades y regiones en el extranjero que encajan con tu forma de viajar. Sin necesidad de registrarte.",
   },
   app: {
     name: "Travel Discovery",
@@ -57,6 +58,7 @@ export const es: Messages = {
   footer: {
     privacy: "Tus respuestas se quedan en este navegador y no se guardan en nuestro servidor. Solo si activas la asistencia de IA se envían una vez para crear las notas de IA.",
     costs: "Todos los costes mostrados son estimaciones orientativas con fuente, no precios actuales.",
+    hub: "Más en musica-sanare.com",
   },
   common: {
     skipToContent: "Ir al contenido principal",
@@ -101,8 +103,7 @@ export const es: Messages = {
       flights: "Buscar vuelos en {{provider}}",
       hotels: "Buscar hoteles en {{provider}}",
       newTab: "(se abre en una pestaña nueva)",
-      place: "{{name}}, {{country}}",
-      note: "Los sitios externos se abren en una pestaña nueva. No se transmiten los datos de tu viaje, así que introduce «{{destination}}» y tus fechas allí. Los precios que muestren son suyos y difieren de nuestros costes orientativos.",
+      note: "Los botones de búsqueda abren sitios externos en una pestaña nueva. No se transmiten los datos de tu viaje, así que introduce allí el destino y tus fechas. Los precios que muestren son suyos y difieren de nuestros costes orientativos.",
     },
     rank: "N.º {{rank}}",
     more: "Más detalles",
@@ -116,6 +117,7 @@ export const es: Messages = {
     fit: "Afinidad relativa: {{fit}} / 100",
     fitNote: "Una indicación relativa basada en los datos actuales, no una probabilidad ni una garantía.",
     matchesLabel: "Por qué encaja",
+    strengthsLabel: "Destaca entre estos por",
     indicative: "Orientativo",
     days: "Estancia sugerida: {{min}}–{{max}} días",
     cost: "Coste orientativo ({{period}}): {{min}}–{{max}}",

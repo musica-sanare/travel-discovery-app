@@ -10,6 +10,11 @@ import { scoreDestination, type AttributeContribution } from "./scoring";
 import type { Answer, DiagnosisContent, QuizLimits, TripConstraints } from "./types";
 
 export const TOP_ATTRIBUTE_COUNT = 3;
+export const STRENGTH_COUNT = 2;
+/** How far above the shown results' mean a 0-5 attribute score must be to count as a strength. */
+export const STRENGTH_SCORE_MARGIN = 0.75;
+// Floating-point slack, so that a difference of exactly the margin counts.
+const EPSILON = 1e-9;
 
 export type RankingNotice = "fewer_than_requested" | "no_eligible_destinations" | "no_preference_signal";
 
@@ -24,6 +29,12 @@ export interface RankedDestination {
   duration: DurationStatus;
   /** Strongest positive contributions from wanted attributes (P[a] > 0), for the deterministic explanation. */
   topAttributes: readonly AttributeContribution[];
+  /**
+   * Wanted attributes where this result is clearly stronger than the other shown
+   * results; `value` is P[a] · (x_d[a] − mean of x[a] over the shown results).
+   * Explanation data only: it never affects fit or order.
+   */
+  strengths: readonly AttributeContribution[];
 }
 
 export interface RankingResult {
@@ -54,7 +65,8 @@ export function rankDestinations(
   const usable = prepareContent(content);
   const preferences = buildPreferences(usable, answers);
 
-  const candidates: Omit<RankedDestination, "rank">[] = [];
+  const candidates: Omit<RankedDestination, "rank" | "strengths">[] = [];
+  const contributionsBySlug = new Map<string, readonly AttributeContribution[]>();
   const excluded: { slug: string; reason: "over_budget" }[] = [];
   for (const destination of usable.destinations) {
     const budget = compareBudget(destination, constraints.budget, constraints.days);
@@ -67,6 +79,7 @@ export function rankDestinations(
       usable.attributes,
       preferences.values,
     );
+    contributionsBySlug.set(destination.slug, contributions);
     candidates.push({
       slug: destination.slug,
       fit,
@@ -83,7 +96,12 @@ export function rankDestinations(
   }
 
   candidates.sort(compareByFit);
-  const results = candidates.slice(0, limits.resultCount).map((item, index) => ({ ...item, rank: index + 1 }));
+  const shown = candidates.slice(0, limits.resultCount);
+  const strengths = distinctiveStrengths(
+    shown.map((item) => contributionsBySlug.get(item.slug) ?? []),
+    preferences.values,
+  );
+  const results = shown.map((item, index) => ({ ...item, rank: index + 1, strengths: strengths[index] ?? [] }));
 
   const notices: RankingNotice[] = [];
   if (signalStrength(preferences.values) === 0) {
@@ -96,4 +114,40 @@ export function rankDestinations(
   }
 
   return { results, excluded, notices, ignoredAnswers: preferences.ignored };
+}
+
+/**
+ * Distinctive strengths of each shown result (docs/en/DIAGNOSTIC_ALGORITHM.md
+ * "Fallback explanation data"). A missing score counts as x = 0 in the mean, as
+ * in the fit, but is never a strength.
+ */
+export function distinctiveStrengths(
+  shown: readonly (readonly AttributeContribution[])[],
+  preferences: ReadonlyMap<string, number>,
+  scoreMargin = STRENGTH_SCORE_MARGIN,
+): AttributeContribution[][] {
+  if (shown.length < 2) {
+    return shown.map(() => []);
+  }
+  const centered = shown.map(
+    (contributions) =>
+      new Map(contributions.map((item) => [item.attribute, item.value / (preferences.get(item.attribute) ?? 1)])),
+  );
+  const mean = (attribute: string) =>
+    centered.reduce((sum, values) => sum + (values.get(attribute) ?? 0), 0) / centered.length;
+  const margin = (2 * scoreMargin) / 5;
+
+  return centered.map((values) => {
+    const strengths: AttributeContribution[] = [];
+    for (const [attribute, x] of values) {
+      const preference = preferences.get(attribute) ?? 0;
+      const difference = x - mean(attribute);
+      if (preference > 0 && difference >= margin - EPSILON) {
+        strengths.push({ attribute, value: preference * difference });
+      }
+    }
+    return strengths
+      .sort((a, b) => b.value - a.value || compareSlugs(a.attribute, b.attribute))
+      .slice(0, STRENGTH_COUNT);
+  });
 }

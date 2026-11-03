@@ -2,6 +2,7 @@
 export const ja = {
   meta: {
     title: "Travel Discovery — 海外旅行先診断",
+    description: "いくつかの質問に答えると、あなたの旅のスタイルに合う海外の都市や地域を提案します。登録は不要です。",
   },
   app: {
     name: "Travel Discovery",
@@ -56,6 +57,7 @@ export const ja = {
   footer: {
     privacy: "回答はこのブラウザの中だけで使われ、サーバーには保存されません。AI アシストをオンにしたときだけ、AI による補足の作成のために 1 回送信します。",
     costs: "表示する費用はすべて出典付きの参考値で、現在の価格ではありません。",
+    hub: "musica-sanare.com のほかのページ",
   },
   common: {
     skipToContent: "本文へ移動",
@@ -100,8 +102,7 @@ export const ja = {
       flights: "{{provider}}で航空券を探す",
       hotels: "{{provider}}でホテルを探す",
       newTab: "（新しいタブで開きます）",
-      place: "{{name}}（{{country}}）",
-      note: "外部サイトが新しいタブで開きます。検索条件は引き継がれないため、目的地「{{destination}}」などを入力してください。表示される価格は各サイトのもので、本アプリの参考費用とは異なります。",
+      note: "検索ボタンは外部サイトを新しいタブで開きます。検索条件は引き継がれないため、目的地と日程を入力してください。表示される価格は各サイトのもので、本アプリの参考費用とは異なります。",
     },
     rank: "{{rank}}位",
     more: "詳しく見る",
@@ -115,6 +116,7 @@ export const ja = {
     fit: "相対的な適合度: {{fit}} / 100",
     fitNote: "現在の登録データに基づく相対的な目安です。確率や保証ではありません。",
     matchesLabel: "合っている点",
+    strengthsLabel: "この中で特に強い点",
     indicative: "参考値",
     days: "おすすめの日数: {{min}}〜{{max}} 日",
     cost: "参考費用（{{period}}）: {{min}}〜{{max}}",

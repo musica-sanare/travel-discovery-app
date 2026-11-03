@@ -15,6 +15,19 @@ test("serves the security headers and renders without CSP errors", async ({ page
   expect(errors).toEqual([]);
 });
 
+test("serves the favicon and robots.txt as real files with the security headers", async ({ request }) => {
+  for (const [file, type] of [
+    ["/favicon.svg", "image/svg+xml"],
+    ["/robots.txt", "text/plain"],
+  ] as const) {
+    const response = await request.get(file);
+    expect(response.status()).toBe(200);
+    expect(response.headers()["content-type"]).toContain(type);
+    expect(response.headers()["x-content-type-options"]).toBe("nosniff");
+    expect(await response.text()).not.toContain('<div id="root">');
+  }
+});
+
 test("has no horizontal overflow", async ({ page }) => {
   for (const url of ["/", "/plan"]) {
     await page.goto(url);

@@ -1,4 +1,4 @@
-<!-- source: README.md blob ff319a5eb6290ef6de3028c07260ff1c6813a740 -->
+<!-- source: README.md blob ade9068213dfe5fafb4f96489306c515dd4f0981 -->
 [English](README.md) | 日本語
 
 > この文書は[英語版](README.md)の翻訳。内容が異なる場合は英語版が優先する。
@@ -9,12 +9,13 @@ Travel Discovery は、都市・地域単位の海外の旅行先を推薦する
 
 ## 状態
 
-- Phase 0〜18 は完了。
+- Phase 0〜18 は完了。Phase 19 は実装済みで、デプロイ待ち。
 - 本番は https://travel-discovery.apps.musica-sanare.com で、AI を無効にして動いている（`workers.dev` の URL でも開ける）。`main` に push するたびに Cloudflare Workers Builds がデプロイする。23 か国・30 件の旅行先（11 の属性で採点）と、29 問のクイズの質問を提供している。
 - Phase 14 で、AI の上限と提供状況を UI に表示し、利用者ごとの厳密な AI の回数制限を本番にデプロイした。
 - Phase 15 で、有力な旅行先を見分けやすい質問をクイズが優先して出すようにした。
 - Phase 16 で、出典つきの費用の目安を増やした。10 件の旅行先で `JPY`・`USD`・`EUR` の目安を出せる。
 - Phase 17 で、UI と公開中のすべてのコンテンツにフランス語を加えた。
+- Phase 19 で、結果ごとにほかの結果と比べて際立つ点を示し、ページの説明、リンクのプレビュー用のタグ、favicon を加えた。
 - 本番で AI を有効にする手順は用意してある。オーナーが承認するまで AI は無効のまま（[Implementation plan](docs/working/IMPLEMENTATION_PLAN.md)、英語のみ）。
 - Phase 18 で、リポジトリを公開できる状態に整えた。履歴とシークレットのスキャン、MIT ライセンス、セキュリティポリシーを済ませた。オーナーが 2026-11-01 に公開した。公開した直後に入れる GitHub の設定は [Public release checklist](docs/working/PUBLIC_RELEASE.md)（英語のみ）にある。
 

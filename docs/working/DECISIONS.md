@@ -625,6 +625,19 @@ Owner-approved rollout of the French locale (`prompts/17-french-locale.md` task 
   - A complete quiz in `fr` in the built-in browser at 375 px (5 days, July, EUR 1,500; one question skipped): results Singapour, Barcelone, Andalousie, Taipei, Sicile; Sicily "probablement dans votre budget" with "84 €–207 €" and the French basis, Taipei "pas de données de coût dans votre devise" with "23 300 JPY–36 400 JPY". No horizontal overflow at 375 px or 1,024 px; switching to `es`, `ja`, `en`, and back to `fr` updated the texts and `lang`.
 - *Status* (2026-10-31): Phase 17's acceptance is met. The owner approved the migration before it ran, and a local test shows it keeps every row; UI strings are complete in `fr` with the `fr → en → ja` fallback; `initial-v7.json` differs from `initial-v6.json` only by `fr` translations and the owner approved the review copy; preview and production match the bundle in all four locales, and complete quizzes in `fr` work on both. `npm run check` and `npm run test:e2e` passed after the last code change (commit `ef6d323`). AI is disabled in every environment, and the account stays on Workers Free. Deferred as planned: an `fr` review of AI output (AI_ENABLEMENT.md) and Phase 16.
 
+## Phase 19 verification log (from 2026-11-03)
+Results clarity and page basics (`prompts/19-results-and-page-basics.md`, ADR-035); local only, nothing deployed.
+- *Observed on production* (2026-11-03, before the change): five results with fits 74, 73, 73, 73, and 71; four listed the same three attributes; the external-search note repeated on every card; `index.html` had only a title; `/favicon.ico` and `/robots.txt` returned the SPA's HTML with status 200.
+- *Implemented* (2026-11-03):
+  - `distinctiveStrengths` in `domain/diagnosis/ranking.ts` and the `strengths` field of each result, with unit tests in `domain/diagnosis/ranking.test.ts`; the existing ranking tests pass unchanged. The margin comes from `test/simulation/strengths.sim.ts` (ADR-035).
+  - Results page: "Stands out among these for" on each card that has strengths; the external-search note once, under the heading. The fit number and bar are unchanged.
+  - `index.html`: Japanese title and description, Open Graph tags without an image, the canonical URL on the custom domain, and the favicon link. `DocumentMetadata` sets the description per locale on the public site; the admin console passes none.
+  - `public/favicon.svg` (the header's plane on the sky color, drawn for this project) and `public/robots.txt` (`Allow: /`). The CSP needs no change.
+  - Footer link to `https://musica-sanare.com/` in the same tab, localized.
+- *Verified locally* (2026-11-03): `npm run check` passed (826 tests; bundle verification passed); `npm run test:e2e` passed (77, one skipped by design), including the new check that `/favicon.svg` and `/robots.txt` are real files with `nosniff`. The E2E request allow-list now includes `/favicon.svg`, a same-origin request that carries no user data.
+- *Checked in the built-in browser* (2026-11-03, `npm run dev`, local database): a complete quiz in `ja` gave strengths on four of five cards (for example "Nightlife" and "City life" for Rio de Janeiro) and one search note; the labels, chips, note, description, and footer link in `en`, `es`, and `fr`; no horizontal overflow at 375 px; the favicon is legible at 16, 32, and 64 px.
+- *Known limit*: a strength can repeat an attribute that is already under "Why it fits"; the two lists answer different questions (what the user asked for, and what sets this result apart), so both are kept.
+
 ## Phase 18 verification log (from 2026-11-01)
 
 Local history review and owner decisions for the public release checklist (`prompts/18-public-release-preparation.md`); no GitHub setting, history rewrite, or remote command.
@@ -1424,6 +1437,22 @@ Order proposed: preview trial ([DEPLOYMENT.md](../en/DEPLOYMENT.md) 7.1) → sep
   - Billing showed no new charge the day after the deployment (owner, 2026-11-03).
   - `musica-sanare-home` marked the hostname `live` and links to the app from the hub page (its commit `ddcad70`). Checked read-only on 2026-11-03: the registry row is `live`, `https://musica-sanare.com/ja/` links to the app, and `/api/health` on the custom domain answers 200.
 - Open (要確認): the exact wording of the custom domain in the build log, and whether a deployment without the `routes` entry detaches the custom domain ([DEPLOYMENT.md](../en/DEPLOYMENT.md) 5.1).
+
+## ADR-035: Distinctive strengths on the results page
+- Status: **Accepted** (owner-approved plan 2026-11-03; Phase 19, `prompts/19-results-and-page-basics.md`).
+- Context: on production (2026-11-03), the five results of one quiz had fits 74, 73, 73, 73, and 71, and four listed the same three attributes under "Why it fits". The top attributes come from what the user asked for, so with few wanted attributes they repeat across results, and the fit gives no reason why one result ranks above another.
+- Decision: each result carries up to two **distinctive strengths**: wanted attributes (`P[a] > 0`) whose score is at least 0.75 points above the mean of the shown results, ordered by `P[a] · (x_d[a] − mean)` ([DIAGNOSTIC_ALGORITHM.md](../en/DIAGNOSTIC_ALGORITHM.md) "Fallback explanation data"). The results page shows them as "Stands out among these for". They are explanation data only: `fit`, coverage, order, and the AI request do not change. The fit number and bar stay (owner, 2026-11-03).
+- Margin: chosen with `test/simulation/strengths.sim.ts` (`QUIZ_SIMULATE_STRENGTHS=1 npm run quiz:simulate`) on `content/initial-v8.json`, 2,000 simulated respondents per family, the default quiz settings, noise 0.1, and skip rate 0.1:
+
+  | Margin (score points) | Cards with a strength (sparse / anchored) | Quizzes with no strength anywhere | Quizzes with identical "Why it fits" where 2+ cards get a strength |
+  |---|---|---|---|
+  | 0.5 | 92.8% / 88.3% | 0.1% / 0.3% | 96.9% / 92.9% |
+  | **0.75** | **79.7% / 66.8%** | **1.1% / 2.9%** | **72.3% / 56.7%** |
+  | 1 | 67.4% / 52.2% | 2.9% / 8.0% | 47.7% / 31.9% |
+  | 1.5 | 30.6% / 19.1% | 22.3% / 42.5% | 12.3% / 2.1% |
+
+  Scores are integers, so 0.75 is the smallest margin at which one point above every other shown result counts (5 against four 4s is 0.8 above the mean), while half a point does not. 0.5 would mark nearly every card and say little; 1 misses the 5-against-4 case. Identical "Why it fits" on every card occurred in 3.3% (sparse) and 7.0% (anchored) of the simulated quizzes.
+- Alternatives considered: comparing with the first result only (rejected: the first result would never get a strength); a banded fit label instead of the number (rejected for now by the owner; it would change SPEC.md); a per-pair "compared with the result above" text (more text per card, and the same information).
 
 ## Admin authentication status (2026-10-17)
 

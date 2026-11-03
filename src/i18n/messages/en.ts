@@ -3,6 +3,7 @@ import type { Messages } from "./ja";
 export const en: Messages = {
   meta: {
     title: "Travel Discovery — Find your next overseas destination",
+    description: "Answer a few questions and get overseas cities and regions that suit how you like to travel. No sign-up needed.",
   },
   app: {
     name: "Travel Discovery",
@@ -57,6 +58,7 @@ export const en: Messages = {
   footer: {
     privacy: "Your answers stay in this browser and are not stored on our server. Only when you turn on AI assistance are they sent once to create the AI notes.",
     costs: "All costs shown are indicative estimates with a source, not current prices.",
+    hub: "More from musica-sanare.com",
   },
   common: {
     skipToContent: "Skip to main content",
@@ -101,8 +103,7 @@ export const en: Messages = {
       flights: "Search flights on {{provider}}",
       hotels: "Search hotels on {{provider}}",
       newTab: "(opens in a new tab)",
-      place: "{{name}}, {{country}}",
-      note: "External sites open in a new tab. Your trip details are not passed on, so enter “{{destination}}” and your dates there. Prices shown there are the site’s own and differ from our indicative costs.",
+      note: "The search buttons open external sites in a new tab. Your trip details are not passed on, so enter the destination and your dates there. Prices shown there are the site’s own and differ from our indicative costs.",
     },
     rank: "No. {{rank}}",
     more: "More details",
@@ -116,6 +117,7 @@ export const en: Messages = {
     fit: "Relative fit: {{fit}} / 100",
     fitNote: "A relative indication based on the current content data, not a probability or a guarantee.",
     matchesLabel: "Why it fits",
+    strengthsLabel: "Stands out among these for",
     indicative: "Indicative",
     days: "Suggested stay: {{min}}–{{max}} days",
     cost: "Indicative cost ({{period}}): {{min}}–{{max}}",

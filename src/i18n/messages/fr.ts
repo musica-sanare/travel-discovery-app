@@ -5,6 +5,7 @@ import type { Messages } from "./ja";
 export const fr: Messages = {
   meta: {
     title: "Travel Discovery — Trouvez votre prochaine destination à l’étranger",
+    description: "Répondez à quelques questions et découvrez des villes et des régions à l’étranger adaptées à votre façon de voyager. Sans inscription.",
   },
   app: {
     name: "Travel Discovery",
@@ -59,6 +60,7 @@ export const fr: Messages = {
   footer: {
     privacy: "Vos réponses restent dans ce navigateur et ne sont pas enregistrées sur notre serveur. Elles ne sont envoyées qu’une seule fois, pour rédiger les notes d’IA, et uniquement si vous activez l’assistance IA.",
     costs: "Tous les coûts affichés sont des estimations indicatives avec leur source, et non des prix actuels.",
+    hub: "Plus sur musica-sanare.com",
   },
   common: {
     skipToContent: "Aller au contenu principal",
@@ -103,8 +105,7 @@ export const fr: Messages = {
       flights: "Rechercher des vols sur {{provider}}",
       hotels: "Rechercher des hôtels sur {{provider}}",
       newTab: "(s’ouvre dans un nouvel onglet)",
-      place: "{{name}}, {{country}}",
-      note: "Les sites externes s’ouvrent dans un nouvel onglet. Les détails de votre voyage ne leur sont pas transmis, saisissez donc « {{destination}} » et vos dates sur place. Les prix qui y sont affichés sont les leurs et diffèrent de nos coûts indicatifs.",
+      note: "Les boutons de recherche ouvrent des sites externes dans un nouvel onglet. Les détails de votre voyage ne leur sont pas transmis, saisissez donc la destination et vos dates sur place. Les prix qui y sont affichés sont les leurs et diffèrent de nos coûts indicatifs.",
     },
     rank: "N° {{rank}}",
     more: "Plus de détails",
@@ -118,6 +119,7 @@ export const fr: Messages = {
     fit: "Affinité relative : {{fit}} / 100",
     fitNote: "Une indication relative fondée sur nos données actuelles, et non une probabilité ni une garantie.",
     matchesLabel: "Pourquoi cela vous correspond",
+    strengthsLabel: "Se distingue parmi celles-ci par",
     indicative: "Indicatif",
     days: "Séjour conseillé : {{min}}–{{max}} jours",
     cost: "Coût indicatif ({{period}}) : {{min}}–{{max}}",
