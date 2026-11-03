@@ -398,7 +398,7 @@ Acceptance:
 - The footer links to the hub page.
 - `npm run check` and `npm run test:e2e` pass, AI is disabled, and the account stays on Workers Free.
 
-Status: **implemented locally (2026-11-03)**; deployment is the owner's push to `main` ([DECISIONS.md](DECISIONS.md) "Phase 19 verification log", ADR-035):
+Status: **complete (2026-11-03)**; deployed with `dac3dba` and checked on production ([DECISIONS.md](DECISIONS.md) "Phase 19 verification log", ADR-035):
 - Each result carries up to two distinctive strengths (margin 0.75 score points, from a simulation on `content/initial-v8.json`); ranking and fit are unchanged.
 - The results page shows them and the external-search note once; `index.html` has the description, canonical URL, and Open Graph tags; the favicon, `robots.txt`, and the hub link are added.
 - `npm run check` (826 tests) and `npm run test:e2e` (77 passed, one skipped by design) passed; AI is disabled, and the account stays on Workers Free.

@@ -1,4 +1,4 @@
-<!-- source: README.md blob ade9068213dfe5fafb4f96489306c515dd4f0981 -->
+<!-- source: README.md blob 3bc44f07ab4c6a1f8d272bcf3aae33667541c2bf -->
 [English](README.md) | 日本語
 
 > この文書は[英語版](README.md)の翻訳。内容が異なる場合は英語版が優先する。
@@ -9,7 +9,7 @@ Travel Discovery は、都市・地域単位の海外の旅行先を推薦する
 
 ## 状態
 
-- Phase 0〜18 は完了。Phase 19 は実装済みで、デプロイ待ち。
+- Phase 0〜19 は完了。
 - 本番は https://travel-discovery.apps.musica-sanare.com で、AI を無効にして動いている（`workers.dev` の URL でも開ける）。`main` に push するたびに Cloudflare Workers Builds がデプロイする。23 か国・30 件の旅行先（11 の属性で採点）と、29 問のクイズの質問を提供している。
 - Phase 14 で、AI の上限と提供状況を UI に表示し、利用者ごとの厳密な AI の回数制限を本番にデプロイした。
 - Phase 15 で、有力な旅行先を見分けやすい質問をクイズが優先して出すようにした。

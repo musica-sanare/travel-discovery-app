@@ -626,7 +626,7 @@ Owner-approved rollout of the French locale (`prompts/17-french-locale.md` task 
 - *Status* (2026-10-31): Phase 17's acceptance is met. The owner approved the migration before it ran, and a local test shows it keeps every row; UI strings are complete in `fr` with the `fr → en → ja` fallback; `initial-v7.json` differs from `initial-v6.json` only by `fr` translations and the owner approved the review copy; preview and production match the bundle in all four locales, and complete quizzes in `fr` work on both. `npm run check` and `npm run test:e2e` passed after the last code change (commit `ef6d323`). AI is disabled in every environment, and the account stays on Workers Free. Deferred as planned: an `fr` review of AI output (AI_ENABLEMENT.md) and Phase 16.
 
 ## Phase 19 verification log (from 2026-11-03)
-Results clarity and page basics (`prompts/19-results-and-page-basics.md`, ADR-035); local only, nothing deployed.
+Results clarity and page basics (`prompts/19-results-and-page-basics.md`, ADR-035); deployed to production on 2026-11-03 with `dac3dba`.
 - *Observed on production* (2026-11-03, before the change): five results with fits 74, 73, 73, 73, and 71; four listed the same three attributes; the external-search note repeated on every card; `index.html` had only a title; `/favicon.ico` and `/robots.txt` returned the SPA's HTML with status 200.
 - *Implemented* (2026-11-03):
   - `distinctiveStrengths` in `domain/diagnosis/ranking.ts` and the `strengths` field of each result, with unit tests in `domain/diagnosis/ranking.test.ts`; the existing ranking tests pass unchanged. The margin comes from `test/simulation/strengths.sim.ts` (ADR-035).
@@ -637,6 +637,12 @@ Results clarity and page basics (`prompts/19-results-and-page-basics.md`, ADR-03
 - *Verified locally* (2026-11-03): `npm run check` passed (826 tests; bundle verification passed); `npm run test:e2e` passed (77, one skipped by design), including the new check that `/favicon.svg` and `/robots.txt` are real files with `nosniff`. The E2E request allow-list now includes `/favicon.svg`, a same-origin request that carries no user data.
 - *Checked in the built-in browser* (2026-11-03, `npm run dev`, local database): a complete quiz in `ja` gave strengths on four of five cards (for example "Nightlife" and "City life" for Rio de Janeiro) and one search note; the labels, chips, note, description, and footer link in `en`, `es`, and `fr`; no horizontal overflow at 375 px; the favicon is legible at 16, 32, and 64 px.
 - *Known limit*: a strength can repeat an attribute that is already under "Why it fits"; the two lists answer different questions (what the user asked for, and what sets this result apart), so both are kept.
+- *Deployed* (2026-11-03): the owner pushed `dac3dba` to `dev`, CI passed, and the owner pushed the same commit to `main`. GitHub accepted the push under the required checks, and Workers Builds deployed both Workers (reported by the owner).
+- *Checked on production* (2026-11-03, `https://travel-discovery.apps.musica-sanare.com`, without login):
+  - `/`, `/favicon.svg`, `/robots.txt`, `/api/health`, and `/api/ai/status` return 200. The favicon is `image/svg+xml` and `robots.txt` is `text/plain` with `Allow: /`; both carry `nosniff` and the CSP. `/api/ai/status` reports AI disabled.
+  - The served `index.html` has the Japanese title and description, the canonical URL, the favicon link, and the Open Graph tags.
+  - A complete quiz in `ja` in the built-in browser: strengths on four of five cards (for example 「自然・絶景」 and 「歴史・文化」 for Marrakesh), none on the first; the search note once under the heading; the footer link to `https://musica-sanare.com/`.
+  - Claude did not run `scripts/check-deployment.mjs`, because the deploy guard blocks files with "deploy" in the name.
 
 ## Phase 18 verification log (from 2026-11-01)
 
@@ -676,7 +682,7 @@ Local history review and owner decisions for the public release checklist (`prom
 - *Publishing and GitHub settings* (2026-11-03): the owner made the repository public on 2026-11-01 and reported applying the settings of [PUBLIC_RELEASE.md](PUBLIC_RELEASE.md) section 6.
   - Read back without login (public GitHub API `rules/branches/main` and `rulesets`): one active ruleset `main` with the rules `deletion`, `non_fast_forward`, and `required_status_checks`. Its required status checks list was empty at first, so no CI check was enforced. The owner added `check` and `e2e` on 2026-11-03; read back the same way, both are required with the GitHub Actions app as their source.
   - Private vulnerability reporting, Dependabot alerts, push protection, and the Actions restrictions cannot be read without login; they are recorded as reported by the owner, not verified.
-  - Still open: whether a direct push to `main` is accepted once `check` and `e2e` are required and passed on the same commit on `dev`.
+  - A direct push to `main` is accepted once `check` and `e2e` passed on the same commit on `dev`: the push of `dac3dba` on 2026-11-03 went through (Phase 19 verification log).
 
 ## ADR-001: SPA and hosting
 - Status: **Accepted** (Phase 0)
