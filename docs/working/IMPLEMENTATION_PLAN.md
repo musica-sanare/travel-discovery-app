@@ -474,3 +474,17 @@ Acceptance:
 - `npm run check` passes; AI stays disabled, and the account stays on Workers Free.
 
 Status: **complete (2026-11-08)**, deployed with `7913ef4` and `initial-v11.json` imported on production by the owner; the destinations match the bundle in four locales on the compared fields ("Phase 24 verification log" in DECISIONS.md). The owner approved twelve score changes on ten destinations; `content/initial-v11.json` differs from `initial-v10.json` by those only, and the local import rehearsal matches it in four locales ("Phase 24 verification log" in DECISIONS.md). Cape Town falls from 45.3% to 38.6% and the share SD from 8.9% to 8.2%; Rome and Maasai Mara stay rare (1.2%) and need a new attribute (a later phase candidate).
+
+## Phase 25 — New attributes and destinations
+Owner request (2026-11-08): add attributes for what the quiz cannot tell apart, so that Rome and Maasai Mara can be found, and add destinations if there is room. Prompt: `prompts/25-new-attributes.md` (approved 2026-11-08).
+- Measure how far new attributes reach and compare bundles on populations that stay comparable.
+- Propose attributes with written rubrics, scores for every destination, and the questions and effects that use them; the owner decides what to keep.
+- Decide on new destinations after the numbers; write `content/initial-v12.json` with only the approved changes and rehearse its import.
+- Not in this phase: engine changes, quiz settings, a region field, enabling AI.
+
+Acceptance:
+- Every attribute has a written rubric, every change has a stated reason and the owner's approval, and Rome and Maasai Mara are found more often within approved quality bounds; Edinburgh, Copenhagen, and Lisbon are reported either way.
+- `content/initial-v12.json` differs from `initial-v11.json` only by the approved changes, and the local rehearsal matches it in four locales.
+- `npm run check` and `npm run test:e2e` pass; AI stays disabled, and the account stays on Workers Free.
+
+Status: **complete (2026-11-08)**, not yet imported. The owner approved the attributes `ancient-sites` and `wildlife`, two questions, and Siem Reap and the Galápagos Islands; the local rehearsal matches the bundle in four locales ("Phase 25 verification log" in DECISIONS.md). Rome rises from 30% to 63% found and Maasai Mara from 73% to 81%; Lisbon, Edinburgh, and Copenhagen do not improve. The production import is an owner step; no code or migration needs deploying first.

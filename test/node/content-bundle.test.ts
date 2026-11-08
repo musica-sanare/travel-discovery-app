@@ -130,6 +130,56 @@ it("initial-v11.json differs from initial-v10.json only by the approved attribut
   ]);
 });
 
+it("initial-v12.json differs from initial-v11.json only by the approved attributes, destinations, and questions", () => {
+  interface Effect {
+    attribute: string;
+    weight: number;
+  }
+  interface Bundle extends Record<string, unknown> {
+    attributes: { slug: string }[];
+    countries: { slug: string }[];
+    destinations: { slug: string; attributeScores: { attribute: string; score: number }[] }[];
+    questions: { slug: string; options: { value: string; effects: Effect[] }[] }[];
+  }
+  const read = (file: string) => JSON.parse(readFileSync(path.join(CONTENT_DIR, file), "utf8")) as Bundle;
+  const [v11, v12] = [read("initial-v11.json"), read("initial-v12.json")];
+  const newAttributes = ["ancient-sites", "wildlife"];
+  const newDestinations = ["siem-reap", "galapagos-islands"];
+  const newQuestions = ["ancient-ruins", "wildlife-watching"];
+
+  const withoutAdditions: Bundle = {
+    ...v12,
+    attributes: v12.attributes.filter((item) => !newAttributes.includes(item.slug)),
+    countries: v12.countries.filter((item) => !["cambodia", "ecuador"].includes(item.slug)),
+    destinations: v12.destinations
+      .filter((item) => !newDestinations.includes(item.slug))
+      .map((item) => ({ ...item, attributeScores: item.attributeScores.filter((score) => !newAttributes.includes(score.attribute)) })),
+    questions: v12.questions
+      .filter((item) => !newQuestions.includes(item.slug))
+      .map((item) => ({
+        ...item,
+        options: item.options
+          .filter((option) => !(item.slug === "trip-interests" && option.value === "ancient"))
+          .map((option) => (item.slug === "nature-sights" && option.value === "wildlife" ? { ...option, effects: option.effects.filter((effect) => effect.attribute !== "wildlife") } : option)),
+      })),
+  };
+  expect(withoutAdditions).toEqual(v11);
+
+  const attributes = v12.attributes.map((item) => item.slug).sort();
+  for (const destination of v12.destinations) {
+    expect(destination.attributeScores.map((item) => item.attribute).sort()).toEqual(attributes);
+  }
+  const added = v12.questions.flatMap((question) => question.options.flatMap((option) => option.effects.filter((effect) => newAttributes.includes(effect.attribute)).map((effect) => `${question.slug}.${option.value} ${effect.attribute} ${String(effect.weight)}`)));
+  expect(added.sort()).toEqual([
+    "ancient-ruins.love ancient-sites 3",
+    "ancient-ruins.none ancient-sites -2",
+    "nature-sights.wildlife wildlife 3",
+    "trip-interests.ancient ancient-sites 3",
+    "wildlife-watching.love wildlife 3",
+    "wildlife-watching.none wildlife -2",
+  ]);
+});
+
 describe.each(files)("%s", (file) => {
   const parsed = parseBundle(readFileSync(path.join(CONTENT_DIR, file), "utf8"));
 
