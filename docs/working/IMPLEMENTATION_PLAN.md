@@ -447,7 +447,7 @@ Acceptance:
 - The four fixes are covered by unit, worker, client, and E2E tests, with the new notice in four locales.
 - `npm run check` and `npm run test:e2e` pass; AI stays disabled, and the account stays on Workers Free.
 
-Status: **complete (2026-11-08)**, not yet deployed. The owner approved the prompt, a cap of 500 model calls per UTC day, and no match list in the model input; the fixes are implemented, and `npm run check` and `npm run test:e2e` pass ("Phase 22 verification log" in DECISIONS.md). No Wrangler migration is needed.
+Status: **complete (2026-11-08)**, deployed with `7913ef4`; AI stays disabled. The owner approved the prompt, a cap of 500 model calls per UTC day, and no match list in the model input; the fixes are implemented, and `npm run check` and `npm run test:e2e` pass ("Phase 22 verification log" in DECISIONS.md). No Wrangler migration is needed.
 
 ## Phase 23 — Result variety and share balance
 Owner request (2026-11-08): reduce how often a few broad destinations dominate the results (Cape Town 45.3% of top-5 results, Rome 0.7%, "Phase 21 verification log"), and let the shown destinations vary between quizzes while still following the answers. Prompt: `prompts/23-result-variety.md` (approved 2026-11-08).
@@ -460,7 +460,7 @@ Acceptance:
 - The best fit is always first, the same answers, data, and seed give the same results, and the simulated share spread shrinks within an approved fit loss.
 - `npm run check` and `npm run test:e2e` pass; AI stays disabled, and the account stays on Workers Free.
 
-Status: **complete (2026-11-08)**, not yet deployed. The owner approved the prompt, a band of 10 fit points among the best 12, variety without share balancing, and the "Show other destinations" button; `npm run check` and `npm run test:e2e` pass ("Phase 23 verification log" and ADR-037 in DECISIONS.md). Share balance is left to a later review of attribute scores and questions. No migration is needed.
+Status: **complete (2026-11-08)**, deployed with `7913ef4`. The owner approved the prompt, a band of 10 fit points among the best 12, variety without share balancing, and the "Show other destinations" button; `npm run check` and `npm run test:e2e` pass ("Phase 23 verification log" and ADR-037 in DECISIONS.md). Share balance is left to a later review of attribute scores and questions. No migration is needed.
 
 ## Phase 24 — Share balance through scores and questions
 Owner request (2026-11-08): reduce how often broad destinations dominate (Cape Town 42.8% of top-5 results on random answers) and help hard-to-find ones (Rome 0.4%) by reviewing content, after Phase 23 showed that result variety does not change the balance (ADR-037). Prompt: `prompts/24-share-balance.md` (approved 2026-11-08).
@@ -473,4 +473,4 @@ Acceptance:
 - The simulated share spread shrinks and hard-to-find destinations are found more often, within quiz-quality bounds the owner approves.
 - `npm run check` passes; AI stays disabled, and the account stays on Workers Free.
 
-Status: **complete (2026-11-08)**, not yet deployed or imported. The owner approved twelve score changes on ten destinations; `content/initial-v11.json` differs from `initial-v10.json` by those only, and the local import rehearsal matches it in four locales ("Phase 24 verification log" in DECISIONS.md). Cape Town falls from 45.3% to 38.6% and the share SD from 8.9% to 8.2%; Rome and Maasai Mara stay rare (1.2%) and need a new attribute (a later phase candidate). The production import is an owner step.
+Status: **complete (2026-11-08)**, deployed with `7913ef4` and `initial-v11.json` imported on production by the owner; the destinations match the bundle in four locales on the compared fields ("Phase 24 verification log" in DECISIONS.md). The owner approved twelve score changes on ten destinations; `content/initial-v11.json` differs from `initial-v10.json` by those only, and the local import rehearsal matches it in four locales ("Phase 24 verification log" in DECISIONS.md). Cape Town falls from 45.3% to 38.6% and the share SD from 8.9% to 8.2%; Rome and Maasai Mara stay rare (1.2%) and need a new attribute (a later phase candidate).
