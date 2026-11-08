@@ -418,7 +418,7 @@ Acceptance:
 - `npm run check` and `npm run test:e2e` pass, AI is disabled, and the account stays on Workers Free.
 - After the owner's migration, push, and import, production shows the map, checked without login.
 
-Status: **implemented and committed (`68399b3`, 2026-11-08)**; coordinates approved. The owner applies migration `0003` to production and pushes; the coordinates reach production with the one import of `content/initial-v10.json` (Phase 21), after which the map is checked on production ("Phase 20 verification log" in DECISIONS.md).
+Status: **complete (2026-11-08)**; deployed with `68399b3`, the coordinates imported with `content/initial-v10.json` (Phase 21), and the map and links checked on production in four locales ("Phase 20 verification log" in DECISIONS.md). Migration `0003` was applied after the push, which briefly broke the public content load ("Phase 21 verification log").
 
 ## Phase 21 — More destinations and cost estimates
 Owner decision (2026-11-08): after Phase 20, add destinations in the regions with none or few (for example the Middle East, South Asia, sub-Saharan Africa, the UK, Portugal, and the Nordic countries), with coordinates, and fill more cost estimates and best months under the Phase 8 and Phase 9 source rules. To keep production imports few, `initial-v9.json` is not imported on its own: the Phase 20 code ships first, and this phase's `initial-v10.json` (v9 plus the approved additions) is the one import for both phases. Prompt: `prompts/21-more-destinations-and-costs.md`.
@@ -433,4 +433,4 @@ Acceptance:
 - Production received one import for Phases 20 and 21 and shows the map, links, and estimates in four locales.
 - `npm run check` and `npm run test:e2e` pass, AI is disabled, and the account stays on Workers Free.
 
-Status: **implemented locally (2026-11-08)**; prompt approved, 12 destinations and the review copy approved, `initial-v10.json` rehearsed locally. Remaining: the owner releases Phases 20 and 21 with one import and checks production ("Phase 21 verification log" in DECISIONS.md).
+Status: **complete (2026-11-08)**; deployed with `11782c2` and `initial-v10.json` imported once on production, matching the bundle in four locales; every acceptance item is met ("Phase 21 verification log" in DECISIONS.md).

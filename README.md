@@ -6,15 +6,15 @@ Travel Discovery is a responsive web app that recommends overseas city/region-le
 
 ## Status
 
-- Phases 0–19 are complete.
-- Production runs at https://travel-discovery.apps.musica-sanare.com (also on `workers.dev`) with AI disabled and deploys through Cloudflare Workers Builds on each push to `main`. It serves 30 destinations in 23 countries, scored on 11 attributes, and 29 quiz questions.
+- Phases 0–21 are complete.
+- Production runs at https://travel-discovery.apps.musica-sanare.com (also on `workers.dev`) with AI disabled and deploys through Cloudflare Workers Builds on each push to `main`. It serves 42 destinations in 33 countries, scored on 11 attributes, and 29 quiz questions.
 - Phase 14 made the AI limits and status visible in the UI and deployed the strict per-client AI quota to production.
 - Phase 15 made the quiz prefer questions that separate the likely destinations.
 - Phase 16 added sourced cost estimates: 10 destinations now have indicative costs in `JPY`, `USD`, and `EUR`.
 - Phase 17 added French to the UI and all published content.
 - Phase 19 shows what sets each result apart from the others, and adds a description, link-preview tags, and a favicon.
-- Phase 20 adds a world map of the results, drawn by the app itself from public-domain map data, and a Google Maps link on each result. It goes live with Phase 21.
-- Phase 21 adds 12 destinations in 10 new countries (42 in all), including the UK, Portugal, the Nordic countries, the Middle East, South Asia, and Africa. Phases 20 and 21 go live after the owner applies the migration, deploys, and imports `content/initial-v10.json` once.
+- Phase 20 added a world map of the results, drawn by the app itself from public-domain map data, and a Google Maps link on each result.
+- Phase 21 added 12 destinations in 10 new countries, including the UK, Portugal, the Nordic countries, the Middle East, South Asia, and Africa, and a sourced cost estimate for Finnish Lapland (11 destinations with costs).
 - The steps for enabling AI on production are prepared. AI stays disabled until the owner approves them ([Implementation plan](docs/working/IMPLEMENTATION_PLAN.md)).
 - Phase 18 prepared the repository for publishing: a history and secret scan, the MIT license, and a security policy. The owner made it public on 2026-11-01. The GitHub settings to apply right after it are in the [public release checklist](docs/working/PUBLIC_RELEASE.md).
 
