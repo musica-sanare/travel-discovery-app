@@ -1,4 +1,4 @@
-<!-- source: README.md blob 6c455ac80fa164da1e53bd769cf849c147bcc4e0 -->
+<!-- source: README.md blob 9a7bdd80340854754076ed3a72e4c80d228a1dfe -->
 [English](README.md) | 日本語
 
 > この文書は[英語版](README.md)の翻訳。内容が異なる場合は英語版が優先する。
@@ -16,7 +16,8 @@ Travel Discovery は、都市・地域単位の海外の旅行先を推薦する
 - Phase 16 で、出典つきの費用の目安を増やした。10 件の旅行先で `JPY`・`USD`・`EUR` の目安を出せる。
 - Phase 17 で、UI と公開中のすべてのコンテンツにフランス語を加えた。
 - Phase 19 で、結果ごとにほかの結果と比べて際立つ点を示し、ページの説明、リンクのプレビュー用のタグ、favicon を加えた。
-- Phase 20 で、パブリックドメインの地図データからアプリ自身が描く結果の世界地図と、各結果から Google マップを開くリンクを加えた。オーナーがマイグレーションを適用し、デプロイし、`content/initial-v9.json` を取り込むと公開される。
+- Phase 20 で、パブリックドメインの地図データからアプリ自身が描く結果の世界地図と、各結果から Google マップを開くリンクを加えた。Phase 21 と一緒に公開する。
+- Phase 21 で、英国、ポルトガル、北欧、中東、南アジア、アフリカなど 10 か国の行き先を 12 件加えた（計 42 件）。オーナーがマイグレーションを適用し、デプロイし、`content/initial-v10.json` を 1 回取り込むと、Phase 20 と 21 が公開される。
 - 本番で AI を有効にする手順は用意してある。オーナーが承認するまで AI は無効のまま（[Implementation plan](docs/working/IMPLEMENTATION_PLAN.md)、英語のみ）。
 - Phase 18 で、リポジトリを公開できる状態に整えた。履歴とシークレットのスキャン、MIT ライセンス、セキュリティポリシーを済ませた。オーナーが 2026-11-01 に公開した。公開した直後に入れる GitHub の設定は [Public release checklist](docs/working/PUBLIC_RELEASE.md)（英語のみ）にある。
 

@@ -78,6 +78,22 @@ it("initial-v9.json differs from initial-v8.json only by destination locations",
   expect(withoutLocations).toEqual(read("initial-v8.json"));
 });
 
+it("initial-v10.json keeps every item of initial-v9.json unchanged and only adds new ones", () => {
+  type Bundle = Record<string, { slug: string }[] | string | number>;
+  const read = (file: string) => JSON.parse(readFileSync(path.join(CONTENT_DIR, file), "utf8")) as Bundle;
+  const [v9, v10] = [read("initial-v9.json"), read("initial-v10.json")];
+  for (const key of Object.keys(v9)) {
+    const before = v9[key];
+    const after = v10[key];
+    if (!Array.isArray(before) || !Array.isArray(after)) {
+      expect(after).toEqual(before);
+      continue;
+    }
+    expect(after.slice(0, before.length)).toEqual(before);
+  }
+  expect(Object.keys(v10)).toEqual(Object.keys(v9));
+});
+
 describe.each(files)("%s", (file) => {
   const parsed = parseBundle(readFileSync(path.join(CONTENT_DIR, file), "utf8"));
 

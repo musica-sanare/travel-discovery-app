@@ -14,7 +14,7 @@ import { MAP_HEIGHT, MAP_SOUTH_LIMIT, MAP_WIDTH, toMapPoint } from "../shared/ma
 const OUTPUT = new URL("../public/world-map.svg", import.meta.url);
 
 // Content country slugs whose Natural Earth NAME_EN differs.
-const COUNTRY_NAMES = { czechia: "Czech Republic", "united-states": "United States of America" };
+const COUNTRY_NAMES = { czechia: "Czech Republic", turkiye: "Turkey", "united-states": "United States of America" };
 
 // A coastal city centre can fall just outside the generalized 1:50m outline.
 const COAST_TOLERANCE_KM = 5;

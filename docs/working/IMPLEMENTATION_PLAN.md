@@ -418,7 +418,19 @@ Acceptance:
 - `npm run check` and `npm run test:e2e` pass, AI is disabled, and the account stays on Workers Free.
 - After the owner's migration, push, and import, production shows the map, checked without login.
 
-Status: **implemented locally (2026-11-08)**; the owner reviews the coordinates, applies migration `0003` to production, pushes, and imports `content/initial-v9.json` ("Phase 20 verification log" in DECISIONS.md).
+Status: **implemented and committed (`68399b3`, 2026-11-08)**; coordinates approved. The owner applies migration `0003` to production and pushes; the coordinates reach production with the one import of `content/initial-v10.json` (Phase 21), after which the map is checked on production ("Phase 20 verification log" in DECISIONS.md).
 
-## Phase 21 — More destinations and cost estimates (planned)
-Owner decision (2026-11-08): after Phase 20, add destinations in the regions with none or few (for example the Middle East, South Asia, sub-Saharan Africa, the UK, Portugal, and the Nordic countries), with coordinates, and fill more cost estimates and best months under the Phase 8 and Phase 9 source rules. The candidate list, the total, and the prompt are prepared when Phase 20 is complete.
+## Phase 21 — More destinations and cost estimates
+Owner decision (2026-11-08): after Phase 20, add destinations in the regions with none or few (for example the Middle East, South Asia, sub-Saharan Africa, the UK, Portugal, and the Nordic countries), with coordinates, and fill more cost estimates and best months under the Phase 8 and Phase 9 source rules. To keep production imports few, `initial-v9.json` is not imported on its own: the Phase 20 code ships first, and this phase's `initial-v10.json` (v9 plus the approved additions) is the one import for both phases. Prompt: `prompts/21-more-destinations-and-costs.md`.
+- Review coverage and empty values, propose new destinations with coordinates (owner approves the list and total), then texts in four locales, scores, and sourced costs and best months for owner review.
+- Build `content/initial-v10.json`, compare the simulation with `initial-v9.json`, and rehearse the import locally.
+- Owner: deploy Phase 20 if not done (migration `0003`, push), push this phase, and import `initial-v10.json` once; then check the map, links, and estimates on production.
+- Not in this phase: new attributes or questions, unapproved score changes, images, production AI, and a dated exchange-rate table.
+
+Acceptance:
+- Coverage and simulation numbers are recorded, and every published destination reaches the top results.
+- `initial-v10.json` differs from `initial-v9.json` only by the reviewed additions, and every cost and best-month entry has a cited source.
+- Production received one import for Phases 20 and 21 and shows the map, links, and estimates in four locales.
+- `npm run check` and `npm run test:e2e` pass, AI is disabled, and the account stays on Workers Free.
+
+Status: **implemented locally (2026-11-08)**; prompt approved, 12 destinations and the review copy approved, `initial-v10.json` rehearsed locally. Remaining: the owner releases Phases 20 and 21 with one import and checks production ("Phase 21 verification log" in DECISIONS.md).
