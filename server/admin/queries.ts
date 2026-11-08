@@ -6,6 +6,7 @@ import { compareCurrencies } from "../../shared/costs";
 import type { Locale } from "../../shared/locales";
 import { maskToMonths } from "../../shared/months";
 import type { Database } from "../db/client";
+import { readLocation } from "../db/location";
 import {
   appSettings,
   attributes,
@@ -165,8 +166,7 @@ export async function getDestination(db: Database, id: number) {
     status: row.status,
     recommendedDays: { min: row.recommendedDaysMin, max: row.recommendedDaysMax },
     bestMonths: maskToMonths(row.bestMonthsMask) ?? [],
-    location:
-      row.latitude !== null && row.longitude !== null ? { latitude: row.latitude, longitude: row.longitude } : null,
+    location: readLocation(row.latitude, row.longitude).location,
     costs: [...row.costEstimates]
       .sort((a, b) => compareCurrencies(a.currency, b.currency))
       .map((estimate) => ({

@@ -218,19 +218,26 @@ All of these are dashboard steps; no login on this machine is needed.
 Migrations are applied only through the admin config, in an owner session (3.1). Workers Builds never applies them.
 
 > [!WARNING]
-> A push to `main` deploys at once. Apply a migration to the production database **before** pushing the commit whose code needs the new schema to `main`.
+> A push to `main` deploys at once. Apply a migration to the production database **before** pushing the commit whose code needs the new schema to `main`. Code that reads a column the database lacks may not fail: D1 returns the column name as a string, which broke the public quiz on 2026-11-08 ([DECISIONS.md](../working/DECISIONS.md) "Phase 21 verification log").
 
 The order for a commit that needs a schema change:
 
 1. The migration is backward compatible with the code deployed now (section 8). `npm run check` and `npm run test:e2e` pass locally on the commit; they apply every migration to a fresh local database.
 2. For a migration that rebuilds tables or changes data, rehearse it on a local copy of production first (below).
 3. Owner session: record a Time Travel bookmark, apply the migration to `travel-discovery-production`, verify, log out.
-4. Owner: push `main`. Workers Builds deploys both Workers. Run section 6.
+4. Owner, in the same session before logging out: confirm that no migration is pending on production (command below). Do not push `main` until it reports none.
+5. Owner: push `main`. Workers Builds deploys both Workers. Run section 6.
 
 The production command:
 
 ```bash
 npx wrangler d1 migrations apply travel-discovery-production --remote --env production --config wrangler.admin.jsonc
+```
+
+The check before pushing `main` (step 4) lists the migrations not yet applied; it must report none:
+
+```bash
+npx wrangler d1 migrations list travel-discovery-production --remote --env production --config wrangler.admin.jsonc
 ```
 
 - Wrangler lists the pending migrations, asks for confirmation, and captures a backup before applying.
@@ -280,7 +287,7 @@ flowchart TD
 
 1. Commit on `dev`, and run `npm run check` and `npm run test:e2e` locally on the commit.
 2. Owner: push `dev`. Nothing deploys. Wait until GitHub Actions CI is green on that commit; Workers Builds would not wait for it.
-3. If the commit needs a schema change, apply the migration to the production database first (section 4).
+3. If the commit needs a schema change, apply the migration to the production database first, and confirm that no migration is pending (section 4, steps 3 and 4).
 4. Owner: bring `main` to the tested commit and push it. This deploys `travel-discovery` and `travel-discovery-admin`. Push only a commit whose CI is green, with nothing new on top.
 
    ```bash

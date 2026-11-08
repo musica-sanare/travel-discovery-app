@@ -1,4 +1,4 @@
-<!-- source: docs/en/DEPLOYMENT.md blob 10b1c7a4a08e121ef5c9eae6ccff56d1e31e642b -->
+<!-- source: docs/en/DEPLOYMENT.md blob 8586b20cb325f7e9078ea9c29325b08cd4784dee -->
 [English](../en/DEPLOYMENT.md) | 日本語 · [目次に戻る](README.md)
 
 > この文書は[英語版](../en/DEPLOYMENT.md)の翻訳。内容が異なる場合は英語版が優先する。
@@ -221,19 +221,26 @@ Workers Builds にもビルド変数とビルド用の秘密情報があり、�
 マイグレーションは管理の設定からだけ、オーナーのセッション（3.1）で適用する。Workers Builds は適用しない。
 
 > [!WARNING]
-> `main` に push するとすぐにデプロイされる。新しいスキーマが要るコードのコミットを `main` に push する**前に**、本番のデータベースにマイグレーションを適用する。
+> `main` に push するとすぐにデプロイされる。新しいスキーマが要るコードのコミットを `main` に push する**前に**、本番のデータベースにマイグレーションを適用する。データベースにない列を読むコードは、エラーにならないことがある。D1 は列名をそのまま文字列として返すためで、2026-11-08 にはこれで公開のクイズが止まった（[DECISIONS.md](../working/DECISIONS.md)（英語のみ）の「Phase 21 verification log」）。
 
 スキーマの変更が要るコミットの順番:
 
 1. マイグレーションが今デプロイしているコードと後方互換である（8 節）。そのコミットでローカルの `npm run check` と `npm run test:e2e` が通っている。どちらも、まっさらなローカルのデータベースにすべてのマイグレーションを適用する。
 2. テーブルを作り直したりデータを変えたりするマイグレーションは、先に本番のローカルコピーでリハーサルする（下）。
 3. オーナーのセッション: Time Travel のブックマークを記録し、`travel-discovery-production` にマイグレーションを適用し、確かめて、ログアウトする。
-4. オーナー: `main` に push する。Workers Builds が両方の Worker をデプロイする。6 節を実行する。
+4. オーナー: ログアウトする前に同じセッションで、本番に未適用のマイグレーションが残っていないことを確かめる（下のコマンド）。1 件でも残っていれば `main` に push しない。
+5. オーナー: `main` に push する。Workers Builds が両方の Worker をデプロイする。6 節を実行する。
 
 本番のコマンド:
 
 ```bash
 npx wrangler d1 migrations apply travel-discovery-production --remote --env production --config wrangler.admin.jsonc
+```
+
+`main` に push する前の確認（手順 4）では、未適用のマイグレーションを一覧にする。1 件もないことを確かめる:
+
+```bash
+npx wrangler d1 migrations list travel-discovery-production --remote --env production --config wrangler.admin.jsonc
 ```
 
 - Wrangler は未適用のマイグレーションを並べ、確認を求め、適用する前にバックアップを取る。
@@ -283,7 +290,7 @@ flowchart TD
 
 1. `dev` にコミットし、そのコミットでローカルの `npm run check` と `npm run test:e2e` を実行する。
 2. オーナー: `dev` に push する。何もデプロイされない。そのコミットで GitHub Actions の CI が成功するまで待つ。Workers Builds はその結果を待たないからだ。
-3. コミットにスキーマの変更が要るなら、先に本番のデータベースにマイグレーションを適用する（4 節）。
+3. コミットにスキーマの変更が要るなら、先に本番のデータベースにマイグレーションを適用し、未適用のものが残っていないことを確かめる（4 節の手順 3 と 4）。
 4. オーナー: `main` を確認済みのコミットまで進めて push する。これで `travel-discovery` と `travel-discovery-admin` がデプロイされる。push するのは CI が通ったコミットだけにし、その上に新しいものを載せない。
 
    ```bash

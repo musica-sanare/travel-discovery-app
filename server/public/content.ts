@@ -10,6 +10,7 @@ import { compareCurrencies } from "../../shared/costs";
 import type { Locale } from "../../shared/locales";
 import { maskToMonths } from "../../shared/months";
 import type { Database } from "../db/client";
+import { readLocation } from "../db/location";
 import { destinations, questions } from "../db/schema";
 import { pickTranslation } from "../localization";
 
@@ -38,7 +39,7 @@ const destinationColumns = {
 } as const;
 
 export async function loadPublishedDestinations(db: Database, slug?: string) {
-  return db.query.destinations.findMany({
+  const rows = await db.query.destinations.findMany({
     columns: destinationColumns,
     where: slug
       ? and(eq(destinations.status, "published"), eq(destinations.slug, slug))
@@ -63,6 +64,12 @@ export async function loadPublishedDestinations(db: Database, slug?: string) {
       },
     },
   });
+  // Logged once per request when stored locations are unusable, for example before a migration.
+  const invalid = rows.filter((row) => readLocation(row.latitude, row.longitude).invalid).length;
+  if (invalid > 0) {
+    console.warn(JSON.stringify({ event: "invalid_location", count: invalid }));
+  }
+  return rows;
 }
 
 export type LoadedDestination = Awaited<ReturnType<typeof loadPublishedDestinations>>[number];
@@ -103,8 +110,7 @@ export function toPublicDestination(row: LoadedDestination, locale: Locale) {
     bestSeason: text.bestSeasonText,
     recommendedDays: { min: row.recommendedDaysMin, max: row.recommendedDaysMax },
     bestMonths: maskToMonths(row.bestMonthsMask),
-    location:
-      row.latitude !== null && row.longitude !== null ? { latitude: row.latitude, longitude: row.longitude } : null,
+    location: readLocation(row.latitude, row.longitude).location,
     country: {
       slug: row.country.slug,
       name: countryText?.name ?? null,

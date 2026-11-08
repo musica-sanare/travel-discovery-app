@@ -58,6 +58,18 @@ describe("GET /api/diagnosis-content", () => {
     });
   });
 
+  // Before migration 0003, D1 returned the column names as text (Phase 21 verification log).
+  it("keeps the snapshot valid when stored coordinates are not numbers", async () => {
+    await run(`UPDATE destinations SET latitude = 'latitude', longitude = 'longitude' WHERE slug = 'taipei'`);
+    try {
+      const content = await load("?locale=en");
+      expect(content.destinations.find((item) => item.slug === "taipei")?.location).toBeNull();
+      expect(content.destinations.find((item) => item.slug === "lisbon")?.location).toEqual({ latitude: 38.71, longitude: -9.14 });
+    } finally {
+      await run(`UPDATE destinations SET latitude = 25.04, longitude = 121.56 WHERE slug = 'taipei'`);
+    }
+  });
+
   it("does not expose internal IDs, statuses, or timestamps", async () => {
     const body = JSON.stringify(await json(await publicRequest("/api/diagnosis-content?locale=en")));
     for (const key of ['"id"', '"status"', '"createdAt"', '"countryId"', '"attributeId"', '"optionId"', '"displayOrder"']) {
