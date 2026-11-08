@@ -1,4 +1,4 @@
-<!-- source: docs/en/OPERATIONS.md blob 0bf08f2687b612a2f13b25f698a03140ca40549c -->
+<!-- source: docs/en/OPERATIONS.md blob 6efbf4e1384703e603a8026c1101ab97f32a109f -->
 [English](../en/OPERATIONS.md) | 日本語 · [目次に戻る](README.md)
 
 > この文書は[英語版](../en/OPERATIONS.md)の翻訳。内容が異なる場合は英語版が優先する。
@@ -110,6 +110,8 @@ AI が無効でもレート制限の行が出ることがある。Phase 11 か�
 停止スイッチで AI を止める（[AI_ENABLEMENT.md](AI_ENABLEMENT.md)、ADR-026 E）。診断は動き続ける。止めるのは次のとき:
 - 12:00 UTC より前に、Neurons が 1 日の割り当ての約 70% を超えた。
 - レート制限（`rate_limited_window`、`rate_limited_daily`）や `provider_error` の結果が急に増えた。
+
+アプリ全体の上限（UTC の 1 日にモデル呼び出し 500 回、ADR-029）でも、00:00 UTC まで全員の AI が止まる。課金はされない。上限に達すると `rate_limited_global` が記録されるが、それだけでは止める理由にならない。その日を記録し、上限を変えるかどうかはオーナーが決める。文章のガードで捨てたノートは、`ai_explanation` の行の `dropped` と `droppedReasons` に出る（コードだけ）。同じ理由で多く捨てていれば、プロンプトかガードの問題として記録する（[AI_ENABLEMENT.md](AI_ENABLEMENT.md) 4 節）。
 
 ### 4.5 ビルドが失敗する、またはビルドが始まらない
 前のバージョンが配信され続けるので、利用者には何も壊れていない。

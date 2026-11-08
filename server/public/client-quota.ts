@@ -1,12 +1,20 @@
 /**
- * Strict per-client quota for AI explanations (docs/working/DECISIONS.md
- * ADR-029). One Durable Object per rate-limit key applies these rules, so
- * every request of a client is counted in one place, whatever connection or
- * Cloudflare location it arrives on.
+ * Strict per-client quota and app-wide daily cap for AI explanations
+ * (docs/working/DECISIONS.md ADR-029). One Durable Object per rate-limit key
+ * applies the per-client rules, so every request of a client is counted in
+ * one place, whatever connection or Cloudflare location it arrives on. One
+ * more object of the same class, with a fixed name, counts the model calls of
+ * all clients together.
  */
 import type { AiRateLimit, QuotaLimits } from "../../shared/ai-quota";
 
-export { AI_CLIENT_QUOTA } from "../../shared/ai-quota";
+export { AI_CLIENT_QUOTA, AI_GLOBAL_DAILY_CAP } from "../../shared/ai-quota";
+
+/**
+ * Name of the app-wide cap object. Client object names are 64 hex digits
+ * (clientObjectName), so this name can never be a client's.
+ */
+export const GLOBAL_OBJECT_NAME = "ai-global:v1";
 
 /** Counts only; the object identity is the client, so no key is stored. */
 export interface QuotaState {
@@ -70,4 +78,27 @@ export function applyQuota(
 export async function clientObjectName(rateLimitKey: string): Promise<string> {
   const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(`ai-client:v1:${rateLimitKey}`));
   return [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
+}
+
+/** Count of model calls on one UTC day, for the app-wide cap; no client data. */
+export interface GlobalCapState {
+  utcDay: number;
+  count: number;
+}
+
+/** Result of one app-wide cap check; a refusal lasts until the next 00:00 UTC. */
+export type GlobalDecision = { success: true } | { success: false; retryAt: number };
+
+/** Like applyQuota, a refused call is not counted, so a refusal needs no storage write. */
+export function applyGlobalCap(
+  state: GlobalCapState | null,
+  nowMs: number,
+  cap: number,
+): { allowed: true; state: GlobalCapState } | { allowed: false; retryAt: number } {
+  const today = utcDay(nowMs);
+  const count = state !== null && state.utcDay === today ? state.count : 0;
+  if (count >= cap) {
+    return { allowed: false, retryAt: nextUtcMidnight(nowMs) };
+  }
+  return { allowed: true, state: { utcDay: today, count: count + 1 } };
 }

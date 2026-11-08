@@ -15,11 +15,12 @@ export const AI_CLIENT_TIMEOUT_MS = 12_000;
 
 /**
  * `rate_limited` is a 429 without the documented body; `rate_limited_daily`
- * carries when the client's daily quota resets (epoch ms, 00:00 UTC).
+ * (the client's daily quota) and `rate_limited_global` (the app-wide daily
+ * cap) carry when they reset (epoch ms, 00:00 UTC).
  */
 export type AiFailure =
   | { reason: "content_changed" | "rate_limited" | "rate_limited_window" | "unavailable" }
-  | { reason: "rate_limited_daily"; retryAt: number };
+  | { reason: "rate_limited_daily" | "rate_limited_global"; retryAt: number };
 
 export type AiExplanationResult = { ok: true; texts: ReadonlyMap<string, string> } | ({ ok: false } & AiFailure);
 
@@ -35,7 +36,7 @@ async function rateLimitFailure(response: Response): Promise<AiFailure> {
   }
   // The daily reset is at a whole minute (00:00 UTC); rounding hides small clock differences.
   const retryAt = Math.round((Date.now() + parsed.data.retryAfter * 1000) / MINUTE_MS) * MINUTE_MS;
-  return { reason: "rate_limited_daily", retryAt };
+  return { reason: parsed.data.limit === "global" ? "rate_limited_global" : "rate_limited_daily", retryAt };
 }
 
 async function failureFor(response: Response): Promise<AiFailure> {

@@ -110,6 +110,7 @@ The limiters can be checked on a deployment with `AI_ASSIST_ENABLED` `"false"`: 
 - The others answer 503 `ai_unavailable` and write a `disabled` line.
 - Each run also counts toward the address's daily quota of 30 (two runs use 10).
 - Each request counts toward the Workers Free daily request limit (negligible here).
+- The app-wide daily cap (ADR-029, Phase 22) is consulted only right before a model call, so this check never reaches it; its refusal is covered by the tests.
 - The deployment and the check each need the owner's approval.
 - It ran on preview on 2026-10-25 ("Phase 11 verification log") and on production in Phase 14 ("Phase 14 verification log"). Since the preview environment was removed on 2026-10-31, a repeat runs on production.
 
@@ -149,18 +150,21 @@ AI stays disabled on production until the owner approves these steps for a date.
 - ADR-026 "Readiness for enabling AI" lists no item as not met.
 - Billing lists only the domain registration and the plan is Free ([OPERATIONS.md](OPERATIONS.md) section 3).
 - Workers Logs is on for `travel-discovery` with invocation logs off.
-- The production quota Durable Object is deployed (version `cc06950d` or later).
+- The production quota Durable Object is deployed (version `cc06950d` or later), with the Phase 22 code: notes copied digits from their own data, per-note rejection, the app-wide daily cap, and no fit signal in the model input (ADR-026 "Phase 22 amendments").
 
 **What changes for users.** The production URL is public, so unlike the preview trial there is no short window: anyone can use AI within the limits.
 - The plan page shows the toggle as usable (`/api/ai/status` answers `{"enabled":true}`).
 - Each client gets at most 5 AI requests per 60 s and 30 per UTC day (ADR-029).
+- All clients together get at most 500 model calls per UTC day (the app-wide cap, ADR-029). After that, the results page says that AI notes are not available for the rest of the day, until 00:00 UTC.
+- A note that fails a text guard is dropped; the other destinations keep theirs (ADR-026 "Phase 22 amendments").
 - The deterministic results do not change.
 
 **Budget.**
 - Workers Free includes 10,000 Neurons per day, reset at 00:00 UTC, after which calls fail without a charge. The allowance is per account, so other projects on the account would share it *(要確認)*.
 - At the measured 7–14 Neurons per call (the trial: about 11.8), that is roughly 700–1,400 calls per day.
 - One address can use at most about 420 Neurons per day (worst case about 3,150).
-- There is no app-wide daily cap (ADR-029 "Not covered"). Many addresses together can use the whole allowance, after which AI is unavailable for everyone until 00:00 UTC.
+- The app-wide cap of 500 model calls per UTC day uses 3,500–7,000 Neurons at 7–14 per call (35–70% of the allowance), which matches the first stop condition below. Many addresses together can reach the cap early in the UTC day, after which AI is unavailable for everyone until 00:00 UTC, without a charge.
+- In the worst case of about 105 Neurons per call, the platform's daily allowance stops AI before the cap, still without a charge on Workers Free.
 
 Steps:
 1. Owner: confirm the preconditions, and note the Workers AI Neurons already used today.
@@ -178,7 +182,7 @@ Steps:
    - The owner reviews the notes as in section 2 step 6.
 4. Monitoring (owner): about one hour after step 2, at the end of that UTC day, then daily for the first week, then with the weekly routine checks. Read:
    - Workers AI: Neurons used today.
-   - Observability of `travel-discovery`: counts of the `ai_explanation` outcomes (`ok`, `invalid_output` with its `reason`, `timeout`, `provider_error`, `content_mismatch`, `rate_limited_window`, `rate_limited_daily`, `limiter_unavailable`) and the `ok` latencies. Every line has the five fields (six for `invalid_output`) and no request content.
+   - Observability of `travel-discovery`: counts of the `ai_explanation` outcomes (`ok`, `invalid_output` with its `reason`, `timeout`, `provider_error`, `content_mismatch`, `rate_limited_window`, `rate_limited_daily`, `rate_limited_global`, `limiter_unavailable`), the `ok` latencies, and the sum of `dropped` with its `droppedReasons`. Every line has the five fields, plus `reason` for `invalid_output` and `dropped` and `droppedReasons` when notes were dropped, and no request content.
    - The Worker's daily requests against the Workers Free 100,000, Durable Object errors, and Billing.
 5. Record in [DECISIONS.md](../working/DECISIONS.md): the date, version IDs, Neurons before and after step 3, the outcome counts of each monitoring reading, and the owner's review of the notes, without copying notes into the repository.
 
@@ -186,11 +190,13 @@ Steps:
 - Neurons used exceed 7,000 (70% of the daily allowance) before 12:00 UTC;
 - Billing shows any new charge or a plan other than Free;
 - on a day with at least 10 model calls, more than 20% end in `invalid_output`, `timeout`, or `provider_error`;
-- a note contains a price, date, ranking, comparison, or a fact not in the destination's text;
+- a note contains a price, date, ranking, comparison, or a fact not in the destination's text (a number copied from the destination's own text, such as "Tram 28", is allowed);
 - a log line has more fields than above or any request content;
-- `limiter_unavailable` lines appear (the quota failed, so AI already fails closed);
+- `limiter_unavailable` lines appear (the quota or the app-wide cap failed, so AI already fails closed);
 - the Worker's requests pass 70,000 in a day;
 - anything else unexpected appears in the logs or the Billing page.
+
+A day that reaches the app-wide cap (`rate_limited_global` lines) is not a stop condition by itself: the cap works as designed. Record it; whether to change the cap is an owner decision.
 
 The diagnosis keeps working throughout.
 

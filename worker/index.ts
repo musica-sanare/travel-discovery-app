@@ -6,8 +6,8 @@
  * This Worker is read-only: it serves GET/HEAD, plus the read-only
  * `POST /api/ai/explanations` (docs/working/DECISIONS.md ADR-026), and imports read
  * modules only. That is a code-level constraint (ADR-018), not a database
- * permission. The only storage it writes is the AI quota Durable Object's own
- * per-client counters, never D1 (ADR-029).
+ * permission. The only storage it writes is the AI quota Durable Objects' own
+ * counters (per client and app-wide), never D1 (ADR-029).
  */
 import { Hono } from "hono";
 import { AI_EXPLANATIONS_PATH, AI_STATUS_PATH, aiExplanationRequestSchema } from "../shared/ai-explanation";
@@ -18,9 +18,9 @@ import { createDatabase } from "../server/db/client";
 import { errorResponse, jsonResponse, toErrorResponse } from "../server/http/errors";
 import { hasSameOrigin, parseLocaleParam, readJsonBody } from "../server/http/request";
 import { isSlug } from "../shared/slug";
-import { explainDiagnosis, type AiLogEntry } from "../server/public/ai-explanations";
+import { explainDiagnosis, GlobalLimitError, type AiLogEntry } from "../server/public/ai-explanations";
 import { clientRateLimitKey } from "../server/public/rate-limit-key";
-import { clientObjectName, type QuotaDecision } from "../server/public/client-quota";
+import { clientObjectName, GLOBAL_OBJECT_NAME, type GlobalDecision, type QuotaDecision } from "../server/public/client-quota";
 import type { AiClientLimiter } from "./ai-client-limiter";
 import { getDiagnosisContent } from "../server/public/diagnosis-content";
 import {
@@ -38,7 +38,7 @@ export interface PublicEnv {
   /** Optional bindings; `AI` and the rate limiter exist only in the deployment environments (ADR-026 C). */
   AI?: Ai;
   AI_CLIENT_RATE_LIMITER?: RateLimit;
-  /** Strict per-client quota (ADR-029); without it AI never runs. */
+  /** Strict per-client quota and app-wide daily cap (ADR-029); without it AI never runs. */
   AI_CLIENT_LIMITER?: DurableObjectNamespace<AiClientLimiter>;
 }
 
@@ -52,19 +52,26 @@ export interface QuotaLimiter {
   limit(options: { key: string }): Promise<QuotaDecision>;
 }
 
+/** The app-wide daily cap: counts one model call of any client. */
+export interface GlobalLimiter {
+  admit(): Promise<GlobalDecision>;
+}
+
 export interface AiDependencies {
   /** null: AI is unavailable (503 ai_unavailable). */
   provider: ExplanationProvider | null;
-  /**
-   * Per-client limiter keyed by client address (IPv6 by /64); null: not
-   * applied. There is deliberately no limiter shared by all clients (ADR-026 A).
-   */
+  /** Per-client limiter keyed by client address (IPv6 by /64); null: not applied. */
   clientLimiter: RateLimiter | null;
   /**
    * Strict per-client quota in a Durable Object (ADR-029); null or a failing
    * quota means no model call (503).
    */
   quotaLimiter: QuotaLimiter | null;
+  /**
+   * App-wide daily cap in a Durable Object (ADR-029, Phase 22), checked right
+   * before the model call; null or a failing cap means no model call (503).
+   */
+  globalLimiter: GlobalLimiter | null;
   timeoutMs?: number;
 }
 
@@ -87,6 +94,7 @@ export function aiDependenciesFromEnv(env: PublicEnv): AiDependencies {
     quotaLimiter: quota
       ? { limit: async ({ key }) => quota.getByName(await clientObjectName(key)).check() }
       : null,
+    globalLimiter: quota ? { admit: () => quota.getByName(GLOBAL_OBJECT_NAME).checkGlobal() } : null,
   };
 }
 
@@ -137,10 +145,16 @@ function rateLimitedResponse(limit: AiRateLimit, retryAfterSeconds: number): Res
 
 /**
  * Whether AI explanations can run at all for this deployment: the kill switch,
- * a provider, and the quota binding. Says nothing about any client's quota.
+ * a provider, and the quota binding. Says nothing about any client's quota or
+ * the app-wide cap.
  */
 function aiOffered(env: PublicEnv, dependencies: AiDependencies): boolean {
-  return env.AI_ASSIST_ENABLED === "true" && dependencies.provider !== null && dependencies.quotaLimiter !== null;
+  return (
+    env.AI_ASSIST_ENABLED === "true" &&
+    dependencies.provider !== null &&
+    dependencies.quotaLimiter !== null &&
+    dependencies.globalLimiter !== null
+  );
 }
 
 /** Browsers may reuse the status for a minute; it changes only with a deployment or a variable edit. */
@@ -221,13 +235,27 @@ export function createPublicApp(options: PublicAppOptions = {}) {
       logStopped("disabled", dependencies.provider);
       return errorResponse("ai_unavailable");
     }
+    const { globalLimiter } = dependencies;
+    if (!globalLimiter) {
+      logStopped("limiter_unavailable", dependencies.provider);
+      return errorResponse("ai_unavailable");
+    }
     const request = await readJsonBody(c.req.raw, aiExplanationRequestSchema);
-    const response = await explainDiagnosis(createDatabase(c.env.PUBLIC_DB), request, {
-      provider: dependencies.provider,
-      ...(dependencies.timeoutMs === undefined ? {} : { timeoutMs: dependencies.timeoutMs }),
-      log: logAiEvent,
-    });
-    return jsonResponse(response);
+    try {
+      const response = await explainDiagnosis(createDatabase(c.env.PUBLIC_DB), request, {
+        provider: dependencies.provider,
+        // The app-wide cap counts only requests that reach the model call (ADR-029).
+        admitModelCall: () => globalLimiter.admit(),
+        ...(dependencies.timeoutMs === undefined ? {} : { timeoutMs: dependencies.timeoutMs }),
+        log: logAiEvent,
+      });
+      return jsonResponse(response);
+    } catch (error) {
+      if (error instanceof GlobalLimitError) {
+        return rateLimitedResponse("global", (error.retryAt - Date.now()) / 1000);
+      }
+      throw error;
+    }
   });
 
   app.notFound(() => errorResponse("not_found"));

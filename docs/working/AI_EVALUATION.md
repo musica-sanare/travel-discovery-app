@@ -9,7 +9,7 @@ Plan for a small comparison of Workers AI models for the optional AI explanation
 ## 1. Scope
 
 - Candidates: `@cf/google/gemma-4-26b-a4b-it`, `@cf/qwen/qwen3-30b-a3b-fp8`, `@cf/meta/llama-3.1-8b-instruct-fp8` (request options per model in `server/ai/workers-ai.ts`).
-- Same prompt, request options, and validation as production: the run uses `buildModelRequest`, `extractModelAnswer`, and `parseModelOutput` from `server/ai/` unchanged. The digit rule stays as implemented (ADR-026 F). Request options differ per model where a model requires it (Llama 3.1 8B without JSON Schema; Qwen with its default reasoning; see ADR-026 "Evaluation round 1").
+- Same prompt, request options, and validation as production: the run uses `buildModelRequest`, `extractModelAnswer`, and output validation from `server/ai/` unchanged (`parseModelOutput` until Phase 22, `validateModelOutput` since). The digit rule stays as implemented (ADR-026 F; since Phase 22, digits copied from the destination's own data pass). Since Phase 22 a run counts an answer as accepted only when every note passes, although production drops failed notes one by one (ADR-026 "Phase 22 amendments"). Request options differ per model where a model requires it (Llama 3.1 8B without JSON Schema; Qwen with its default reasoning; see ADR-026 "Evaluation round 1").
 - Inputs: the ten fixed cases in [`test/ai-eval/cases.json`](../../test/ai-eval/cases.json), already in the model-facing shape. Most destinations are fictional, so any concrete fact in an answer that is not in the input is detectable as invented. C06 uses well-known real cities with deliberately generic data. No personal data.
 - Out of scope: changing the prompt, guards, or limits during the run. Findings that suggest such changes are recorded and decided afterwards.
 
@@ -20,7 +20,7 @@ Plan for a small comparison of Workers AI models for the optional AI explanation
 | C01 | ja | normal | Baseline quality and Japanese naturalness |
 | C02 | en | normal-large | Five destinations near the truncation limits: JSON completeness under the 1,500-token cap, latency, cost |
 | C03 | es | normal | Spanish fluency, script guard for `es` |
-| C04 | ja | sparse | No preference signal, one-line summaries, no highlights or matches, missing country: invented details |
+| C04 | ja | sparse | No preference signal, one-line summaries, no highlights, missing country: invented details |
 | C05 | ja | strict | Weak fit: overstated fit, climate or season talk |
 | C06 | ja | fact-bait | Well-known real cities: facts from model knowledge that are not in the data |
 | C07 | ja | number-bait | Authored content with numbers: digit-rule rejections and copied prices or dates |

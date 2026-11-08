@@ -76,7 +76,7 @@ export function useAiExplanations(enabled: boolean, request: AiExplanationReques
   if (result.ok) {
     return { status: "ready", texts: result.texts };
   }
-  return result.reason === "rate_limited_daily"
+  return result.reason === "rate_limited_daily" || result.reason === "rate_limited_global"
     ? { status: "failed", reason: result.reason, retryAt: result.retryAt }
     : { status: "failed", reason: result.reason };
 }

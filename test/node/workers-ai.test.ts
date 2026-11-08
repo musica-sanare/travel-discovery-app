@@ -13,7 +13,7 @@ import {
 const INPUT: ExplanationInput = {
   locale: "ja",
   preferences: ["食"],
-  destinations: [{ id: "d1", name: "リスボン", country: "ポルトガル", summary: "海辺の街", highlights: [], matches: ["食"] }],
+  destinations: [{ id: "d1", name: "リスボン", country: "ポルトガル", summary: "海辺の街", highlights: [] }],
 };
 
 function fakeRunner(output: unknown) {

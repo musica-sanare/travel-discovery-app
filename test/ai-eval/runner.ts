@@ -6,10 +6,9 @@
  * confirmation and credentials, never retries, and stops at a Neuron budget.
  * Credentials come from the shell environment only and are never recorded.
  */
-import { checkExplanationText, parseModelOutput, type TextRejection } from "../../server/ai/output";
+import { validateModelOutput, type TextRejection } from "../../server/ai/output";
 import type { ExplanationInput } from "../../server/ai/provider";
 import { buildModelRequest, extractModelAnswer, MAX_OUTPUT_TOKENS, MODEL_PROFILES } from "../../server/ai/workers-ai";
-import { MAX_EXPLANATION_LENGTH } from "../../shared/ai-explanation";
 
 export const CONFIRMATION = "consume-neurons";
 /** Production server timeout; slower answers are recorded as timed out but kept for review. */
@@ -133,7 +132,7 @@ export function assertNewRun(recordsExist: boolean, runId: string): void {
   }
 }
 
-export type Rejection = "structure" | "too_long" | TextRejection;
+export type Rejection = "structure" | TextRejection;
 
 function toJson(answer: unknown): unknown {
   if (typeof answer !== "string") return answer;
@@ -144,46 +143,34 @@ function toJson(answer: unknown): unknown {
   }
 }
 
-function explanationItems(answer: unknown): { id: unknown; text: unknown }[] | null {
-  const value = toJson(answer);
-  if (typeof value !== "object" || value === null || !("explanations" in value)) return null;
-  const items: unknown = value.explanations;
-  if (!Array.isArray(items)) return null;
-  return items.map((item: unknown) =>
-    typeof item === "object" && item !== null ? { id: (item as { id?: unknown }).id, text: (item as { text?: unknown }).text } : { id: undefined, text: undefined },
-  );
+/** Accepted only when the structure is valid and every note passes the text guards. */
+function fullyAccepted(answer: unknown, input: ExplanationInput): { accepted: boolean; rejection: Rejection | null } {
+  const result = validateModelOutput(answer, input);
+  if (!result.ok && result.reason !== "all_dropped") {
+    return { accepted: false, rejection: "structure" };
+  }
+  const first = result.dropped[0];
+  return first === undefined ? { accepted: true, rejection: null } : { accepted: false, rejection: first };
 }
 
 /**
- * Production acceptance plus a reason for rejection, and whether the answer
- * would pass with digits masked (analysis only; the production rule is
- * unchanged, docs/working/DECISIONS.md ADR-026 F).
+ * Whether every note passes (stricter than production, which drops only the
+ * failed notes, docs/working/DECISIONS.md ADR-026 Phase 22), the first
+ * reason for a rejection, and whether the answer would pass with digits
+ * masked (analysis only).
  */
 export function analyzeAnswer(
   answer: unknown,
-  ids: readonly string[],
-  locale: ExplanationInput["locale"],
+  input: ExplanationInput,
 ): { accepted: boolean; rejection: Rejection | null; acceptedWithoutDigitRule: boolean } {
-  const accepted = parseModelOutput(answer, ids, locale) !== null;
-  const items = explanationItems(answer);
-  let rejection: Rejection | null = null;
-  if (!accepted) {
-    rejection = "structure";
-    if (items?.every((item) => typeof item.text === "string")) {
-      for (const item of items) {
-        const text = (item.text as string).trim();
-        const reason: Rejection | null = text.length > MAX_EXPLANATION_LENGTH ? "too_long" : checkExplanationText(text, locale);
-        if (reason) {
-          rejection = reason;
-          break;
-        }
-      }
-    }
-  }
+  const { accepted, rejection } = fullyAccepted(answer, input);
   let acceptedWithoutDigitRule = accepted;
-  if (rejection === "digit" && items) {
-    const masked = { explanations: items.map((item) => ({ id: item.id, text: String(item.text).replace(/\p{Nd}/gu, "X") })) };
-    acceptedWithoutDigitRule = parseModelOutput(masked, ids, locale) !== null;
+  if (rejection === "digit") {
+    const value = toJson(answer) as { explanations: { id: unknown; text: unknown }[] };
+    const masked = {
+      explanations: value.explanations.map((item) => ({ id: item.id, text: String(item.text).replace(/\p{Nd}/gu, "X") })),
+    };
+    acceptedWithoutDigitRule = fullyAccepted(masked, input).accepted;
   }
   return { accepted, rejection, acceptedWithoutDigitRule };
 }
@@ -337,11 +324,10 @@ export async function runEvaluation(config: EvalConfig, jobs: readonly Job[], de
       clearTimeout(timer);
     }
 
-    const ids = job.input.destinations.map((item) => item.id);
     const answer = transportError ? undefined : extractModelAnswer(envelope?.result);
     const analysis = transportError
       ? { accepted: false, rejection: null, acceptedWithoutDigitRule: false }
-      : analyzeAnswer(answer, ids, job.input.locale);
+      : analyzeAnswer(answer, job.input);
     const usage = transportError ? null : usageOf(envelope?.result);
     // Prefer the Neurons Workers AI reports, then the token-based estimate, then the conservative pre-call estimate.
     const estimatedNeurons =

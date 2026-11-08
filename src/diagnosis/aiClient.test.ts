@@ -28,6 +28,11 @@ describe("fetchAiExplanations", () => {
     expect(JSON.parse(typeof init?.body === "string" ? init.body : "")).toEqual(REQUEST);
   });
 
+  it("accepts a response without a note for some displayed destinations", async () => {
+    const result = await fetchAiExplanations(REQUEST, respond({ explanations: [{ slug: "iceland", text: TEXT }] }));
+    expect(result).toEqual({ ok: true, texts: new Map([["iceland", TEXT]]) });
+  });
+
   it("ignores texts for slugs that are not displayed", async () => {
     const result = await fetchAiExplanations(
       REQUEST,
@@ -46,7 +51,7 @@ describe("fetchAiExplanations", () => {
     expect(await fetchAiExplanations(REQUEST, respond({ error: "x" }, status))).toEqual({ ok: false, reason });
   });
 
-  it("tells the window limit from the daily limit and keeps the daily reset time", async () => {
+  it("tells the window, daily, and app-wide limits apart and keeps the daily reset time", async () => {
     vi.useFakeTimers({ now: Date.UTC(2026, 9, 31, 19, 0, 0, 400), toFake: ["Date"] });
     try {
       expect(await fetchAiExplanations(REQUEST, respond({ error: "rate_limited", limit: "window", retryAfter: 43 }, 429))).toEqual({
@@ -57,6 +62,11 @@ describe("fetchAiExplanations", () => {
       expect(await fetchAiExplanations(REQUEST, respond({ error: "rate_limited", limit: "daily", retryAfter: 18_000 }, 429))).toEqual({
         ok: false,
         reason: "rate_limited_daily",
+        retryAt: Date.UTC(2026, 10, 1, 0, 0, 0),
+      });
+      expect(await fetchAiExplanations(REQUEST, respond({ error: "rate_limited", limit: "global", retryAfter: 18_000 }, 429))).toEqual({
+        ok: false,
+        reason: "rate_limited_global",
         retryAt: Date.UTC(2026, 10, 1, 0, 0, 0),
       });
     } finally {

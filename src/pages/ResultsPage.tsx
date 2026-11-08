@@ -39,14 +39,26 @@ const AI_STATUS_KEYS = {
   rate_limited_window: "results.ai.rateLimitedWindow",
 } as const;
 
-/** The daily reset (00:00 UTC) is shown in the device's time zone, with the zone named. */
-function aiStatusText(t: TFunction, state: Exclude<AiExplanationState, { status: "off" }>, locale: Locale) {
+/**
+ * The daily reset (00:00 UTC) is shown in the device's time zone, with the
+ * zone named. Some destinations may have no note when the server dropped a
+ * note that failed a text guard (ADR-026); the ready text then says "some".
+ */
+function aiStatusText(
+  t: TFunction,
+  state: Exclude<AiExplanationState, { status: "off" }>,
+  locale: Locale,
+  resultCount: number,
+) {
+  if (state.status === "ready" && state.texts.size < resultCount) {
+    return t("results.ai.readyPartial");
+  }
   if (state.status !== "failed") {
     return t(AI_STATUS_KEYS[state.status]);
   }
-  if (state.reason === "rate_limited_daily") {
+  if (state.reason === "rate_limited_daily" || state.reason === "rate_limited_global") {
     const retryAt = new Date(state.retryAt);
-    return t("results.ai.rateLimitedDaily", {
+    return t(state.reason === "rate_limited_daily" ? "results.ai.rateLimitedDaily" : "results.ai.rateLimitedGlobal", {
       date: new Intl.DateTimeFormat(locale, { month: "long", day: "numeric" }).format(retryAt),
       time: new Intl.DateTimeFormat(locale, { hour: "numeric", minute: "2-digit", timeZoneName: "short" }).format(retryAt),
     });
@@ -370,7 +382,7 @@ export function ResultsPage() {
       </div>
       {ai.status !== "off" && (
         <p role="status" className={noticeClass.info}>
-          {aiStatusText(t, ai, locale)}
+          {aiStatusText(t, ai, locale, ranking.results.length)}
         </p>
       )}
       {(notices.length > 0 || ranking.excluded.length > 0) && (

@@ -1,6 +1,6 @@
 /**
- * Per-client AI quota (docs/working/DECISIONS.md ADR-029) and the 429 body
- * that reports which limit refused a request. Shared so that the server
+ * Per-client AI quota and app-wide daily cap (docs/working/DECISIONS.md
+ * ADR-029), and the 429 body that reports which limit refused a request. Shared so that the server
  * applies, and the UI states, the same limits. Uses `zod/mini` because the
  * browser validates the body (ADR-023).
  */
@@ -15,7 +15,15 @@ export interface QuotaLimits {
 /** 5 per 60 s, as the Rate Limiting binding, plus 30 per UTC day. */
 export const AI_CLIENT_QUOTA: QuotaLimits = { windowMs: 60_000, perWindow: 5, perUtcDay: 30 };
 
-export const AI_RATE_LIMITS = ["window", "daily"] as const;
+/**
+ * Model calls per UTC day for all clients together (owner decision
+ * 2026-11-08): at the measured 7-14 Neurons per call, 3,500-7,000 of the
+ * 10,000 Neurons that Workers Free allows per day.
+ */
+export const AI_GLOBAL_DAILY_CAP = 500;
+
+/** `window` and `daily` are per client; `global` is the app-wide daily cap. */
+export const AI_RATE_LIMITS = ["window", "daily", "global"] as const;
 export type AiRateLimit = (typeof AI_RATE_LIMITS)[number];
 
 /** Longest wait the server reports: until the next 00:00 UTC. */

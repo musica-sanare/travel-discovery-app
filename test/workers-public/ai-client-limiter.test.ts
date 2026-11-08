@@ -2,7 +2,7 @@
 import { runDurableObjectAlarm, runInDurableObject } from "cloudflare:test";
 import { env } from "cloudflare:workers";
 import { describe, expect, it } from "vitest";
-import { clientObjectName, nextUtcMidnight } from "../../server/public/client-quota";
+import { AI_GLOBAL_DAILY_CAP, clientObjectName, GLOBAL_OBJECT_NAME, nextUtcMidnight, utcDay } from "../../server/public/client-quota";
 import { app } from "../../worker/index";
 
 const ORIGIN = "https://public.example.test";
@@ -55,5 +55,21 @@ describe("AiClientLimiter", () => {
     expect(statuses).toEqual([503, 503, 503, 503, 503, 429, 429]);
     const status = await app.fetch(new Request(`${ORIGIN}/api/ai/status`), env);
     expect(await status.json()).toEqual({ enabled: false });
+  });
+
+  it("counts app-wide model calls in the fixed-name object, refuses after the cap, and resets at 00:00 UTC", async () => {
+    const stub = env.AI_CLIENT_LIMITER.getByName(GLOBAL_OBJECT_NAME);
+    expect(await stub.checkGlobal()).toEqual({ success: true });
+    await runInDurableObject(stub, async (_instance, state) => {
+      const stored = await state.storage.list();
+      expect([...stored.keys()]).toEqual(["global"]);
+      expect(stored.get("global")).toEqual({ utcDay: utcDay(Date.now()), count: 1 });
+      expect(await state.storage.getAlarm()).toBe(nextUtcMidnight(Date.now()));
+      await state.storage.put("global", { utcDay: utcDay(Date.now()), count: AI_GLOBAL_DAILY_CAP - 1 });
+    });
+    expect(await stub.checkGlobal()).toEqual({ success: true });
+    expect(await stub.checkGlobal()).toEqual({ success: false, retryAt: nextUtcMidnight(Date.now()) });
+    expect(await runDurableObjectAlarm(stub)).toBe(true);
+    expect(await stub.checkGlobal()).toEqual({ success: true });
   });
 });

@@ -131,17 +131,18 @@ The results page shows one world map of the shown results ([DECISIONS.md](../wor
 - The user explicitly chooses AI assistance in the UI; default OFF.
 - When OFF, do not make AI requests.
 - When ON, the deterministic quiz and ranking run first.
-- AI receives only the minimum data needed: destination content and a concise summary of relevant answers.
+- AI receives only the minimum data needed: destination content and a concise summary of relevant answers. Each destination's data is the same whatever its fit or rank, and each note describes its destination on its own, without referring to the others.
 - AI generates explanation text only in MVP; no destination selection/ranking.
 - Validate the response schema and apply length limits.
 - Treat all user input and destination text as untrusted data, not instructions.
 - Do not expose secrets, system prompts, internal stack traces, or provider errors.
 - Apply server-side request limits and graceful error handling.
 - If AI is unavailable, over quota, or returns invalid output, display the deterministic fallback and a non-blocking notice.
+- A note that fails validation is dropped on its own: the other destinations keep their notes, and a destination without a note shows only its deterministic explanation, without an error.
 - Show the AI limits and availability without promising availability:
   - State the per-client limits next to the toggle.
   - When AI is off for the whole site, say so and disable the toggle.
-  - When a limit is reached, say which one and when AI can be used again.
+  - When a limit is reached, say which one and when AI can be used again. Besides the per-client limits, a daily limit for all users together can make AI unavailable for the rest of the UTC day.
 - Verify the current Cloudflare Workers AI free allowance, supported models, terms, and compatibility during implementation. Never promise that the service will remain free.
 
 ## 9. Flight/hotel search links

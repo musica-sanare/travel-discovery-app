@@ -263,6 +263,10 @@ test.describe("optional AI notes", () => {
       submit: "質問に進む",
       window: "AI による補足の作成回数が 1 分間の上限に達しました。1 分ほどたつと、再びご利用いただけます。",
       daily: "本日分（UTC 基準）の AI による補足の作成回数が上限に達しました。",
+      global: "全利用者の 1 日の上限に達したため、本日（UTC 基準）は AI による補足をご利用いただけません。",
+      partial: "一部の旅行先に AI による補足を追加しました。",
+      heading: "AI による補足",
+      note: "ゆったりとした街歩きと豊かな食文化があり、あなたの好みに合いそうな旅行先です。",
     },
     {
       locale: "en",
@@ -270,6 +274,10 @@ test.describe("optional AI notes", () => {
       submit: "Continue to questions",
       window: "You have reached the per-minute limit for AI notes. You can use them again in about a minute.",
       daily: "You have reached today's limit for AI notes (days start at 00:00 UTC).",
+      global: "AI notes are not available for the rest of the day, because the daily limit for all users has been reached",
+      partial: "AI notes have been added to some destinations.",
+      heading: "AI-generated note",
+      note: "Relaxed walks through historic streets and a rich food culture make this a natural fit for you.",
     },
     {
       locale: "es",
@@ -277,11 +285,26 @@ test.describe("optional AI notes", () => {
       submit: "Continuar a las preguntas",
       window: "Has alcanzado el límite de notas de IA por minuto. Podrás volver a usarlas en aproximadamente un minuto.",
       daily: "Has alcanzado el límite diario de notas de IA (el día empieza a las 00:00 UTC).",
+      global: "Las notas de IA no están disponibles durante el resto del día porque se alcanzó el límite diario para todos los usuarios",
+      partial: "Se añadieron notas de IA a algunos destinos.",
+      heading: "Nota generada por IA",
+      note: "Sus calles históricas y su cocina variada encajan muy bien con lo que más disfrutas al viajar.",
+    },
+    {
+      locale: "fr",
+      toggle: "Utiliser l’assistance IA",
+      submit: "Passer aux questions",
+      window: "Vous avez atteint la limite de notes d’IA par minute. Vous pourrez les utiliser à nouveau dans une minute environ.",
+      daily: "Vous avez atteint la limite quotidienne de notes d’IA (la journée commence à 00:00 UTC).",
+      global: "Les notes d’IA ne sont plus disponibles pour le reste de la journée, car la limite quotidienne pour l’ensemble des utilisateurs est atteinte",
+      partial: "Des notes d’IA ont été ajoutées à certaines destinations.",
+      heading: "Note générée par l’IA",
+      note: "Ses rues historiques et sa cuisine variée correspondent tout à fait à ce que vous aimez en voyage.",
     },
   ] as const;
 
   for (const texts of LIMIT_TEXTS) {
-    for (const limit of ["window", "daily"] as const) {
+    for (const limit of ["window", "daily", "global"] as const) {
       test(`names the ${limit} limit of a mocked 429 in ${texts.locale}`, async ({ page }) => {
         await mockAiOffered(page);
         await page.addInitScript((locale) => {
@@ -304,7 +327,7 @@ test.describe("optional AI notes", () => {
         await answerAllQuestions(page);
         const status = page.getByRole("status");
         await expect(status).toContainText(texts[limit]);
-        if (limit === "daily") {
+        if (limit !== "window") {
           // 00:00 UTC is shown in the browser's time zone, on the hour.
           await expect(status).toContainText(/\d{1,2}:00/);
         }
@@ -312,6 +335,35 @@ test.describe("optional AI notes", () => {
         expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(0);
       });
     }
+
+    test(`shows the other notes without an error when the server dropped one note in ${texts.locale}`, async ({ page }) => {
+      await mockAiOffered(page);
+      await page.addInitScript((locale) => {
+        localStorage.setItem("travel-discovery.locale", locale);
+      }, texts.locale);
+      let dropped = "";
+      await page.route(`**${AI_PATH}`, async (route) => {
+        const body = route.request().postDataJSON() as { expected: string[] };
+        dropped = body.expected[1] ?? "";
+        await route.fulfill({
+          contentType: "application/json",
+          body: JSON.stringify({ explanations: body.expected.filter((slug) => slug !== dropped).map((slug) => ({ slug, text: texts.note })) }),
+        });
+      });
+      await page.goto("/plan");
+      await page.getByLabel(texts.toggle).check();
+      await page.getByRole("button", { name: texts.submit }).click();
+      await answerAllQuestions(page);
+      await expect(page.getByRole("status")).toContainText(texts.partial);
+      const articles = page.getByRole("article");
+      const count = await articles.count();
+      expect(count).toBeGreaterThan(1);
+      await expect(page.getByRole("heading", { level: 3, name: texts.heading })).toHaveCount(count - 1);
+      const withoutNote = page.locator(`article[aria-labelledby="result-${dropped}"]`);
+      await expect(withoutNote).toBeVisible();
+      await expect(withoutNote.getByText(texts.note)).toHaveCount(0);
+      await expect(page.getByRole("alert")).toHaveCount(0);
+    });
   }
 });
 

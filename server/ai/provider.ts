@@ -6,6 +6,11 @@
  */
 import type { Locale } from "../../shared/locales";
 
+/**
+ * One destination's model input. It is the same whatever the destination's
+ * fit or rank, so the model gets no signal to compare destinations with
+ * (docs/working/DECISIONS.md ADR-026, Phase 22).
+ */
 export interface ExplanationDestination {
   /** Opaque per-request ID (`d1`, `d2`, …) in slug order; never a slug or rank. */
   id: string;
@@ -13,8 +18,6 @@ export interface ExplanationDestination {
   country: string | null;
   summary: string;
   highlights: readonly string[];
-  /** Localized names of the attributes this destination matched. */
-  matches: readonly string[];
 }
 
 export interface ExplanationInput {

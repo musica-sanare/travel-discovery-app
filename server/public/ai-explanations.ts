@@ -10,10 +10,11 @@ import { rankDestinations, topPreferences, type TripConstraints } from "../../do
 import type { AiExplanationRequest, AiExplanationResponse } from "../../shared/ai-explanation";
 import type { DiagnosisContentResponse } from "../../shared/diagnosis-content";
 import { toEngineContent } from "../../shared/engine-content";
-import { validateModelOutput, type OutputRejection } from "../ai/output";
+import { validateModelOutput, type OutputRejection, type TextRejection } from "../ai/output";
 import type { ExplanationDestination, ExplanationInput, ExplanationProvider } from "../ai/provider";
 import type { Database } from "../db/client";
 import { ApiError } from "../http/errors";
+import type { GlobalDecision } from "./client-quota";
 import { getDiagnosisContent } from "./diagnosis-content";
 
 export const PREFERENCE_SUMMARY_COUNT = 5;
@@ -31,11 +32,14 @@ export type AiOutcome =
   | "disabled"
   | "rate_limited_window"
   | "rate_limited_daily"
+  | "rate_limited_global"
   | "limiter_unavailable";
 
 /**
  * The only log line for AI requests: no answers, texts, prompts, or addresses.
  * `reason` is present only for `invalid_output` and names the failed check.
+ * `dropped` and `droppedReasons` are present only when notes failed a text
+ * guard: their number and reason codes in input order (ADR-026, Phase 22).
  */
 export interface AiLogEntry {
   event: "ai_explanation";
@@ -44,10 +48,25 @@ export interface AiLogEntry {
   latencyMs: number;
   destinationCount: number;
   reason?: OutputRejection;
+  dropped?: number;
+  droppedReasons?: readonly TextRejection[];
+}
+
+/** The app-wide daily cap refused the model call (ADR-029); the Worker answers 429 `global`. */
+export class GlobalLimitError extends Error {
+  constructor(readonly retryAt: number) {
+    super("global_limit");
+  }
 }
 
 export interface AiExplanationOptions {
   provider: ExplanationProvider;
+  /**
+   * Counts one model call against the app-wide daily cap (ADR-029). Called
+   * after every other check, right before the model call, so only real calls
+   * are counted. A failure means no model call (fails closed).
+   */
+  admitModelCall: () => Promise<GlobalDecision>;
   timeoutMs?: number;
   now?: () => number;
   log?: (entry: AiLogEntry) => void;
@@ -73,11 +92,16 @@ function compareSlugs(a: string, b: string): number {
   return a < b ? -1 : a > b ? 1 : 0;
 }
 
-/** Builds the model input with opaque IDs assigned in slug order, so neither IDs nor order reveal the ranking. */
+/**
+ * Builds the model input with opaque IDs assigned in slug order, so neither
+ * IDs nor order reveal the ranking. Each destination carries only its own
+ * name, country, summary, and highlights: nothing that varies with its fit,
+ * such as matched attributes (owner decision 2026-11-08, ADR-026).
+ */
 export function buildExplanationInput(
   content: DiagnosisContentResponse,
   request: AiExplanationRequest,
-  ranked: readonly { slug: string; topAttributes: readonly { attribute: string }[] }[],
+  ranked: readonly { slug: string }[],
 ): { input: ExplanationInput; slugById: ReadonlyMap<string, string> } {
   const attributeNames = new Map(content.attributes.map((item) => [item.slug, item.name]));
   const destinations = new Map(content.destinations.map((item) => [item.slug, item]));
@@ -98,7 +122,6 @@ export function buildExplanationInput(
       country: destination.country.name,
       summary: truncate(destination.summary, MAX_SUMMARY_LENGTH),
       highlights: destination.highlights.slice(0, MAX_HIGHLIGHTS).map((text) => truncate(text, MAX_HIGHLIGHT_LENGTH)),
-      matches: result.topAttributes.flatMap((item) => nameOf(item.attribute)),
     });
   }
 
@@ -132,9 +155,14 @@ export async function explainDiagnosis(
   request: AiExplanationRequest,
   options: AiExplanationOptions,
 ): Promise<AiExplanationResponse> {
-  const { provider, timeoutMs = DEFAULT_AI_TIMEOUT_MS, now = Date.now, log = () => undefined } = options;
+  const { provider, admitModelCall, timeoutMs = DEFAULT_AI_TIMEOUT_MS, now = Date.now, log = () => undefined } = options;
   const started = now();
-  const report = (outcome: AiOutcome, destinationCount: number, reason?: OutputRejection) => {
+  const report = (
+    outcome: AiOutcome,
+    destinationCount: number,
+    reason?: OutputRejection,
+    dropped: readonly TextRejection[] = [],
+  ) => {
     log({
       event: "ai_explanation",
       outcome,
@@ -142,6 +170,7 @@ export async function explainDiagnosis(
       latencyMs: now() - started,
       destinationCount,
       ...(reason === undefined ? {} : { reason }),
+      ...(dropped.length === 0 ? {} : { dropped: dropped.length, droppedReasons: dropped }),
     });
   };
 
@@ -158,6 +187,18 @@ export async function explainDiagnosis(
   }
 
   const { input, slugById } = buildExplanationInput(content, request, ranking.results);
+  let admission: GlobalDecision;
+  try {
+    admission = await admitModelCall();
+  } catch {
+    report("limiter_unavailable", 0);
+    throw new ApiError("ai_unavailable");
+  }
+  if (!admission.success) {
+    report("rate_limited_global", 0);
+    throw new GlobalLimitError(admission.retryAt);
+  }
+
   let raw: unknown;
   try {
     raw = await withTimeout((signal) => provider.explain(input, signal), timeoutMs);
@@ -166,14 +207,14 @@ export async function explainDiagnosis(
     throw new ApiError("ai_unavailable");
   }
 
-  const output = validateModelOutput(raw, [...slugById.keys()], request.locale);
+  const output = validateModelOutput(raw, input);
   if (!output.ok) {
-    report("invalid_output", input.destinations.length, output.reason);
+    report("invalid_output", input.destinations.length, output.reason, output.dropped);
     throw new ApiError("ai_unavailable");
   }
 
   const textBySlug = new Map([...output.texts].map(([id, text]) => [slugById.get(id) ?? "", text]));
-  report("ok", input.destinations.length);
+  report("ok", input.destinations.length, undefined, output.dropped);
   return {
     explanations: slugs.flatMap((slug) => {
       const text = textBySlug.get(slug);

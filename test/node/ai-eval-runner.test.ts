@@ -5,6 +5,7 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it, vi } from "vitest";
+import type { ExplanationInput } from "../../server/ai/provider";
 import {
   analyzeAnswer,
   assertNewRun,
@@ -118,7 +119,8 @@ describe("buildJobs", () => {
 });
 
 describe("analyzeAnswer", () => {
-  const ids = ["d1", "d2"];
+  const destination = (id: string) => ({ id, name: "ソルナ島", country: null, summary: "静かな島。", highlights: [] });
+  const input: ExplanationInput = { locale: "ja", preferences: [], destinations: [destination("d1"), destination("d2")] };
   const answer = (texts: string[]) => JSON.stringify({ explanations: texts.map((text, index) => ({ id: `d${String(index + 1)}`, text })) });
 
   it.each([
@@ -130,7 +132,7 @@ describe("analyzeAnswer", () => {
     ["a missing ID", answer([JA]), { accepted: false, rejection: "structure", acceptedWithoutDigitRule: false }],
     ["broken JSON", "{\"explanations\": [", { accepted: false, rejection: "structure", acceptedWithoutDigitRule: false }],
   ])("reports %s", (_, value, expected) => {
-    expect(analyzeAnswer(value, ids, "ja")).toEqual(expected);
+    expect(analyzeAnswer(value, input)).toEqual(expected);
   });
 });
 

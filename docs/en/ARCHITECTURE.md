@@ -149,17 +149,18 @@ Do not treat destination descriptions or user input as trusted instructions. Kee
 
 Phase 4 design (ADR-026, proposed):
 - **Modules.** `server/ai/` holds the interface, the Workers AI adapter, the prompt builder, and output validation. `server/public/ai-explanations.ts` holds the use case. The domain gains only a pure preference-summary function.
-- **What the model sees.** Opaque IDs (`d1`, …) in slug order; never slugs, ranks, scores, costs, or user answers. The server maps IDs back to slugs.
-- **Output checks.** Shape, ID set, length, digits/URLs/markup, and script are auxiliary guards. They cannot prove the text is factually correct. Ranking and factual fields stay with the deterministic engine and authored content.
-- **Usage bounds.** There is no app-wide daily budget in the MVP. Usage is bounded by:
+- **What the model sees.** Opaque IDs (`d1`, …) in slug order; never slugs, ranks, scores, costs, or user answers. Each destination carries only its name, country, summary, and highlights, with nothing that varies with its fit (Phase 22). The server maps IDs back to slugs.
+- **Output checks.** Shape and ID set are checked first; a failure discards the whole answer. Length, digits not in the destination's own data, URLs, markup, and script are then checked per note, and a failed note is dropped on its own (Phase 22). These are auxiliary guards. They cannot prove the text is factually correct. Ranking and factual fields stay with the deterministic engine and authored content.
+- **Usage bounds.** Usage is bounded by:
   - a kill switch (`AI_ASSIST_ENABLED`);
   - a burst rate limiter (Rate Limiting binding, best effort);
   - a strict per-client quota in a Durable Object (5 per 60 s and 30 per UTC day per address, ADR-029);
+  - an app-wide daily cap in the same Durable Object class (500 model calls per UTC day for all clients, ADR-029, Phase 22);
   - the Workers AI daily allocation.
 - **Status and limits in the UI** (Phase 14, ADR-026 "Phase 14 amendments"):
   - `GET /api/ai/status` tells the plan page whether the deployment offers AI at all (kill switch, provider, and quota binding). It does not touch D1, a limiter, or the model.
   - While AI is off, the toggle is disabled.
-  - A 429 names the limit reached (`window` or `daily`) and when to try again.
+  - A 429 names the limit reached (`window`, `daily`, or, since Phase 22, `global`) and when to try again.
   - The UI states the limits next to the toggle.
 
 ## 6. Data and API principles

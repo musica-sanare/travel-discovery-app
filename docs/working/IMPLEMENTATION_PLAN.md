@@ -434,3 +434,17 @@ Acceptance:
 - `npm run check` and `npm run test:e2e` pass, AI is disabled, and the account stays on Workers Free.
 
 Status: **complete (2026-11-08)**; deployed with `11782c2` and `initial-v10.json` imported once on production, matching the bundle in four locales; every acceptance item is met ("Phase 21 verification log" in DECISIONS.md).
+
+## Phase 22 — AI readiness fixes
+Owner decision (2026-11-08): before deciding in December whether to enable AI on production, fix four weaknesses found in a review of the AI path. Prompt: `prompts/22-ai-readiness.md`.
+- Let notes copy digits that occur in their own data (for example "Tram 28"), and keep rejecting other digits.
+- Drop only the notes that fail a text guard, instead of the whole answer.
+- Add an app-wide daily cap on AI calls, with a value the owner approves; it replaces the decision of 2026-10-31 not to have one.
+- Pass the model no signal of how well each destination fits, and forbid references between destinations.
+- Not in this phase: enabling AI, model calls or evaluation, model changes, content changes, and the content and map follow-ups.
+
+Acceptance:
+- The four fixes are covered by unit, worker, client, and E2E tests, with the new notice in four locales.
+- `npm run check` and `npm run test:e2e` pass; AI stays disabled, and the account stays on Workers Free.
+
+Status: **complete (2026-11-08)**, not yet deployed. The owner approved the prompt, a cap of 500 model calls per UTC day, and no match list in the model input; the fixes are implemented, and `npm run check` and `npm run test:e2e` pass ("Phase 22 verification log" in DECISIONS.md). No Wrangler migration is needed.

@@ -20,8 +20,8 @@ export function watchPage(page: Page) {
 /** Answers every remaining question with its first option until the results page. */
 export async function answerAllQuestions(page: Page): Promise<number> {
   let answered = 0;
-  const results = page.getByRole("heading", { level: 1, name: /おすすめ|Recommended|Recomendados/ });
-  const question = page.getByRole("heading", { level: 1, name: /^(質問 \d+ \/|Question \d+ of|Pregunta \d+ de)/ });
+  const results = page.getByRole("heading", { level: 1, name: /おすすめ|Recommended|Recomendados|Nos recommandations/ });
+  const question = page.getByRole("heading", { level: 1, name: /^(質問 \d+ \/|Question \d+ (of|sur)|Pregunta \d+ de)/ });
   while (answered < 20) {
     // Wait for the next page so the previous page's controls are never used.
     await expect(results.or(question)).toBeVisible();
@@ -30,7 +30,7 @@ export async function answerAllQuestions(page: Page): Promise<number> {
     }
     const before = (await question.textContent()) ?? "";
     await page.getByRole("group").first().locator("input").first().check();
-    await page.getByRole("button", { name: /^(次へ|Next|Siguiente)$/ }).click();
+    await page.getByRole("button", { name: /^(次へ|Next|Siguiente|Suivant)$/ }).click();
     answered += 1;
     await expect(results.or(question.filter({ hasNotText: before }))).toBeVisible();
   }

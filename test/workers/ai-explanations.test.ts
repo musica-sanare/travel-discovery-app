@@ -4,9 +4,17 @@ import { rankDestinations } from "../../domain/diagnosis";
 import type { DiagnosisContentResponse } from "../../shared/diagnosis-content";
 import { toEngineContent } from "../../shared/engine-content";
 import type { ExplanationInput, ExplanationProvider } from "../../server/ai/provider";
-import { clientObjectName, type QuotaDecision } from "../../server/public/client-quota";
+import { clientObjectName, GLOBAL_OBJECT_NAME, type GlobalDecision, type QuotaDecision } from "../../server/public/client-quota";
 import type { AiClientLimiter } from "../../worker/ai-client-limiter";
-import { app as defaultApp, createPublicApp, type AiDependencies, type PublicEnv, type QuotaLimiter, type RateLimiter } from "../../worker/index";
+import {
+  app as defaultApp,
+  createPublicApp,
+  type AiDependencies,
+  type GlobalLimiter,
+  type PublicEnv,
+  type QuotaLimiter,
+  type RateLimiter,
+} from "../../worker/index";
 import { ensureSeeded, json, publicRequest } from "./helpers";
 
 const ORIGIN = "https://public.example.test";
@@ -57,6 +65,23 @@ function quota(decision: QuotaDecision = { success: true }) {
   return { limiter: value, keys };
 }
 
+/** Fake app-wide cap: allows, or refuses until `retryAt`; counts its calls. */
+function globalCap(decision: GlobalDecision = { success: true }) {
+  let calls = 0;
+  const value: GlobalLimiter = {
+    admit() {
+      calls += 1;
+      return Promise.resolve(decision);
+    },
+  };
+  return {
+    limiter: value,
+    get calls() {
+      return calls;
+    },
+  };
+}
+
 interface SendOptions {
   body?: unknown;
   method?: string;
@@ -72,6 +97,7 @@ function send(options: SendOptions = {}): Promise<Response> {
     provider: null,
     clientLimiter: null,
     quotaLimiter: quota().limiter,
+    globalLimiter: globalCap().limiter,
     ...options.dependencies,
   };
   const app = createPublicApp({ aiDependencies: () => dependencies });
@@ -290,6 +316,28 @@ describe("POST /api/ai/explanations: untrusted model output", () => {
     expect(await json(response)).toEqual({ error: "ai_unavailable" });
   });
 
+  it("drops only the note that fails a text guard and returns the others in rank order", async () => {
+    const { provider } = fakeProvider((input: ExplanationInput) =>
+      Promise.resolve({
+        explanations: input.destinations.map((item, index) => ({ id: item.id, text: index === 0 ? `${VALID_TEXT}一泊１万円です。` : VALID_TEXT })),
+      }),
+    );
+    const response = await send({ body: body(), dependencies: { provider } });
+    expect(response.status).toBe(200);
+    const result = (await json(response)) as { explanations: { slug: string }[] };
+    const droppedSlug = [...validBody.expected].sort()[0];
+    expect(result.explanations.map((item) => item.slug)).toEqual(validBody.expected.filter((slug) => slug !== droppedSlug));
+  });
+
+  it("returns 503 when the structure is valid but every note fails a text guard", async () => {
+    const { provider } = fakeProvider((input: ExplanationInput) =>
+      Promise.resolve({ explanations: input.destinations.map((item) => ({ id: item.id, text: `${VALID_TEXT}１位です。` })) }),
+    );
+    const response = await send({ body: body(), dependencies: { provider } });
+    expect(response.status).toBe(503);
+    expect(await json(response)).toEqual({ error: "ai_unavailable" });
+  });
+
   it("returns 503 without provider details when the provider fails", async () => {
     const { provider } = fakeProvider(() => Promise.reject(new Error("3036: account daily neuron limit exceeded; secret-binding-name")));
     const response = await send({ body: body(), dependencies: { provider } });
@@ -359,6 +407,46 @@ describe("POST /api/ai/explanations: rate limiting and logs", () => {
     }
   });
 
+  it("returns 429 global until the next 00:00 UTC without a model call when the app-wide cap refuses", async () => {
+    vi.useFakeTimers({ now: Date.UTC(2026, 9, 31, 19, 0, 0), toFake: ["Date"] });
+    try {
+      const { provider, calls } = fakeProvider();
+      const refusing = globalCap({ success: false, retryAt: Date.UTC(2026, 10, 1) });
+      const response = await send({ body: body(), dependencies: { provider, globalLimiter: refusing.limiter } });
+      expect(response.status).toBe(429);
+      expect(await json(response)).toEqual({ error: "rate_limited", limit: "global", retryAfter: 18_000 });
+      expect(response.headers.get("Retry-After")).toBe("18000");
+      expect(refusing.calls).toBe(1);
+      expect(calls).toHaveLength(0);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("counts against the app-wide cap only requests that pass every other check, once each", async () => {
+    const { provider } = fakeProvider();
+    const cap = globalCap();
+    await send({ body: body(), dependencies: { provider, globalLimiter: cap.limiter, clientLimiter: limiter(false).limiter } });
+    await send({ body: body(), dependencies: { provider, globalLimiter: cap.limiter, quotaLimiter: quota({ success: false, limit: "daily", retryAt: Date.now() + 1_000 }).limiter } });
+    await send({ body: body(), enabled: "false", dependencies: { provider, globalLimiter: cap.limiter } });
+    await send({ body: "{", dependencies: { provider, globalLimiter: cap.limiter } });
+    await send({ body: body({ expected: [...validBody.expected].reverse() }), dependencies: { provider, globalLimiter: cap.limiter } });
+    expect(cap.calls).toBe(0);
+    expect((await send({ body: body(), dependencies: { provider, globalLimiter: cap.limiter } })).status).toBe(200);
+    expect(cap.calls).toBe(1);
+  });
+
+  it.each([
+    ["missing", null],
+    ["failing", { admit: () => Promise.reject(new Error("Durable Object limit exceeded")) } satisfies GlobalLimiter],
+  ])("fails closed with 503 and no model call when the app-wide cap is %s", async (_, globalLimiter) => {
+    const { provider, calls } = fakeProvider();
+    const response = await send({ body: body(), dependencies: { provider, globalLimiter } });
+    expect(response.status).toBe(503);
+    expect(await json(response)).toEqual({ error: "ai_unavailable" });
+    expect(calls).toHaveLength(0);
+  });
+
   it("reports at least one second and at most one day", async () => {
     const past = await send({ body: "{", dependencies: { quotaLimiter: quota({ success: false, limit: "window", retryAt: Date.now() - 5_000 }).limiter } });
     expect(await json(past)).toMatchObject({ retryAfter: 1 });
@@ -402,7 +490,7 @@ describe("POST /api/ai/explanations: rate limiting and logs", () => {
     expect(client.keys).toEqual([key]);
   });
 
-  it("logs only outcome, model, latency, and count, plus the failed check for invalid output", async () => {
+  it("logs only outcome, model, latency, and count, plus the failed check and dropped-note codes", async () => {
     const logs: string[] = [];
     const capture = (...args: unknown[]) => {
       logs.push(args.map(String).join(" "));
@@ -432,6 +520,15 @@ describe("POST /api/ai/explanations: rate limiting and logs", () => {
       Promise.resolve({ explanations: input.destinations.map((item) => ({ id: item.id, text: `${secretText}一泊１万円です。` })) }),
     );
     await send({ body: body({ constraints }), headers, dependencies: { provider: priced.provider } });
+    const partly = fakeProvider((input: ExplanationInput) =>
+      Promise.resolve({
+        explanations: input.destinations.map((item, index) => ({ id: item.id, text: index === 0 ? `${secretText}https://example.com` : secretText })),
+      }),
+    );
+    await send({ body: body({ constraints }), headers, dependencies: { provider: partly.provider } });
+    const refusing = globalCap({ success: false, retryAt: Date.now() + 1_000 });
+    await send({ body: body({ constraints }), headers, dependencies: { provider: ok.provider, globalLimiter: refusing.limiter } });
+    await send({ body: body({ constraints }), headers, dependencies: { provider: ok.provider, globalLimiter: null } });
 
     const entries = logs.map((line) => JSON.parse(line) as { outcome: string; model: string | null; reason?: string });
     expect(entries).toEqual([
@@ -443,12 +540,22 @@ describe("POST /api/ai/explanations: rate limiting and logs", () => {
       expect.objectContaining({ outcome: "disabled", model: null }),
       expect.objectContaining({ outcome: "limiter_unavailable", model: "fake-model" }),
       expect.objectContaining({ outcome: "rate_limited_daily", model: "fake-model" }),
-      expect.objectContaining({ outcome: "invalid_output", reason: "digit" }),
+      expect.objectContaining({ outcome: "invalid_output", reason: "all_dropped", dropped: validBody.expected.length }),
+      expect.objectContaining({ outcome: "ok", dropped: 1, droppedReasons: ["link"] }),
+      expect.objectContaining({ outcome: "rate_limited_global", model: "fake-model", destinationCount: 0 }),
+      expect.objectContaining({ outcome: "limiter_unavailable", model: "fake-model" }),
     ]);
+    expect(entries[8]).toMatchObject({ droppedReasons: validBody.expected.map(() => "digit") });
     const fields = ["destinationCount", "event", "latencyMs", "model", "outcome"];
-    for (const entry of entries) {
-      expect(Object.keys(entry).sort()).toEqual(entry.outcome === "invalid_output" ? [...fields, "reason"].sort() : fields);
-    }
+    const dropFields = ["dropped", "droppedReasons"];
+    const expectedKeys = [
+      ...Array.from({ length: 8 }, () => fields),
+      [...fields, "reason", ...dropFields].sort(),
+      [...fields, ...dropFields].sort(),
+      fields,
+      fields,
+    ];
+    expect(entries.map((entry) => Object.keys(entry).sort())).toEqual(expectedKeys);
     const all = logs.join("\n");
     for (const forbidden of [secretText, "PROVIDER-SECRET-MESSAGE", "203.0.113.77", "424242", ...validBody.expected, ...validBody.answers.map((item) => item.question)]) {
       expect(all).not.toContain(forbidden);
@@ -459,7 +566,9 @@ describe("POST /api/ai/explanations: rate limiting and logs", () => {
 describe("GET /api/ai/status", () => {
   function status(bindings: Partial<PublicEnv>, dependencies?: Partial<AiDependencies>, method = "GET") {
     const app = dependencies
-      ? createPublicApp({ aiDependencies: () => ({ provider: null, clientLimiter: null, quotaLimiter: quota().limiter, ...dependencies }) })
+      ? createPublicApp({
+          aiDependencies: () => ({ provider: null, clientLimiter: null, quotaLimiter: quota().limiter, globalLimiter: globalCap().limiter, ...dependencies }),
+        })
       : defaultApp;
     return Promise.resolve(app.fetch(new Request(`${ORIGIN}/api/ai/status`, { method }), { PUBLIC_DB: env.ADMIN_DB, ...bindings }));
   }
@@ -475,6 +584,7 @@ describe("GET /api/ai/status", () => {
       [{}, { provider }],
       [{ AI_ASSIST_ENABLED: "true" }, { provider: null }],
       [{ AI_ASSIST_ENABLED: "true" }, { provider, quotaLimiter: null }],
+      [{ AI_ASSIST_ENABLED: "true" }, { provider, globalLimiter: null }],
     ] as const) {
       expect(await json(await status(bindings, dependencies))).toEqual({ enabled: false });
     }
@@ -483,9 +593,12 @@ describe("GET /api/ai/status", () => {
   it("is disabled on the default public app and calls no limiter, quota, or model", async () => {
     const client = limiter(true);
     const allowing = quota();
+    const cap = globalCap();
     const { provider, calls } = fakeProvider();
-    expect(await json(await status({ AI_ASSIST_ENABLED: "true" }, { provider, clientLimiter: client.limiter, quotaLimiter: allowing.limiter }))).toEqual({ enabled: true });
-    expect([client.keys, allowing.keys, calls]).toEqual([[], [], []]);
+    expect(
+      await json(await status({ AI_ASSIST_ENABLED: "true" }, { provider, clientLimiter: client.limiter, quotaLimiter: allowing.limiter, globalLimiter: cap.limiter })),
+    ).toEqual({ enabled: true });
+    expect([client.keys, allowing.keys, calls, cap.calls]).toEqual([[], [], [], 0]);
     expect(await json(await status({}))).toEqual({ enabled: false });
   });
 
@@ -522,10 +635,13 @@ describe("POST /api/ai/explanations: wiring from Worker bindings", () => {
     const namespace = {
       getByName(name: string) {
         names.push(name);
-        return { check: () => Promise.resolve(success ? { success } : { success, limit: "window", retryAt: Date.now() + 60_000 }) };
+        return {
+          check: () => Promise.resolve(success ? { success } : { success, limit: "window", retryAt: Date.now() + 60_000 }),
+          checkGlobal: () => Promise.resolve({ success: true }),
+        };
       },
     };
-    // Only `getByName` and the stub's `check` are used by the Worker.
+    // Only `getByName` and the stub's `check` and `checkGlobal` are used by the Worker.
     return { namespace: namespace as unknown as DurableObjectNamespace<AiClientLimiter>, names };
   }
 
@@ -556,7 +672,7 @@ describe("POST /api/ai/explanations: wiring from Worker bindings", () => {
     expect(calls[0]?.model).toBe("@cf/google/gemma-4-26b-a4b-it");
     expect((calls[0]?.options as { signal?: unknown }).signal).toBeInstanceOf(AbortSignal);
     expect(client.keys).toEqual(["ip4:198.51.100.9"]);
-    expect(quota.names).toEqual([await clientObjectName("ip4:198.51.100.9")]);
+    expect(quota.names).toEqual([await clientObjectName("ip4:198.51.100.9"), GLOBAL_OBJECT_NAME]);
     expect(quota.names[0]).toMatch(/^[0-9a-f]{64}$/);
   });
 

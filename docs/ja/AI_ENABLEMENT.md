@@ -1,4 +1,4 @@
-<!-- source: docs/en/AI_ENABLEMENT.md blob 84547a8e213b762d6717a9e4c59ce1e264b92892 -->
+<!-- source: docs/en/AI_ENABLEMENT.md blob c6a5d30a1d4f8326200726b391344155071566f9 -->
 [English](../en/AI_ENABLEMENT.md) | 日本語 · [目次に戻る](README.md)
 
 > この文書は[英語版](../en/AI_ENABLEMENT.md)の翻訳。内容が異なる場合は英語版が優先する。
@@ -113,6 +113,7 @@
 - それ以外は 503 `ai_unavailable` を返し、`disabled` の行を書く。
 - 1 回の実行ごとに、そのアドレスの 1 日 30 回の上限にも数えられる（2 回の実行で 10 回分）。
 - 各リクエストは Workers Free の 1 日のリクエスト上限にも数えられる（ここでは無視できる量）。
+- アプリ全体の 1 日の上限（ADR-029、Phase 22）はモデルを呼ぶ直前にだけ参照するので、この確認では届かない。その拒否はテストで確かめている。
 - デプロイと確認は、それぞれオーナーの承認が要る。
 - 2026-10-25 にプレビューで（「Phase 11 verification log」）、Phase 14 に本番で（「Phase 14 verification log」）実施した。プレビュー環境は 2026-10-31 に外したので、繰り返すときは本番で行う。
 
@@ -152,18 +153,21 @@
 - ADR-026「Readiness for enabling AI」に、満たしていない項目がない。
 - Billing にはドメインの登録だけが載っていて、プランは Free（[OPERATIONS.md](OPERATIONS.md) 3 節）。
 - `travel-discovery` で Workers Logs が ON で、呼び出しログは OFF。
-- 本番の上限用 Durable Object がデプロイ済み（バージョン `cc06950d` 以降）。
+- 本番の上限用 Durable Object がデプロイ済み（バージョン `cc06950d` 以降）で、Phase 22 のコードも入っている。旅行先自身のデータにある数字の転記、ノートごとの破棄、アプリ全体の 1 日の上限、モデル入力から適合度の手がかりを除いたことの 4 点だ（ADR-026「Phase 22 amendments」）。
 
 **利用者にとって変わること。** 本番の URL は公開されているので、プレビューの試行と違って短い期間というものはない。上限の範囲なら誰でも AI を使える。
 - 計画の画面でトグルが使える状態で表示される（`/api/ai/status` が `{"enabled":true}` を返す）。
 - 利用者ごとに、AI のリクエストは最大で 60 秒に 5 回、UTC の 1 日に 30 回（ADR-029）。
+- 全利用者の合計で、モデル呼び出しは UTC の 1 日に最大 500 回（アプリ全体の上限、ADR-029）。達すると、結果の画面に「今日は AI による補足を利用できない」と出て、00:00 UTC まで使えない。
+- 文章のガードに通らなかったノートは捨て、ほかの旅行先のノートは残す（ADR-026「Phase 22 amendments」）。
 - 決定的な結果は変わらない。
 
 **予算。**
 - Workers Free には 1 日 10,000 Neurons が含まれ、00:00 UTC にリセットされる。超えると課金されずに失敗する。割り当てはアカウントごとなので、このアカウントのほかのプロジェクトとも共有することになる *(要確認)*。
 - 実測の 1 回 7〜14 Neurons（試行では約 11.8）なら、1 日あたりおよそ 700〜1,400 回。
 - 1 つのアドレスが 1 日に使えるのは最大で約 420 Neurons（最悪で約 3,150）。
-- アプリ全体の 1 日の上限はない（ADR-029「Not covered」）。多くのアドレスが合わせて割り当てを使い切ることがあり、そうなると 00:00 UTC まで全員が AI を使えなくなる。
+- アプリ全体の上限の 1 日 500 回は、1 回 7〜14 Neurons なら 3,500〜7,000 Neurons（割り当ての 35〜70%）で、下の最初の停止条件と合う。多くのアドレスが合わせて UTC の 1 日の早いうちに上限に達することがあり、そうなると 00:00 UTC まで全員が AI を使えなくなる。課金はされない。
+- 1 回約 105 Neurons の最悪の場合は、上限より先にプラットフォームの 1 日の割り当てで AI が止まる。この場合も Workers Free なら課金されない。
 
 手順:
 1. オーナー: 前提条件を確かめ、その日すでに使った Workers AI の Neurons を控える。
@@ -181,7 +185,7 @@
    - オーナーが、2 節の手順 6 と同じようにノートを確認する。
 4. 監視（オーナー）: 手順 2 の約 1 時間後、その UTC の日の終わり、最初の 1 週間は毎日、その後は週ごとの定期チェックのときに、次を読む:
    - Workers AI: その日に使った Neurons。
-   - `travel-discovery` の Observability: `ai_explanation` の結果ごとの件数（`ok`、`reason` つきの `invalid_output`、`timeout`、`provider_error`、`content_mismatch`、`rate_limited_window`、`rate_limited_daily`、`limiter_unavailable`）と、`ok` のレイテンシー。どの行も 5 つの項目（`invalid_output` は 6 つ）だけを持ち、リクエストの内容は入っていない。
+   - `travel-discovery` の Observability: `ai_explanation` の結果ごとの件数（`ok`、`reason` つきの `invalid_output`、`timeout`、`provider_error`、`content_mismatch`、`rate_limited_window`、`rate_limited_daily`、`rate_limited_global`、`limiter_unavailable`）、`ok` のレイテンシー、`dropped` の合計とその `droppedReasons`。どの行も 5 つの項目だけを持ち、加わるのは `invalid_output` の `reason` と、ノートを捨てたときの `dropped` と `droppedReasons` だけだ。リクエストの内容は入っていない。
    - Worker の 1 日のリクエスト数と Workers Free の 100,000 との比較、Durable Object のエラー、Billing。
 5. [DECISIONS.md](../working/DECISIONS.md)（英語のみ）に記録する: 日付、バージョン ID、手順 3 の前後の Neurons、各監視の時点の結果の件数、ノートについてのオーナーの確認結果。ノートの文章はリポジトリにコピーしない。
 
@@ -189,11 +193,13 @@
 - 12:00 UTC より前に、使った Neurons が 7,000（1 日の割り当ての 70%）を超えた。
 - Billing に新しい請求か、Free 以外のプランが出た。
 - モデル呼び出しが 10 回以上あった日に、20% を超えるものが `invalid_output`、`timeout`、`provider_error` で終わった。
-- ノートに価格、日付、順位、比較、旅行先の文章にない事実が入っていた。
+- ノートに価格、日付、順位、比較、旅行先の文章にない事実が入っていた（「路面電車28番」のように旅行先自身の文章から写した数字はよい）。
 - ログの行に上より多い項目か、リクエストの内容が入っていた。
-- `limiter_unavailable` の行が出た（上限の仕組みが失敗したので、AI はすでに拒否側に倒れている）。
+- `limiter_unavailable` の行が出た（利用者ごとかアプリ全体の上限の仕組みが失敗したので、AI はすでに拒否側に倒れている）。
 - Worker のリクエストが 1 日で 70,000 を超えた。
 - その他、ログや Billing のページに予期しないものが出た。
+
+アプリ全体の上限に達した日（`rate_limited_global` の行が出た日）は、それだけでは停止条件ではない。上限が設計どおり働いたということだ。記録しておき、上限を変えるかどうかはオーナーが決める。
 
 その間も診断は動き続ける。
 

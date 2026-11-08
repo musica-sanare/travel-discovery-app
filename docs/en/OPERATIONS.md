@@ -108,6 +108,8 @@ Stop AI with the kill switch ([AI_ENABLEMENT.md](AI_ENABLEMENT.md), ADR-026 E); 
 - Neurons exceed about 70% of the daily allocation before 12:00 UTC, or
 - rate-limit (`rate_limited_window`, `rate_limited_daily`) or `provider_error` outcomes spike.
 
+The app-wide cap of 500 model calls per UTC day (ADR-029) also stops AI for everyone until 00:00 UTC, without a charge. Reaching it logs `rate_limited_global` and is not a reason to stop by itself; record the day, and the owner decides whether the cap changes. Notes dropped by the text guards appear as `dropped` and `droppedReasons` on `ai_explanation` lines (codes only); many drops of one reason point to a prompt or guard problem worth recording ([AI_ENABLEMENT.md](AI_ENABLEMENT.md) section 4).
+
 ### 4.5 A build fails, or no build starts
 The previous version keeps serving; nothing is broken for users.
 1. Read the build log ([DEPLOYMENT.md](DEPLOYMENT.md) section 5, step 5).
