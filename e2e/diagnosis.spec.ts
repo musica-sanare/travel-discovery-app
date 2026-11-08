@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 import { answerAllQuestions, mockAiOffered, startQuiz, unexpectedRequests, watchPage } from "./fixtures";
 
 test.describe("core journey without AI", () => {
@@ -236,7 +236,7 @@ test.describe("optional AI notes", () => {
     }
     expect(bodies).toHaveLength(1);
     const [body] = bodies;
-    expect(Object.keys(body ?? {}).sort()).toEqual(["answers", "constraints", "expected", "locale"]);
+    expect(Object.keys(body ?? {}).sort()).toEqual(["answers", "constraints", "expected", "locale", "variety"]);
     const order = await articles.evaluateAll((items) => items.map((item) => item.getAttribute("aria-labelledby")));
     expect(order).toEqual(body?.expected.map((slug) => `result-${slug}`));
   });
@@ -365,6 +365,79 @@ test.describe("optional AI notes", () => {
       await expect(page.getByRole("alert")).toHaveCount(0);
     });
   }
+});
+
+test.describe("result variety", () => {
+  /** Adds copies of every destination (same scores, so the same fit), so the near-fit band exceeds the free slots (ADR-037). */
+  async function mockMoreDestinations(page: Page) {
+    await page.route("**/api/diagnosis-content*", async (route) => {
+      const response = await route.fetch();
+      const body = (await response.json()) as { destinations: { slug: string; name: string }[] };
+      const copies = body.destinations.flatMap((destination) =>
+        Array.from({ length: 5 }, (_, index) => ({
+          ...destination,
+          slug: `${destination.slug}-copy-${String(index + 1)}`,
+          name: `${destination.name} ${String(index + 1)}`,
+        })),
+      );
+      await route.fulfill({ response, json: { ...body, destinations: [...body.destinations, ...copies] } });
+    });
+  }
+
+  const shownSlugs = (page: Page) =>
+    page.getByRole("article").evaluateAll((items) => items.map((item) => item.getAttribute("aria-labelledby")));
+
+  test("shows other destinations on request, keeping the best match first", async ({ page }) => {
+    await mockMoreDestinations(page);
+    await startQuiz(page);
+    await page.getByRole("button", { name: "質問に進む" }).click();
+    await answerAllQuestions(page);
+    await expect(page.getByText("いちばん合う旅行先は必ず最初に表示します。")).toBeVisible();
+    const before = await shownSlugs(page);
+    expect(before).toHaveLength(5);
+    await page.getByRole("button", { name: "ほかの候補を見る" }).click();
+    await expect(page.getByRole("status").filter({ hasText: "同じくらい合うほかの候補を表示しています（1 回目）。" })).toBeVisible();
+    const after = await shownSlugs(page);
+    expect(after).toHaveLength(5);
+    expect(after[0]).toBe(before[0]);
+    expect(after).not.toEqual(before);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(0);
+  });
+
+  test("sends the seed and draw with the AI request, and a restart draws a new seed", async ({ page }) => {
+    await mockMoreDestinations(page);
+    await mockAiOffered(page);
+    const bodies: { expected: string[]; variety: { seed: number; draw: number } }[] = [];
+    await page.route("**/api/ai/explanations", async (route) => {
+      const body = route.request().postDataJSON() as { expected: string[]; variety: { seed: number; draw: number } };
+      bodies.push(body);
+      await route.fulfill({ contentType: "application/json", body: JSON.stringify({ explanations: [] }) });
+    });
+    await startQuiz(page);
+    await page.getByLabel("AI アシストを使う").check();
+    await page.getByRole("button", { name: "質問に進む" }).click();
+    await answerAllQuestions(page);
+    await expect.poll(() => bodies.length).toBe(1);
+    await page.getByRole("button", { name: "ほかの候補を見る" }).click();
+    await expect.poll(() => bodies.length).toBe(2);
+    expect(bodies[0]?.variety.draw).toBe(0);
+    expect(bodies[1]?.variety).toEqual({ seed: bodies[0]?.variety.seed, draw: 1 });
+    expect(bodies[1]?.expected).toEqual((await shownSlugs(page)).map((id) => id?.replace(/^result-/, "")));
+
+    await page.getByRole("button", { name: "最初からやり直す" }).click();
+    await answerAllQuestions(page);
+    await expect.poll(() => bodies.length).toBe(3);
+    expect(bodies[2]?.variety.draw).toBe(0);
+    expect(bodies[2]?.variety.seed).not.toBe(bodies[0]?.variety.seed);
+  });
+
+  test("offers no other destinations when the band is not larger than the free slots", async ({ page }) => {
+    await startQuiz(page);
+    await page.getByRole("button", { name: "質問に進む" }).click();
+    await answerAllQuestions(page);
+    await expect(page.getByRole("article").first()).toBeVisible();
+    await expect(page.getByRole("button", { name: "ほかの候補を見る" })).toHaveCount(0);
+  });
 });
 
 test.describe("French", () => {

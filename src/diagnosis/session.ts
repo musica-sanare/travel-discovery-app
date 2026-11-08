@@ -3,6 +3,7 @@
  * selectors; nothing here touches storage or the network.
  */
 import {
+  MAX_RESULT_DRAW,
   nextQuestion,
   rankDestinations,
   type Answer,
@@ -19,6 +20,8 @@ export interface SessionState {
   aiAssist: boolean;
   /** Set when a quiz is running; a new seed is drawn for every start/restart. */
   seed: number | null;
+  /** "Show other destinations" presses for the current answers (ADR-037); 0 after any change of answers. */
+  draw: number;
   answers: readonly Answer[];
   /** Answer removed by "back", used to prefill the question shown again. */
   previousAnswer: Answer | null;
@@ -31,12 +34,14 @@ export type SessionAction =
   | { type: "answer"; answer: Answer }
   | { type: "back" }
   | { type: "editAnswer"; question: string }
+  | { type: "redraw" }
   | { type: "reset" };
 
 export const INITIAL_SESSION: SessionState = {
   constraints: {},
   aiAssist: false,
   seed: null,
+  draw: 0,
   answers: [],
   previousAnswer: null,
 };
@@ -48,24 +53,26 @@ export function sessionReducer(state: SessionState, action: SessionAction): Sess
     case "setAiAssist":
       return { ...state, aiAssist: action.enabled };
     case "start":
-      return { ...state, seed: action.seed, answers: [], previousAnswer: null };
+      return { ...state, seed: action.seed, draw: 0, answers: [], previousAnswer: null };
     case "answer": {
       // Answering a question already in the list replaces it and discards later answers.
       const index = state.answers.findIndex((answer) => answer.question === action.answer.question);
       const kept = index === -1 ? state.answers : state.answers.slice(0, index);
-      return { ...state, answers: [...kept, action.answer], previousAnswer: null };
+      return { ...state, draw: 0, answers: [...kept, action.answer], previousAnswer: null };
     }
     case "back": {
       const last = state.answers.at(-1);
-      return last ? { ...state, answers: state.answers.slice(0, -1), previousAnswer: last } : state;
+      return last ? { ...state, draw: 0, answers: state.answers.slice(0, -1), previousAnswer: last } : state;
     }
     case "editAnswer": {
       const index = state.answers.findIndex((answer) => answer.question === action.question);
       if (index === -1) {
         return state;
       }
-      return { ...state, answers: state.answers.slice(0, index), previousAnswer: state.answers[index] ?? null };
+      return { ...state, draw: 0, answers: state.answers.slice(0, index), previousAnswer: state.answers[index] ?? null };
     }
+    case "redraw":
+      return state.seed === null ? state : { ...state, draw: Math.min(state.draw + 1, MAX_RESULT_DRAW) };
     case "reset":
       return INITIAL_SESSION;
   }
@@ -82,6 +89,8 @@ export function currentStep(content: DiagnosisContent, limits: QuizLimits, state
   return state.seed === null ? null : nextQuestion(content, state.answers, limits, state.seed);
 }
 
+/** Without a seed (no quiz started) the results are the first by fit, without variety. */
 export function results(content: DiagnosisContent, limits: QuizLimits, state: SessionState): RankingResult {
-  return rankDestinations(content, state.answers, state.constraints, limits);
+  const variety = state.seed === null ? undefined : { seed: state.seed, draw: state.draw };
+  return rankDestinations(content, state.answers, state.constraints, limits, variety);
 }

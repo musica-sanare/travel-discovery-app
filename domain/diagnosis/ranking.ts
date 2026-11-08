@@ -8,6 +8,7 @@ import { compareSlugs, prepareContent } from "./content";
 import { buildPreferences, signalStrength, type IgnoredAnswer } from "./preferences";
 import { scoreDestination, type AttributeContribution } from "./scoring";
 import type { Answer, DiagnosisContent, QuizLimits, TripConstraints } from "./types";
+import { pickResults, type ResultVariety } from "./variety";
 
 export const TOP_ATTRIBUTE_COUNT = 3;
 export const STRENGTH_COUNT = 2;
@@ -42,6 +43,8 @@ export interface RankingResult {
   excluded: readonly { slug: string; reason: "over_budget" }[];
   notices: readonly RankingNotice[];
   ignoredAnswers: readonly IgnoredAnswer[];
+  /** True when another draw can show other destinations (a near-fit band larger than the free slots). */
+  redrawable: boolean;
 }
 
 /** Ranking order: fit descending, then coverage descending, then slug ascending. */
@@ -55,12 +58,15 @@ export function compareByFit(
 /**
  * @param constraints validated trip constraints
  * @param limits validated quiz settings (resultCount 3-5)
+ * @param variety session seed and draw: the slots after the best fit come from
+ *   the near-fit band (variety.ts); without it, the first `resultCount` by fit
  */
 export function rankDestinations(
   content: DiagnosisContent,
   answers: readonly Answer[],
   constraints: TripConstraints,
   limits: QuizLimits,
+  variety?: ResultVariety,
 ): RankingResult {
   const usable = prepareContent(content);
   const preferences = buildPreferences(usable, answers);
@@ -96,7 +102,10 @@ export function rankDestinations(
   }
 
   candidates.sort(compareByFit);
-  const shown = candidates.slice(0, limits.resultCount);
+  const { shown, redrawable } =
+    variety === undefined
+      ? { shown: candidates.slice(0, limits.resultCount), redrawable: false }
+      : pickResults(candidates, limits.resultCount, variety);
   const strengths = distinctiveStrengths(
     shown.map((item) => contributionsBySlug.get(item.slug) ?? []),
     preferences.values,
@@ -113,7 +122,7 @@ export function rankDestinations(
     notices.push("fewer_than_requested");
   }
 
-  return { results, excluded, notices, ignoredAnswers: preferences.ignored };
+  return { results, excluded, notices, ignoredAnswers: preferences.ignored, redrawable };
 }
 
 /**

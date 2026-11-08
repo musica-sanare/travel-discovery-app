@@ -137,6 +137,12 @@ export const es: Messages = {
       caption: "Los números de los marcadores coinciden con la posición en los resultados. Cada marcador indica un punto representativo, no un lugar exacto. «Ver en Google Maps» se abre en una pestaña nueva y solo transmite la ubicación del destino.",
       missing: "No aparecen en el mapa: {{list}}",
     },
+    variety: {
+      heading: "Otros destinos",
+      note: "El destino que mejor encaja aparece siempre primero. Los demás se eligen entre destinos que encajan casi igual de bien, así que pueden cambiar cada vez que haces el cuestionario.",
+      redraw: "Ver otros destinos",
+      redrawn: "Mostrando otros destinos que también encajan bien (cambio {{count}}).",
+    },
     ai: {
       heading: "Nota generada por IA",
       label: "Texto escrito por IA; puede contener errores. Para la clasificación, los costes, las fechas y otros datos, consulta la información de arriba.",

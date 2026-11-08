@@ -4,7 +4,13 @@ import type { TFunction } from "i18next";
 import { Navigate, useNavigate } from "react-router";
 import type { DiagnosisContentDestination } from "../../shared/diagnosis-content";
 import { DEFAULT_LOCALE, isLocale, type Locale } from "../../shared/locales";
-import type { BudgetStatus, DurationStatus, RankedDestination, SeasonStatus } from "../../domain/diagnosis";
+import {
+  MAX_RESULT_DRAW,
+  type BudgetStatus,
+  type DurationStatus,
+  type RankedDestination,
+  type SeasonStatus,
+} from "../../domain/diagnosis";
 import { buttonClass, cardClass, headingClass, noticeClass, ticketLabelClass } from "../components/classes";
 import { ContentStatus } from "../components/ContentStatus";
 import { Barcode } from "../components/Decorations";
@@ -348,8 +354,17 @@ export function ResultsPage() {
     [snapshot, engine, session],
   );
   const aiRequest = useMemo(
-    () => (snapshot && ranking ? buildAiRequest(snapshot.locale, session.answers, session.constraints, ranking) : null),
-    [snapshot, ranking, session.answers, session.constraints],
+    () =>
+      snapshot && ranking
+        ? buildAiRequest(
+            snapshot.locale,
+            session.answers,
+            session.constraints,
+            ranking,
+            session.seed === null ? null : { seed: session.seed, draw: session.draw },
+          )
+        : null,
+    [snapshot, ranking, session.answers, session.constraints, session.seed, session.draw],
   );
   const ai = useAiExplanations(session.aiAssist && step?.done === true, aiRequest);
 
@@ -416,6 +431,30 @@ export function ResultsPage() {
           ) : null;
         })}
       </ol>
+      {ranking.redrawable && (
+        <section aria-labelledby="variety-heading" className="flex flex-col gap-2">
+          <h2 id="variety-heading" className="sr-only">
+            {t("results.variety.heading")}
+          </h2>
+          <p className="text-sm text-muted">{t("results.variety.note")}</p>
+          <p role="status" className="text-sm empty:hidden">
+            {session.draw > 0 ? t("results.variety.redrawn", { count: session.draw }) : null}
+          </p>
+          {session.draw < MAX_RESULT_DRAW && (
+            <div>
+              <button
+                type="button"
+                className={buttonClass.secondary}
+                onClick={() => {
+                  dispatch({ type: "redraw" });
+                }}
+              >
+                {t("results.variety.redraw")}
+              </button>
+            </div>
+          )}
+        </section>
+      )}
 
       <section aria-labelledby="answers-heading" className={cardClass}>
         <p aria-hidden="true" className={`${ticketLabelClass} text-muted`}>

@@ -179,7 +179,13 @@ export async function explainDiagnosis(
     throw new ApiError("invalid_request", [{ path: "answers", code: "too_big" }]);
   }
 
-  const ranking = rankDestinations(toEngineContent(content), request.answers, toConstraints(request.constraints), content.settings);
+  const ranking = rankDestinations(
+    toEngineContent(content),
+    request.answers,
+    toConstraints(request.constraints),
+    content.settings,
+    request.variety,
+  );
   const slugs = ranking.results.map((item) => item.slug);
   if (ranking.ignoredAnswers.length > 0 || !sameOrder(slugs, request.expected)) {
     report("content_mismatch", 0);

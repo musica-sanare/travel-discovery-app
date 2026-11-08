@@ -139,6 +139,12 @@ export const fr: Messages = {
       caption: "Les numéros des repères correspondent au rang des résultats. Chaque repère indique un point représentatif, pas un lieu exact. « Voir sur Google Maps » s’ouvre dans un nouvel onglet et ne transmet que l’emplacement de la destination.",
       missing: "Absentes de la carte : {{list}}",
     },
+    variety: {
+      heading: "Autres destinations",
+      note: "La destination qui vous correspond le mieux apparaît toujours en premier. Les autres sont choisies parmi des destinations presque aussi adaptées : elles peuvent changer à chaque questionnaire.",
+      redraw: "Voir d’autres destinations",
+      redrawn: "Affichage d’autres destinations qui vous correspondent aussi (changement {{count}}).",
+    },
     ai: {
       heading: "Note générée par l’IA",
       label: "Texte rédigé par une IA, qui peut contenir des erreurs. Pour le classement, les coûts, les périodes et les autres informations, fiez-vous aux informations ci-dessus.",

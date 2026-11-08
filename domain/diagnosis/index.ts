@@ -16,3 +16,4 @@ export {
 export type { AttributeContribution } from "./scoring";
 export { nextQuestion, plannedQuestionCount, type NextStep, type StopReason } from "./selection";
 export { topPreferences } from "./summary";
+export { MAX_RESULT_DRAW, RESULT_BAND, type ResultVariety } from "./variety";

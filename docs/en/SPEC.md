@@ -95,6 +95,7 @@ Do not treat a missing value as zero. Explain when a recommendation is based on 
 - Normalize scores to a documented comparable range before displaying them.
 - Return 3–5 destinations where data permits. If fewer eligible destinations exist, return fewer with an explanation.
 - Tie-breaking must be deterministic given the same answers and destination data.
+- The best-fitting destination is always shown first. The other slots may be chosen, with the quiz's session seed, from destinations that fit almost as well, so results can vary between quizzes; "Show other destinations" draws again from them. The same answers, data, and seed give the same results, and fit values and their order stay deterministic (ADR-037).
 - Clearly label scores as relative fit based on current content data, not objective probability or guarantee.
 - AI may explain already-selected destinations but must not change order, scores, eligibility, or facts.
 - Include a human-authored fallback explanation for every destination.
@@ -217,7 +218,7 @@ Admin requirements:
 1. User can complete a diagnosis on mobile and desktop in Japanese, English, Spanish, and French.
 2. Questions vary across sessions and do not repeat within one session.
 3. Adaptive selection obeys configured min/max bounds.
-4. Ranking is deterministic for the same data and answers.
+4. Ranking is deterministic for the same data, answers, and session seed.
 5. Three to five recommendations are shown when enough eligible destinations exist.
 6. AI toggle OFF results in zero AI requests.
 7. AI failure does not block or alter the recommendations.

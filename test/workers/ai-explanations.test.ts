@@ -118,14 +118,49 @@ let validBody: {
   answers: { question: string; options: string[] }[];
   constraints: Record<string, unknown>;
   expected: string[];
+  variety: { seed: number; draw: number };
 };
+const VARIETY = { seed: 12345, draw: 0 };
+
+/**
+ * The dev seed publishes three destinations, too few for a near-fit band
+ * (ADR-037). Copies of Lisbon (same country, texts, and scores, so the same
+ * fit) make the band larger than the free slots, so the seed and draw decide
+ * which destinations are shown.
+ */
+async function addLisbonCopies(count: number): Promise<void> {
+  const statements = Array.from({ length: count }, (_, index) => {
+    const slug = `lisbon-copy-${String(index + 1)}`;
+    return [
+      `INSERT INTO destinations (slug, country_id, destination_type, recommended_days_min, recommended_days_max, best_months_mask, latitude, longitude, status, created_at, updated_at)
+       SELECT '${slug}', country_id, destination_type, recommended_days_min, recommended_days_max, best_months_mask, latitude, longitude, 'published', created_at, updated_at FROM destinations WHERE slug = 'lisbon'`,
+      `INSERT INTO destination_translations (destination_id, locale, name, summary, highlights_json, cautions, best_season_text)
+       SELECT (SELECT id FROM destinations WHERE slug = '${slug}'), locale, name || ' ${String(index + 1)}', summary, highlights_json, cautions, best_season_text
+       FROM destination_translations WHERE destination_id = (SELECT id FROM destinations WHERE slug = 'lisbon')`,
+      `INSERT INTO destination_attributes (destination_id, attribute_id, score)
+       SELECT (SELECT id FROM destinations WHERE slug = '${slug}'), attribute_id, score
+       FROM destination_attributes WHERE destination_id = (SELECT id FROM destinations WHERE slug = 'lisbon')`,
+    ];
+  }).flat();
+  await env.ADMIN_DB.batch(statements.map((statement) => env.ADMIN_DB.prepare(statement)));
+}
 
 beforeAll(async () => {
   await ensureSeeded();
+  if ((await env.ADMIN_DB.prepare("SELECT id FROM destinations WHERE slug = 'lisbon-copy-1'").first()) === null) {
+    await addLisbonCopies(6);
+  }
   content = (await json(await publicRequest("/api/diagnosis-content?locale=ja"))) as DiagnosisContentResponse;
   const answers = content.questions.map((question) => ({ question: question.slug, options: [question.options[0]?.value ?? ""] }));
-  const ranking = rankDestinations(toEngineContent(content), answers, {}, content.settings);
-  validBody = { locale: "ja", answers, constraints: {}, expected: ranking.results.map((item) => item.slug) };
+  const engine = toEngineContent(content);
+  const ranking = rankDestinations(engine, answers, {}, content.settings, VARIETY);
+  // The seed and the draw must matter for these answers, or the 409 cases below prove nothing.
+  expect(ranking.redrawable).toBe(true);
+  const slugsFor = (variety: { seed: number; draw: number }) =>
+    rankDestinations(engine, answers, {}, content.settings, variety).results.map((item) => item.slug).join(",");
+  expect(slugsFor({ seed: VARIETY.seed + 1, draw: 0 })).not.toBe(slugsFor(VARIETY));
+  expect(slugsFor({ seed: VARIETY.seed, draw: 1 })).not.toBe(slugsFor(VARIETY));
+  validBody = { locale: "ja", answers, constraints: {}, expected: ranking.results.map((item) => item.slug), variety: VARIETY };
   expect(validBody.expected.length).toBeGreaterThan(1);
 });
 
@@ -258,6 +293,12 @@ describe("POST /api/ai/explanations: switches, methods, and request checks", () 
     ["more than 5 expected results", { expected: ["a", "b", "c", "d", "e", "f"] }],
     ["duplicate expected results", { expected: ["a", "a"] }],
     ["client-supplied scores", { scores: { lisbon: 99 } }],
+    ["no seed and draw", { variety: undefined }],
+    ["a negative seed", { variety: { seed: -1, draw: 0 } }],
+    ["a seed above 32 bits", { variety: { seed: 2 ** 32, draw: 0 } }],
+    ["a draw above MAX_RESULT_DRAW", { variety: { seed: 1, draw: 21 } }],
+    ["a non-integer draw", { variety: { seed: 1, draw: 0.5 } }],
+    ["an extra variety field", { variety: { seed: 1, draw: 0, rank: 1 } }],
   ])("rejects %s with 400 without calling AI", async (_, overrides) => {
     const { provider, calls } = fakeProvider();
     const response = await send({ body: body(overrides), dependencies: { provider } });
@@ -282,6 +323,8 @@ describe("POST /api/ai/explanations: server-side recomputation", () => {
     ["a reordered expected ranking", () => body({ expected: [...validBody.expected].reverse() })],
     ["a missing expected result", () => body({ expected: validBody.expected.slice(0, -1) })],
     ["a foreign expected result", () => body({ expected: [...validBody.expected.slice(0, -1), "atlantis"] })],
+    ["results chosen with another seed", () => body({ variety: { seed: VARIETY.seed + 1, draw: 0 } })],
+    ["results chosen with another draw", () => body({ variety: { seed: VARIETY.seed, draw: 1 } })],
   ])("returns 409 without calling AI for %s", async (_, makeBody) => {
     const { provider, calls } = fakeProvider();
     const response = await send({ body: makeBody(), dependencies: { provider } });

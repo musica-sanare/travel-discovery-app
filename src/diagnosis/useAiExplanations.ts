@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import type { AiExplanationRequest } from "../../shared/ai-explanation";
 import type { Locale } from "../../shared/locales";
-import type { Answer, RankingResult, TripConstraints } from "../../domain/diagnosis";
+import type { Answer, RankingResult, ResultVariety, TripConstraints } from "../../domain/diagnosis";
 import { fetchAiExplanations, type AiExplanationResult, type AiFailure } from "./aiClient";
 
 export type AiExplanationState =
@@ -10,14 +10,19 @@ export type AiExplanationState =
   | { status: "ready"; texts: ReadonlyMap<string, string> }
   | ({ status: "failed" } & AiFailure);
 
-/** Builds the request from in-memory quiz state; null when there is nothing to explain. */
+/**
+ * Builds the request from in-memory quiz state; null when there is nothing to
+ * explain. `variety` is the seed and draw that chose the shown results, so the
+ * server can recompute them (ADR-037); null without a running quiz.
+ */
 export function buildAiRequest(
   locale: Locale,
   answers: readonly Answer[],
   constraints: TripConstraints,
   ranking: RankingResult,
+  variety: ResultVariety | null,
 ): AiExplanationRequest | null {
-  if (answers.length === 0 || ranking.results.length === 0) {
+  if (answers.length === 0 || ranking.results.length === 0 || variety === null) {
     return null;
   }
   return {
@@ -29,6 +34,7 @@ export function buildAiRequest(
       ...(constraints.budget === undefined ? {} : { budget: { ...constraints.budget } }),
     },
     expected: ranking.results.map((item) => item.slug),
+    variety: { seed: variety.seed, draw: variety.draw },
   };
 }
 

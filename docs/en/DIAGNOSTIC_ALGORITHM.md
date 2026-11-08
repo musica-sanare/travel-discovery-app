@@ -2,7 +2,7 @@ English | [日本語](../ja/DIAGNOSTIC_ALGORITHM.md) · [Docs index](README.md)
 
 # Diagnostic Algorithm — Travel Discovery
 
-This document is the specification for the deterministic quiz and ranking engine (Phase 2). The implementation lives in `domain/diagnosis/` and must match this document; tests in `domain/diagnosis/*.test.ts` encode the examples below. Decisions and rationale are recorded in [DECISIONS.md](../working/DECISIONS.md) ADR-021 and ADR-031.
+This document is the specification for the deterministic quiz and ranking engine (Phase 2). The implementation lives in `domain/diagnosis/` and must match this document; tests in `domain/diagnosis/*.test.ts` encode the examples below. Decisions and rationale are recorded in [DECISIONS.md](../working/DECISIONS.md) ADR-021, ADR-031, and ADR-037.
 
 The engine is pure TypeScript: no React, database, Cloudflare bindings, network, or AI. Given the same content, answers, constraints, settings, and seed, it always returns the same output.
 
@@ -19,7 +19,7 @@ flowchart TD
   stop -->|"No"| select
   stop -->|"Yes"| fit["Fit score and coverage per destination (§3)"]
   constraints["Trip constraints (§1)"] --> status["Budget, season, and duration status (§5, §6)"]
-  fit --> rank["Exclude over-budget, sort, take resultCount (§4)"]
+  fit --> rank["Exclude over-budget, sort, choose resultCount with the seed (§4)"]
   status --> rank
   rank --> results["Results with fallback explanation data (§4)"]
 ```
@@ -100,11 +100,24 @@ The fit is a relative fit against current content data, not a probability. The U
 2. Compute budget, season, and duration status (sections 5–6).
 3. Exclude destinations whose budget status is `over` (the only hard filter).
 4. Sort by `fit` descending, then `coverage` descending, then slug ascending (code-unit order, locale-independent).
-5. Return the first `resultCount` (3–5).
+5. Choose `resultCount` (3–5) of them with the session seed ("Result variety" below) and return them in the order of step 4, ranked 1, 2, … by position.
    - If fewer remain, return them with notice `fewer_than_requested`; with none, notice `no_eligible_destinations`.
    - Notice `no_preference_signal` is added when `Σ|P| = 0`.
 
 Budget, season, and duration never change `fit`.
+
+### Result variety
+The best fit is always shown first; the other slots come from destinations that fit almost as well, chosen with the quiz's session seed (ADR-037). So the same answers can show different destinations in different quizzes, while the order and every fit value stay deterministic.
+
+1. **Band.** The destinations after the first, among the best **12** in the order of step 4, whose `fit` is at least the best fit minus **10** points.
+2. If the band has no more destinations than the free slots (`resultCount − 1`), the result is the first `resultCount` in order, as without variety, and no other draw is offered.
+3. Otherwise each band destination gets a key `ln(u) / w`, where `u` in (0, 1) is derived from the seed, the draw number, and its slug, and `w = 1 + (fit − floor) / 10` with `floor` the band's lower bound. So a destination at the best fit is twice as likely to be drawn as one at the floor. The free slots take the largest keys (a weighted draw without replacement).
+4. **Draws.** "Show other destinations" increases the draw number `k` (at most 20). Draw `k` puts destinations not shown in draws `0…k−1` before those already shown, so all band destinations are shown before any repeats. The draw number returns to 0 whenever the answers change or a new quiz starts.
+5. The chosen destinations are returned in the order of step 4, so the fit shown on the cards never increases down the page.
+
+`u = (mix32(mix32(seed ⊕ 0x3c6ef372 ⊕ (k + 1)·0x9e3779b9) ⊕ fnv1a(slug)) + 0.5) / 2³²`, with 32-bit FNV-1a and the MurmurHash3 finalizer `mix32` (`domain/diagnosis/variety.ts`). The salt keeps the draw independent of question selection, which uses the same seed (§7). A destination's `u` depends only on the seed, the draw, and its slug, so adding or removing a destination does not change the others' keys.
+
+The values come from simulated quizzes on `content/initial-v10.json` (ADR-037): the best fit stays first in every quiz; one answer set gets about 14–20 different result sets over 30 seeds; the mean fit of the shown results is about 1 point lower than with the first five. Variety alone barely changes how often each destination appears (Cape Town in 38% of results instead of 43%), because the most frequent destinations are usually close to the top.
 
 ### Fallback explanation data
 Each result carries structured data from which the UI builds the deterministic, localized explanation (no AI):
@@ -115,7 +128,7 @@ Each result carries structured data from which the UI builds the deterministic, 
 
 The UI combines these with the destination's authored summary/highlights and message-catalog templates.
 
-"Why it fits" names only what the user asked for. A disliked attribute that the destination lacks (`P[a] < 0`, low score) still raises `fit`, but it is never listed as a match. Example: with `beach` at −3, a destination with `beach 0` gains `+3` in `S_d` but does not show "Beaches". The same list is the `matches` input of the optional AI explanation.
+"Why it fits" names only what the user asked for. A disliked attribute that the destination lacks (`P[a] < 0`, low score) still raises `fit`, but it is never listed as a match. Example: with `beach` at −3, a destination with `beach 0` gains `+3` in `S_d` but does not show "Beaches". This list is not sent to the optional AI explanation (since Phase 22, ADR-026).
 
 **Distinctive strengths** tell the shown results apart, because their top attributes are often the same few the user asked for. For each shown result, an attribute is a strength when:
 - the user wants it (`P[a] > 0`) and the destination has a score for it;

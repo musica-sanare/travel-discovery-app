@@ -163,6 +163,34 @@ describe("rankDestinations", () => {
   });
 });
 
+describe("rankDestinations with result variety (ADR-037)", () => {
+  // Without answers every destination has the neutral fit, so all of them are in the near-fit band.
+  const many = content({
+    attributes: attributes("beach", "food"),
+    questions: QUESTIONS,
+    destinations: Array.from({ length: 12 }, (_, index) => destination(`d${String(index).padStart(2, "0")}`, { beach: 3, food: 3 })),
+  });
+
+  it("keeps the first result, ranks by position, and is reproducible for a seed and draw", () => {
+    const plain = rankDestinations(many, [], {}, LIMITS);
+    expect(plain.redrawable).toBe(false);
+    const sets = new Set<string>();
+    for (let seed = 0; seed < 20; seed++) {
+      const { results, redrawable } = rankDestinations(many, [], {}, LIMITS, { seed, draw: 0 });
+      expect(redrawable).toBe(true);
+      expect(results[0]?.slug).toBe(plain.results[0]?.slug);
+      expect(results.map((item) => item.rank)).toEqual([1, 2, 3, 4, 5]);
+      expect(rankDestinations(many, [], {}, LIMITS, { seed, draw: 0 }).results).toEqual(results);
+      sets.add(results.map((item) => item.slug).join(","));
+    }
+    expect(sets.size).toBeGreaterThan(5);
+  });
+
+  it("changes nothing when the band is not larger than the free slots", () => {
+    expect(rankDestinations(DATA, ANSWERS, {}, LIMITS, { seed: 9, draw: 3 })).toEqual(rankDestinations(DATA, ANSWERS, {}, LIMITS));
+  });
+});
+
 describe("distinctiveStrengths", () => {
   // x = (2 · score − 5) / 5, so a contribution is P[a] · x.
   const x = (score: number) => (2 * score - 5) / 5;

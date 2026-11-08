@@ -137,6 +137,12 @@ export const en: Messages = {
       caption: "Pin numbers match the result ranks. Each pin marks a representative point, not an exact place. “View on Google Maps” opens in a new tab and passes on only the destination’s location.",
       missing: "Not on the map: {{list}}",
     },
+    variety: {
+      heading: "Other destinations",
+      note: "The best match always comes first. The others are chosen from destinations that fit almost as well, so they can differ each time you take the quiz.",
+      redraw: "Show other destinations",
+      redrawn: "Showing other destinations that also fit well (change {{count}}).",
+    },
     ai: {
       heading: "AI-generated note",
       label: "Written by AI and may contain errors. Rely on the information above for rankings, costs, timing, and other details.",

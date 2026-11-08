@@ -9,6 +9,7 @@
 import * as z from "zod/mini";
 import { SUPPORTED_CURRENCIES } from "./costs";
 import { SUPPORTED_LOCALES } from "./locales";
+import { MAX_RESULT_DRAW } from "../domain/diagnosis/variety";
 import { MAX_OPTIONS_PER_QUESTION, MAX_QUIZ_QUESTIONS, MAX_RESULT_COUNT } from "./quiz-settings";
 import { MAX_SLUG_LENGTH, SLUG_PATTERN } from "./slug";
 import { MAX_BUDGET, MAX_TRIP_DAYS } from "./trip-constraints";
@@ -46,6 +47,8 @@ export const aiExplanationRequestSchema = z.strictObject({
     budget: z.optional(z.strictObject({ amount: int(1, MAX_BUDGET), currency: z.enum(SUPPORTED_CURRENCIES) })),
   }),
   expected: z.array(slug).check(z.minLength(1), z.maxLength(MAX_RESULT_COUNT), z.refine(isUnique, "duplicate_value")),
+  /** Session seed and draw that chose the shown results (ADR-037); the server recomputes the same choice. */
+  variety: z.strictObject({ seed: int(0, 0xffffffff), draw: int(0, MAX_RESULT_DRAW) }),
 });
 
 export type AiExplanationRequest = z.infer<typeof aiExplanationRequestSchema>;

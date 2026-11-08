@@ -9,6 +9,7 @@ const REQUEST: AiExplanationRequest = {
   answers: [{ question: "pace", options: ["relaxed"] }],
   constraints: {},
   expected: ["lisbon", "iceland"],
+  variety: { seed: 7, draw: 0 },
 };
 const TEXT = "ゆったりとした街歩きと豊かな食文化があり、好みに合いそうです。";
 
@@ -142,26 +143,31 @@ describe("buildAiRequest", () => {
     excluded: [],
     notices: [],
     ignoredAnswers: [],
+    redrawable: true,
   });
+  const variety = { seed: 4_000_000_000, draw: 2 };
 
-  it("sends answers, constraints, and displayed slugs only; no scores or ranks", () => {
+  it("sends answers, constraints, displayed slugs, and the seed and draw only; no scores or ranks", () => {
     const request = buildAiRequest(
       "es",
       [{ question: "pace", options: ["relaxed"] }, { question: "interest", options: [] }],
       { days: 4, months: [4, 5], budget: { amount: 200000, currency: "JPY" } },
       ranking(["lisbon", "iceland"]),
+      variety,
     );
     expect(request).toEqual({
       locale: "es",
       answers: [{ question: "pace", options: ["relaxed"] }, { question: "interest", options: [] }],
       constraints: { days: 4, months: [4, 5], budget: { amount: 200000, currency: "JPY" } },
       expected: ["lisbon", "iceland"],
+      variety: { seed: 4_000_000_000, draw: 2 },
     });
   });
 
   it("omits unset constraints and returns null when there is nothing to explain", () => {
-    expect(buildAiRequest("ja", [{ question: "pace", options: [] }], {}, ranking(["lisbon"]))?.constraints).toEqual({});
-    expect(buildAiRequest("ja", [], {}, ranking(["lisbon"]))).toBeNull();
-    expect(buildAiRequest("ja", [{ question: "pace", options: [] }], {}, ranking([]))).toBeNull();
+    expect(buildAiRequest("ja", [{ question: "pace", options: [] }], {}, ranking(["lisbon"]), variety)?.constraints).toEqual({});
+    expect(buildAiRequest("ja", [], {}, ranking(["lisbon"]), variety)).toBeNull();
+    expect(buildAiRequest("ja", [{ question: "pace", options: [] }], {}, ranking([]), variety)).toBeNull();
+    expect(buildAiRequest("ja", [{ question: "pace", options: [] }], {}, ranking(["lisbon"]), null)).toBeNull();
   });
 });

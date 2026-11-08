@@ -448,3 +448,16 @@ Acceptance:
 - `npm run check` and `npm run test:e2e` pass; AI stays disabled, and the account stays on Workers Free.
 
 Status: **complete (2026-11-08)**, not yet deployed. The owner approved the prompt, a cap of 500 model calls per UTC day, and no match list in the model input; the fixes are implemented, and `npm run check` and `npm run test:e2e` pass ("Phase 22 verification log" in DECISIONS.md). No Wrangler migration is needed.
+
+## Phase 23 — Result variety and share balance
+Owner request (2026-11-08): reduce how often a few broad destinations dominate the results (Cape Town 45.3% of top-5 results, Rome 0.7%, "Phase 21 verification log"), and let the shown destinations vary between quizzes while still following the answers. Prompt: `prompts/23-result-variety.md` (approved 2026-11-08).
+- Keep the best fit first; draw the other slots from a near-fit band with the quiz's session seed; show them in fit order.
+- Send the seed with the AI request so the server recomputes the same results.
+- Choose the band and the diversity rule from a simulation against the current rule; the owner decides the values and whether to add a "Show other destinations" button.
+- Not in this phase: fit or attribute score changes, a region field, content changes, enabling AI.
+
+Acceptance:
+- The best fit is always first, the same answers, data, and seed give the same results, and the simulated share spread shrinks within an approved fit loss.
+- `npm run check` and `npm run test:e2e` pass; AI stays disabled, and the account stays on Workers Free.
+
+Status: **complete (2026-11-08)**, not yet deployed. The owner approved the prompt, a band of 10 fit points among the best 12, variety without share balancing, and the "Show other destinations" button; `npm run check` and `npm run test:e2e` pass ("Phase 23 verification log" and ADR-037 in DECISIONS.md). Share balance is left to a later review of attribute scores and questions. No migration is needed.

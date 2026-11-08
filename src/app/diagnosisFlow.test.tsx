@@ -170,8 +170,9 @@ describe("diagnosis flow", () => {
       expect(within(article).getByText(/^相対的な適合度: \d+ \/ 100$/)).toBeTruthy();
     }
     expect(requests.filter((url) => url === "/api/ai/explanations")).toHaveLength(1);
-    const [body] = aiBodies as { locale: string; answers: unknown[]; constraints: unknown; expected: string[] }[];
-    expect(Object.keys(body ?? {}).sort()).toEqual(["answers", "constraints", "expected", "locale"]);
+    const [body] = aiBodies as { locale: string; answers: unknown[]; constraints: unknown; expected: string[]; variety: unknown }[];
+    expect(Object.keys(body ?? {}).sort()).toEqual(["answers", "constraints", "expected", "locale", "variety"]);
+    expect(body?.variety).toEqual({ seed: expect.any(Number) as number, draw: 0 });
     expect(body?.locale).toBe("ja");
     expect(body?.constraints).toEqual({ days: 4 });
     expect(body?.answers).toHaveLength(2);
