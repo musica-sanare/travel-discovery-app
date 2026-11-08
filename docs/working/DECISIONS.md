@@ -625,6 +625,43 @@ Owner-approved rollout of the French locale (`prompts/17-french-locale.md` task 
   - A complete quiz in `fr` in the built-in browser at 375 px (5 days, July, EUR 1,500; one question skipped): results Singapour, Barcelone, Andalousie, Taipei, Sicile; Sicily "probablement dans votre budget" with "84 €–207 €" and the French basis, Taipei "pas de données de coût dans votre devise" with "23 300 JPY–36 400 JPY". No horizontal overflow at 375 px or 1,024 px; switching to `es`, `ja`, `en`, and back to `fr` updated the texts and `lang`.
 - *Status* (2026-10-31): Phase 17's acceptance is met. The owner approved the migration before it ran, and a local test shows it keeps every row; UI strings are complete in `fr` with the `fr → en → ja` fallback; `initial-v7.json` differs from `initial-v6.json` only by `fr` translations and the owner approved the review copy; preview and production match the bundle in all four locales, and complete quizzes in `fr` work on both. `npm run check` and `npm run test:e2e` passed after the last code change (commit `ef6d323`). AI is disabled in every environment, and the account stays on Workers Free. Deferred as planned: an `fr` review of AI output (AI_ENABLEMENT.md) and Phase 16.
 
+## Phase 24 verification log (from 2026-11-08)
+Share balance through content (`prompts/24-share-balance.md`). Only attribute scores change; the engine, questions, and texts do not. No remote command; AI stays disabled. Simulation: `QUIZ_SIMULATE_BALANCE=1 QUIZ_SIMULATE_BUNDLES=initial-v10.json,initial-v11.json npm run quiz:simulate -- test/simulation/share-balance.sim.ts` (1,000 random-answer quizzes, 2,000 sparse respondents, and 4,200 anchored respondents grouped by their ideal destination; run by Claude locally, not blocked).
+- *Diagnosis* (`initial-v10.json`):
+  - Over-shown: Cape Town 45.3% of top-5 results on random answers (4 or 5 on seven of eleven attributes), then Riviera Maya 29.7%, Dubai 25.8%, London 25.6%.
+  - Hard to find for respondents whose ideal they are (found in the top 5): Rome 16.8%, Taipei 22.7%, Jaipur 38.0%, Chiang Mai 40.3%, Santorini 46.5%.
+  - Never anyone's ideal: Paris, Norwegian Fjords, Edinburgh, Copenhagen, Lisbon. Finnish Lapland was the ideal of 4 respondents only.
+  - Scores at or below another destination on every attribute: Rome/Istanbul, Paris/London, Seoul/London and New York, Copenhagen/Barcelona, Finnish Lapland/Jungfrau and Madeira, Norwegian Fjords/Jungfrau, Maasai Mara/Cape Town and Madeira, Uyuni/Cusco and Queenstown.
+  - Options and questions: fit depends only on attribute scores, so an option or a new question cannot separate destinations with the same scores on what it asks; no option change was proposed.
+- *Owner decisions* (2026-11-08): twelve score changes on ten destinations. Reasons come from the attribute definition, the authored text, and, where stated, general knowledge; the written 0/3/5 rubrics of Phases 12 and 13 were in review copies outside the repository and were not re-read. The owner removed one proposed change and added another after corrected figures (below).
+
+  | Destination | Attribute | Change | Reason |
+  |---|---|---|---|
+  | Cape Town | warm-climate | 4 → 3 | Mediterranean climate with a cool, wet winter; comparable to Barcelona and Rome at 3 |
+  | Cape Town | nightlife | 4 → 3 | The authored text is about mountains, sea, and wine, not nights out |
+  | Rome | city-life | 3 → 4 | General knowledge: a capital with shopping streets and lively neighbourhoods; the authored text only says "trattorias ... all over the city" |
+  | Paris | food | 4 → 5 | "Café and bistro culture", cafés, bistros, and bakeries in the text |
+  | Seoul | food | 4 → 5 | "Korean food" and markets in the text and highlights |
+  | Seoul | history-culture | 3 → 4 | Royal palaces such as Gyeongbokgung in the text |
+  | Finnish Lapland | relaxation | 4 → 5 | "Saunas and lakeside cabins" in the highlights |
+  | Norwegian Fjords | relaxation | 4 → 5 | Fjord cruises and scenic train rides in the text |
+  | Taipei | nightlife | 4 → 5 | The definition names night markets; night-market food opens the text |
+  | Jaipur | city-life | 3 → 4 | "Busy bazaars" and handicrafts; the definition names shopping and lively streets |
+  | Chiang Mai | nightlife | 3 → 4 | The night bazaar in the text and highlights |
+  | Santorini | art-architecture | 3 → 4 | White houses along the cliffs; the definition names striking buildings |
+
+- *Rejected in simulation*: Paris history-culture 4 → 5 (London as ideal 644 → 228 and Rome as ideal down to 3; with food only, London 419 and Rome 52).
+- *Correction during the phase*: Claude first told the owner that Rome city-life 3 → 4 had the opposite effect, and the owner decided to leave Rome alone on that basis. That was wrong: the first run changed it together with Paris history-culture, and the fall came from the latter. Measured alone, the change lifts Rome, and the owner added it (2026-11-08).
+- *Removed by the owner after approval*: Istanbul easy-getting-around 4 → 3, proposed to lift Rome. Rome did not rise (0.7% → 0.5%) and Istanbul fell from 14.3% to 7.8% (found 83% → 58%). The owner had approved the set before this effect was reported; on seeing it, the owner removed the change (2026-11-08).
+- *Effect* (`initial-v10.json` → `initial-v11.json`):
+  - Random-answer shares: highest Cape Town 45.3% → 38.6%; lowest Rome 0.7% → Rome and Maasai Mara 1.2%; SD 8.9% → 8.2% (sparse 9.2% → 8.4%).
+  - Quiz quality: sparse ideal overlap 2.069 → 2.006, first found 54.3% → 53.3%, fit loss 7.95 → 8.28 (worse); anchored 3.015 → 3.032, 82.3% → 82.9%, fit loss 3.84 → 3.85. Question variety unchanged.
+  - Found by respondents whose ideal it is: Rome 16.8% → 34.6%, Taipei 22.7% → 37.8%, Jaipur 38.0% → 57.7%, Chiang Mai 40.3% → 61.6%, Santorini 46.5% → 54.1%, Seoul 75.5% → 87.9%. Paris (ideal of 0 → 266, found 89.1%) and Norwegian Fjords (0 → 43, found 90.7%) can now be someone's ideal.
+  - Worse: found by respondents whose ideal it is, Vancouver 71.9% → 54.8%, Buenos Aires 53.6% → 43.8%, Riviera Maya 95.2% → 86.7%, Bangkok 75.0% → 68.0%, Andalusia 82.8% → 75.8%, Cape Town 95.0% → 88.0%, Singapore 90.1% → 83.2%, Maasai Mara 60.3% → 55.2%, Madeira 70.8% → 66.7%; share down by at least one point, Cusco 20.0% → 16.9%, Edinburgh 11.4% → 9.6%, Cairns 9.8% → 8.2%, Bangkok 9.5% → 8.0%, Vancouver 15.2% → 13.9%, Sicily 9.8% → 8.7%, Madeira 12.5% → 11.4%, Lisbon 5.5% → 4.4%, Copenhagen 8.3% → 7.3%, Provence 6.2% → 5.2%, Buenos Aires 3.0% → 2.0%. Rome is the ideal of fewer respondents (95 → 52).
+- *Not solved* (later phase candidates): Rome stays rare (1.2%), because it scores at or below Istanbul on every attribute, and Maasai Mara (1.2%) has no attribute for wildlife; separating them needs a new attribute such as ancient sites or wildlife. Edinburgh, Copenhagen, and Lisbon are still nobody's ideal.
+- *Bundle* (2026-11-08): `content/initial-v11.json` differs from `initial-v10.json` by these twelve scores only (new test in `test/node/content-bundle.test.ts`). No text changes, so no rendered review copy was needed; the table above is the review.
+- *Import rehearsal* (2026-11-08): a temporary Worker test, not committed, ran `planImport` and `runImport` from `admin/src/import/` against the real admin API on a seeded isolated database: `initial-v10.json`, then `initial-v11.json` with "Update existing items". The second import updated exactly ten destinations with twelve field changes and left 109 items unchanged. `/api/diagnosis-content` in `ja`, `en`, `es`, and `fr` against the bundle (names and attribute scores): 0 differences. This differs from Phase 21, which rehearsed through the admin UI under `npm run dev:admin`.
+
 ## Phase 23 verification log (from 2026-11-08)
 Result variety (`prompts/23-result-variety.md`, ADR-037). No remote command; AI stays disabled.
 - *Owner decisions* (2026-11-08): the prompt as drafted; the band of 10 fit points among the best 12 with a fit-weighted draw; variety only, with share balance left to a later review of scores and questions; the "Show other destinations" button.

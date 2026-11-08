@@ -94,6 +94,42 @@ it("initial-v10.json keeps every item of initial-v9.json unchanged and only adds
   expect(Object.keys(v10)).toEqual(Object.keys(v9));
 });
 
+it("initial-v11.json differs from initial-v10.json only by the approved attribute scores", () => {
+  interface Destination {
+    slug: string;
+    attributeScores: { attribute: string; score: number }[];
+  }
+  type Bundle = Record<string, unknown> & { destinations: Destination[] };
+  const read = (file: string) => JSON.parse(readFileSync(path.join(CONTENT_DIR, file), "utf8")) as Bundle;
+  const [v10, v11] = [read("initial-v10.json"), read("initial-v11.json")];
+  const changes: string[] = [];
+  const withoutScores = (bundle: Bundle) => ({
+    ...bundle,
+    destinations: bundle.destinations.map((destination) => ({ ...destination, attributeScores: destination.attributeScores.map((item) => item.attribute) })),
+  });
+  expect(withoutScores(v11)).toEqual(withoutScores(v10));
+  for (const [index, destination] of v11.destinations.entries()) {
+    for (const [position, item] of destination.attributeScores.entries()) {
+      const before = v10.destinations[index]?.attributeScores[position]?.score;
+      if (before !== item.score) changes.push(`${destination.slug} ${item.attribute} ${String(before)}>${String(item.score)}`);
+    }
+  }
+  expect(changes.sort()).toEqual([
+    "cape-town nightlife 4>3",
+    "cape-town warm-climate 4>3",
+    "chiang-mai nightlife 3>4",
+    "finnish-lapland relaxation 4>5",
+    "jaipur city-life 3>4",
+    "norwegian-fjords relaxation 4>5",
+    "paris food 4>5",
+    "rome city-life 3>4",
+    "santorini art-architecture 3>4",
+    "seoul food 4>5",
+    "seoul history-culture 3>4",
+    "taipei nightlife 4>5",
+  ]);
+});
+
 describe.each(files)("%s", (file) => {
   const parsed = parseBundle(readFileSync(path.join(CONTENT_DIR, file), "utf8"));
 

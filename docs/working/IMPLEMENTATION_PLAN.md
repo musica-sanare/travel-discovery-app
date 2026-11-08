@@ -461,3 +461,16 @@ Acceptance:
 - `npm run check` and `npm run test:e2e` pass; AI stays disabled, and the account stays on Workers Free.
 
 Status: **complete (2026-11-08)**, not yet deployed. The owner approved the prompt, a band of 10 fit points among the best 12, variety without share balancing, and the "Show other destinations" button; `npm run check` and `npm run test:e2e` pass ("Phase 23 verification log" and ADR-037 in DECISIONS.md). Share balance is left to a later review of attribute scores and questions. No migration is needed.
+
+## Phase 24 — Share balance through scores and questions
+Owner request (2026-11-08): reduce how often broad destinations dominate (Cape Town 42.8% of top-5 results on random answers) and help hard-to-find ones (Rome 0.4%) by reviewing content, after Phase 23 showed that result variety does not change the balance (ADR-037). Prompt: `prompts/24-share-balance.md` (approved 2026-11-08).
+- Diagnose each destination's share, how often respondents whose ideal it is find it, and its nearest competitors.
+- Propose score corrections and option or question changes that separate near-duplicates; the owner approves each change.
+- Write `content/initial-v11.json` with only the approved changes, rehearse its import locally, and leave the production import to the owner.
+- Not in this phase: engine changes, new attributes or destinations, a region field, enabling AI.
+
+Acceptance:
+- The simulated share spread shrinks and hard-to-find destinations are found more often, within quiz-quality bounds the owner approves.
+- `npm run check` passes; AI stays disabled, and the account stays on Workers Free.
+
+Status: **complete (2026-11-08)**, not yet deployed or imported. The owner approved twelve score changes on ten destinations; `content/initial-v11.json` differs from `initial-v10.json` by those only, and the local import rehearsal matches it in four locales ("Phase 24 verification log" in DECISIONS.md). Cape Town falls from 45.3% to 38.6% and the share SD from 8.9% to 8.2%; Rome and Maasai Mara stay rare (1.2%) and need a new attribute (a later phase candidate). The production import is an owner step.

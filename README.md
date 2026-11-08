@@ -6,7 +6,7 @@ Travel Discovery is a responsive web app that recommends overseas city/region-le
 
 ## Status
 
-- Phases 0–23 are complete; Phases 22 and 23 are not yet deployed.
+- Phases 0–24 are complete; Phases 22 to 24 are not yet deployed, and `content/initial-v11.json` is not yet imported.
 - Production runs at https://travel-discovery.apps.musica-sanare.com (also on `workers.dev`) with AI disabled and deploys through Cloudflare Workers Builds on each push to `main`. It serves 42 destinations in 33 countries, scored on 11 attributes, and 29 quiz questions.
 - Phase 14 made the AI limits and status visible in the UI and deployed the strict per-client AI quota to production.
 - Phase 15 made the quiz prefer questions that separate the likely destinations.
@@ -17,6 +17,7 @@ Travel Discovery is a responsive web app that recommends overseas city/region-le
 - Phase 21 added 12 destinations in 10 new countries, including the UK, Portugal, the Nordic countries, the Middle East, South Asia, and Africa, and a sourced cost estimate for Finnish Lapland (11 destinations with costs).
 - Phase 22 hardened the optional AI notes before the decision on enabling them: notes may copy numbers from their destination's own text, a failed note no longer discards the others, all users together get at most 500 AI calls per UTC day, and the model no longer sees how well each destination fits.
 - Phase 23 keeps the best match first and fills the other results from destinations that fit almost as well, so results can differ between quizzes; "Show other destinations" draws again.
+- Phase 24 corrected twelve attribute scores, so that broad destinations such as Cape Town appear less often and several hard-to-find destinations are found more often. Rome and Maasai Mara stay rare; they need a new attribute.
 - The steps for enabling AI on production are prepared. AI stays disabled until the owner approves them ([Implementation plan](docs/working/IMPLEMENTATION_PLAN.md)).
 - Phase 18 prepared the repository for publishing: a history and secret scan, the MIT license, and a security policy. The owner made it public on 2026-11-01. The GitHub settings to apply right after it are in the [public release checklist](docs/working/PUBLIC_RELEASE.md).
 
