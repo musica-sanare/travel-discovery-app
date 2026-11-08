@@ -10,6 +10,8 @@ import { ContentStatus } from "../components/ContentStatus";
 import { Barcode } from "../components/Decorations";
 import { DestinationBand } from "../components/DestinationBand";
 import { LocalizedText } from "../components/LocalizedText";
+import { ResultsMap } from "../components/ResultsMap";
+import { externalMapUrl } from "../diagnosis/mapPins";
 import { SEARCH_LINKS } from "../diagnosis/searchLinks";
 import { drawSeed, results } from "../diagnosis/session";
 import { buildAiRequest, useAiExplanations, type AiExplanationState } from "../diagnosis/useAiExplanations";
@@ -140,6 +142,20 @@ function ResultItem({
               </span>
             )}
           </h2>
+          {destination.location && (
+            <p className="-mt-2 text-sm">
+              <a
+                href={externalMapUrl(destination.location)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex min-h-6 items-center gap-1"
+              >
+                {t("results.mapLink")}
+                <span className="sr-only"> {t("results.search.newTab")}</span>
+                <span aria-hidden="true"> ↗</span>
+              </a>
+            </p>
+          )}
           <LocalizedText as="p" locale={destination.locale}>
             {destination.summary}
           </LocalizedText>
@@ -365,6 +381,14 @@ export function ResultsPage() {
           {ranking.excluded.length > 0 && <p>{t("results.excluded", { count: ranking.excluded.length })}</p>}
         </div>
       )}
+      <ResultsMap
+        results={ranking.results.flatMap((ranked) => {
+          const destination = destinations.get(ranked.slug);
+          return destination
+            ? [{ rank: ranked.rank, name: destination.name, countryName: destination.country.name, location: destination.location }]
+            : [];
+        })}
+      />
       <ol className="flex flex-col gap-6">
         {ranking.results.map((ranked) => {
           const destination = destinations.get(ranked.slug);

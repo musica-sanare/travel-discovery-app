@@ -32,6 +32,7 @@ function stored(overrides: Partial<DestinationDetail> = {}): DestinationDetail {
     status: "published",
     recommendedDays: { min: 3, max: 5 },
     bestMonths: [5, 6, 7],
+    location: { latitude: -13.52, longitude: -71.98 },
     costs: [JPY],
     image: null,
     translations: {
@@ -54,6 +55,7 @@ const ENTRY = {
   status: "published",
   recommendedDays: { min: 3, max: 5 },
   bestMonths: [7, 5, 6],
+  location: { latitude: -13.52, longitude: -71.98 },
   costs: [{ ...JPY, sourceUrl: undefined, basis: { ...JPY.basis, es: "" } }],
   image: null,
   attributeScores: [
@@ -112,6 +114,21 @@ describe("diffComparable on destinations", () => {
     expect(added).toEqual([{ path: "costs.JPY", before: undefined, after: expect.objectContaining({ min: 8000 }) as unknown }]);
     const removed = diff({ ...ENTRY, costs: [] });
     expect(removed).toEqual([{ path: "costs.JPY", before: expect.objectContaining({ min: 8000 }) as unknown, after: undefined }]);
+  });
+
+  it("treats an omitted location like no location and reports coordinate changes", () => {
+    const entry: Record<string, unknown> = { ...ENTRY };
+    delete entry.location;
+    expect(diff(entry, stored({ location: null }))).toEqual([]);
+    expect(diff(entry)).toEqual([
+      { path: "location", before: { latitude: -13.52, longitude: -71.98 }, after: null },
+    ]);
+    expect(diff(ENTRY, stored({ location: null }))).toEqual([
+      { path: "location", before: null, after: { latitude: -13.52, longitude: -71.98 } },
+    ]);
+    expect(diff({ ...ENTRY, location: { latitude: -13.53, longitude: -71.98 } })).toEqual([
+      { path: "location.latitude", before: -13.52, after: -13.53 },
+    ]);
   });
 
   it("shows stored references that have no known slug by their ID", () => {

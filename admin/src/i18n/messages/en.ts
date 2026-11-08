@@ -93,6 +93,8 @@ export const en: AdminMessages = {
     type: "Type",
     recommendedDaysMin: "Recommended days (min)",
     recommendedDaysMax: "Recommended days (max)",
+    latitude: "Latitude (−90 to 90; leave both coordinates empty for no map pin)",
+    longitude: "Longitude (−180 to 180)",
     summary: "Summary",
     highlights: "Highlights (one per line)",
     cautions: "Cautions",

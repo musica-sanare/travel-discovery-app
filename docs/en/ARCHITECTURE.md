@@ -107,7 +107,7 @@ sequenceDiagram
 
 1. **Load content.** When the user starts a quiz, the client loads one content snapshot from `GET /api/diagnosis-content?locale=` (published content, scoring data, quiz settings). The response is not cached by HTTP; the client reuses it in memory for up to 5 minutes.
 2. **Keep state in memory.** The client keeps trip constraints, answers, and the seed in memory only. Nothing is stored on the server, and a reload restarts the quiz. With AI assistance off, nothing is sent to the server either; with it on, see step 4.
-3. **Rank in the browser.** The client runs question selection, scoring, and ranking with `domain/diagnosis/` ([DIAGNOSTIC_ALGORITHM.md](DIAGNOSTIC_ALGORITHM.md)). It renders results with the deterministic explanation.
+3. **Rank in the browser.** The client runs question selection, scoring, and ranking with `domain/diagnosis/` ([DIAGNOSTIC_ALGORITHM.md](DIAGNOSTIC_ALGORITHM.md)). It renders results with the deterministic explanation. The results page also shows a world map: the static `/world-map.svg` asset, which the browser fetches only then, with pins placed by `shared/map-projection.ts` (ADR-036). The map makes no external request.
 4. **Optional AI notes** (Phase 4, ADR-026, proposed). If AI assistance is enabled, the client sends one `POST /api/ai/explanations` request with the answers, constraints, locale, and the slugs it displays.
    - The Worker validates them and recomputes the ranking from current published content with the same domain module.
    - If the slugs differ, it returns `409` without calling AI.

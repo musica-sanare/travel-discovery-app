@@ -52,6 +52,7 @@ export const es: Messages = {
     fit: "FIT",
     stay: "STAY",
     flightLog: "FLIGHT LOG",
+    routeMap: "ROUTE MAP",
     gateNotFound: "404 · GATE NOT FOUND",
     delayed: "DELAYED",
   },
@@ -127,6 +128,15 @@ export const es: Messages = {
     restart: "Empezar de nuevo",
     answers: "Tus respuestas",
     skipped: "Omitida",
+    mapLink: "Ver en Google Maps",
+    map: {
+      heading: "En el mapa",
+      label: "Mapa del mundo con tus recomendaciones: {{list}}",
+      item: "{{rank}} {{name}} ({{country}})",
+      itemNoCountry: "{{rank}} {{name}}",
+      caption: "Los números de los marcadores coinciden con la posición en los resultados. Cada marcador indica un punto representativo, no un lugar exacto. «Ver en Google Maps» se abre en una pestaña nueva y solo transmite la ubicación del destino.",
+      missing: "No aparecen en el mapa: {{list}}",
+    },
     ai: {
       heading: "Nota generada por IA",
       label: "Texto escrito por IA; puede contener errores. Para la clasificación, los costes, las fechas y otros datos, consulta la información de arriba.",

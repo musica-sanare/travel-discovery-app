@@ -4,7 +4,7 @@
  * See docs/en/DATA_MODEL.md for the logical model and Phase 1 schema notes.
  */
 import { relations, sql } from "drizzle-orm";
-import { check, index, integer, primaryKey, sqliteTable, text, unique } from "drizzle-orm/sqlite-core";
+import { check, index, integer, primaryKey, real, sqliteTable, text, unique } from "drizzle-orm/sqlite-core";
 import { COST_PERIODS, COST_SCOPES, SUPPORTED_CURRENCIES } from "../../shared/costs";
 import { SUPPORTED_LOCALES } from "../../shared/locales";
 
@@ -116,6 +116,10 @@ export const destinations = sqliteTable(
     recommendedDaysMax: integer("recommended_days_max"),
     // Best travel months as a 12-bit mask (bit m - 1 = month m); NULL = unknown.
     bestMonthsMask: integer("best_months_mask"),
+    // Representative point in WGS 84 degrees (DATA_MODEL.md); both or neither,
+    // validated by the admin API rather than a CHECK so the column can be added in place.
+    latitude: real("latitude"),
+    longitude: real("longitude"),
     imageUrl: text("image_url"),
     imageAttribution: text("image_attribution"),
     status: text("status", { enum: CONTENT_STATUSES }).notNull().default("draft"),

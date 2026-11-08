@@ -59,6 +59,7 @@ export interface DestinationDetail {
   status: ContentStatus;
   recommendedDays: { min: number | null; max: number | null };
   bestMonths: number[];
+  location: { latitude: number; longitude: number } | null;
   costs: {
     currency: Currency;
     period: CostPeriod;

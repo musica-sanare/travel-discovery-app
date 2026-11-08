@@ -13,6 +13,7 @@ Travel Discovery is a responsive web app that recommends overseas city/region-le
 - Phase 16 added sourced cost estimates: 10 destinations now have indicative costs in `JPY`, `USD`, and `EUR`.
 - Phase 17 added French to the UI and all published content.
 - Phase 19 shows what sets each result apart from the others, and adds a description, link-preview tags, and a favicon.
+- Phase 20 adds a world map of the results, drawn by the app itself from public-domain map data, and a Google Maps link on each result. It goes live after the owner applies its migration, deploys, and imports `content/initial-v9.json`.
 - The steps for enabling AI on production are prepared. AI stays disabled until the owner approves them ([Implementation plan](docs/working/IMPLEMENTATION_PLAN.md)).
 - Phase 18 prepared the repository for publishing: a history and secret scan, the MIT license, and a security policy. The owner made it public on 2026-11-01. The GitHub settings to apply right after it are in the [public release checklist](docs/working/PUBLIC_RELEASE.md).
 

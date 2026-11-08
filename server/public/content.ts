@@ -31,6 +31,8 @@ const destinationColumns = {
   recommendedDaysMin: true,
   recommendedDaysMax: true,
   bestMonthsMask: true,
+  latitude: true,
+  longitude: true,
   imageUrl: true,
   imageAttribution: true,
 } as const;
@@ -101,6 +103,8 @@ export function toPublicDestination(row: LoadedDestination, locale: Locale) {
     bestSeason: text.bestSeasonText,
     recommendedDays: { min: row.recommendedDaysMin, max: row.recommendedDaysMax },
     bestMonths: maskToMonths(row.bestMonthsMask),
+    location:
+      row.latitude !== null && row.longitude !== null ? { latitude: row.latitude, longitude: row.longitude } : null,
     country: {
       slug: row.country.slug,
       name: countryText?.name ?? null,

@@ -43,7 +43,7 @@ export async function startQuiz(page: Page) {
   await expect(page.getByRole("heading", { level: 1, name: "旅の条件（任意）" })).toBeVisible();
 }
 
-/** Same-origin requests other than the app shell, assets, the content snapshot, and the site AI status. */
+/** Same-origin requests other than the app shell, assets, the results map, the content snapshot, and the site AI status. */
 export function unexpectedRequests(requests: readonly string[], baseURL: string): string[] {
   return requests.filter((url) => {
     const parsed = new URL(url);
@@ -53,6 +53,7 @@ export function unexpectedRequests(requests: readonly string[], baseURL: string)
       parsed.pathname === "/plan" ||
       parsed.pathname.startsWith("/assets/") ||
       parsed.pathname === "/favicon.svg" ||
+      parsed.pathname === "/world-map.svg" ||
       parsed.pathname === "/api/diagnosis-content" ||
       parsed.pathname === "/api/ai/status"
     );

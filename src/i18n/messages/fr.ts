@@ -54,6 +54,7 @@ export const fr: Messages = {
     fit: "FIT",
     stay: "STAY",
     flightLog: "FLIGHT LOG",
+    routeMap: "ROUTE MAP",
     gateNotFound: "404 · GATE NOT FOUND",
     delayed: "DELAYED",
   },
@@ -129,6 +130,15 @@ export const fr: Messages = {
     restart: "Recommencer",
     answers: "Vos réponses",
     skipped: "Passée",
+    mapLink: "Voir sur Google Maps",
+    map: {
+      heading: "Sur la carte",
+      label: "Carte du monde de vos recommandations : {{list}}",
+      item: "{{rank}} {{name}} ({{country}})",
+      itemNoCountry: "{{rank}} {{name}}",
+      caption: "Les numéros des repères correspondent au rang des résultats. Chaque repère indique un point représentatif, pas un lieu exact. « Voir sur Google Maps » s’ouvre dans un nouvel onglet et ne transmet que l’emplacement de la destination.",
+      missing: "Absentes de la carte : {{list}}",
+    },
     ai: {
       heading: "Note générée par l’IA",
       label: "Texte rédigé par une IA, qui peut contenir des erreurs. Pour le classement, les coûts, les périodes et les autres informations, fiez-vous aux informations ci-dessus.",

@@ -51,6 +51,7 @@ export const ja = {
     fit: "FIT",
     stay: "STAY",
     flightLog: "FLIGHT LOG",
+    routeMap: "ROUTE MAP",
     gateNotFound: "404 · GATE NOT FOUND",
     delayed: "DELAYED",
   },
@@ -126,6 +127,15 @@ export const ja = {
     restart: "最初からやり直す",
     answers: "あなたの回答",
     skipped: "スキップ",
+    mapLink: "Google マップで見る",
+    map: {
+      heading: "地図で見る",
+      label: "おすすめの行き先の世界地図。{{list}}",
+      item: "{{rank}} {{name}}（{{country}}）",
+      itemNoCountry: "{{rank}} {{name}}",
+      caption: "ピンの番号は結果の順位です。位置は代表地点の目安で、正確な場所ではありません。「Google マップで見る」は新しいタブで開き、行き先の位置だけを渡します。",
+      missing: "地図に表示していない行き先: {{list}}",
+    },
     ai: {
       heading: "AI による補足",
       label: "AI が生成した文章です。誤りを含む場合があります。順位・費用・時期などは上の情報をご確認ください。",

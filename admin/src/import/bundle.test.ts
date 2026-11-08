@@ -167,6 +167,7 @@ describe("planImport in update mode", () => {
     status: "published",
     recommendedDays: { min: null, max: null },
     bestMonths: [],
+    location: null,
     costs: [],
     image: null,
     translations: {

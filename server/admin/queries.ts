@@ -165,6 +165,8 @@ export async function getDestination(db: Database, id: number) {
     status: row.status,
     recommendedDays: { min: row.recommendedDaysMin, max: row.recommendedDaysMax },
     bestMonths: maskToMonths(row.bestMonthsMask) ?? [],
+    location:
+      row.latitude !== null && row.longitude !== null ? { latitude: row.latitude, longitude: row.longitude } : null,
     costs: [...row.costEstimates]
       .sort((a, b) => compareCurrencies(a.currency, b.currency))
       .map((estimate) => ({

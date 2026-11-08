@@ -1,5 +1,5 @@
-/** Helpers converting form strings to API payload values. */
-export function intOrNull(value: string): number | null {
+/** Helpers converting form strings to API payload values; the API checks integers and ranges. */
+export function numberOrNull(value: string): number | null {
   const trimmed = value.trim();
   if (trimmed === "") {
     return null;
@@ -7,6 +7,8 @@ export function intOrNull(value: string): number | null {
   const parsed = Number(trimmed);
   return Number.isFinite(parsed) ? parsed : Number.NaN;
 }
+
+export const intOrNull = numberOrNull;
 
 export function textOrNull(value: string): string | null {
   const trimmed = value.trim();

@@ -83,6 +83,7 @@ describe("admin CRUD", () => {
       slug: body.slug,
       status: "published",
       bestMonths: [10, 4, 5],
+      location: { latitude: 13.75, longitude: 100.5 },
       costs: [
         {
           currency: "EUR",
@@ -120,6 +121,7 @@ describe("admin CRUD", () => {
       item: {
         status: string;
         bestMonths: number[];
+        location: { latitude: number; longitude: number } | null;
         costs: { currency: string; period: string; min: number; basis: Record<string, string> }[];
         attributeScores: unknown[];
         translations: Record<string, unknown>;
@@ -127,6 +129,7 @@ describe("admin CRUD", () => {
     };
     expect(after.item.status).toBe("published");
     expect(after.item.bestMonths).toEqual([4, 5, 10]);
+    expect(after.item.location).toEqual({ latitude: 13.75, longitude: 100.5 });
     expect(after.item.costs).toMatchObject([
       { currency: "JPY", period: "per_day", min: 10000, basis: { en: "Lodging and meals.", es: "Alojamiento y comidas." } },
       { currency: "EUR", period: "per_trip", min: 900, basis: { en: "Whole trip.", es: "Viaje completo." } },
@@ -328,6 +331,27 @@ describe("admin validation and error responses", () => {
         { path: "bestMonths", code: "duplicate_month" },
       ]) as unknown,
     });
+  });
+
+  it("accepts a location with both coordinates in range, or none", async () => {
+    const { countryId, attributeId } = await createFixtures();
+    const issuesFor = async (location: unknown) => {
+      const response = await adminRequest("/api/admin/destinations", {
+        method: "POST",
+        body: destinationBody(countryId, attributeId, { location }),
+      });
+      return response.status === 201 ? [] : ((await json(response)) as { issues: { path: string; code: string }[] }).issues;
+    };
+
+    expect(await issuesFor(null)).toEqual([]);
+    expect(await issuesFor(undefined)).toEqual([]);
+    expect(await issuesFor({ latitude: -90, longitude: 180 })).toEqual([]);
+    expect(await issuesFor({ latitude: 25.04 })).toEqual([{ path: "location.longitude", code: "invalid_type" }]);
+    expect(await issuesFor({ latitude: null, longitude: 121.56 })).toEqual([{ path: "location.latitude", code: "invalid_type" }]);
+    expect(await issuesFor({ latitude: 90.01, longitude: -180.01 })).toEqual([
+      { path: "location.latitude", code: "too_big" },
+      { path: "location.longitude", code: "too_small" },
+    ]);
   });
 
   it("returns 409 for duplicate slugs and 400 for unknown references", async () => {

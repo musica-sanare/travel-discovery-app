@@ -60,6 +60,12 @@ const destination = z.object({
   bestSeason: z.nullable(z.string()),
   recommendedDays: z.object({ min: days, max: days }),
   bestMonths: z.nullable(z.array(int(1, 12))),
+  location: z.nullable(
+    z.object({
+      latitude: z.number().check(z.gte(-90), z.lte(90)),
+      longitude: z.number().check(z.gte(-180), z.lte(180)),
+    }),
+  ),
   country: z.object({ slug, name: z.nullable(z.string()), locale: z.nullable(locale) }),
   costs: z.array(costEstimate),
   image: z.nullable(z.object({ url: z.string(), alt: z.nullable(z.string()), attribution: z.nullable(z.string()) })),

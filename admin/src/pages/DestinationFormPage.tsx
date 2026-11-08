@@ -6,7 +6,7 @@ import { adminApi } from "../api";
 import { ErrorBanner } from "../components/ErrorBanner";
 import { TranslationFieldset } from "../components/TranslationFieldset";
 import { toTranslationDraft, type TranslationDraft } from "../components/translationDraft";
-import { intOrNull, numberToText, textOrNull } from "../forms";
+import { intOrNull, numberOrNull, numberToText, textOrNull } from "../forms";
 import { useLoad } from "../hooks";
 import { useContentText } from "../localizedContent";
 import { MONTHS } from "../../../shared/months";
@@ -48,6 +48,8 @@ interface Draft {
   daysMax: string;
   bestMonths: number[];
   costs: CostDraft[];
+  latitude: string;
+  longitude: string;
   hasImage: boolean;
   image: { url: string; attribution: string };
   translations: TranslationDraft<TextKey>;
@@ -64,6 +66,8 @@ function newDraft(): Draft {
     daysMax: "",
     bestMonths: [],
     costs: [],
+    latitude: "",
+    longitude: "",
     hasImage: false,
     image: { url: "", attribution: "" },
     translations: {
@@ -100,6 +104,8 @@ function fromDetail(
     daysMin: numberToText(detail.recommendedDays.min),
     daysMax: numberToText(detail.recommendedDays.max),
     bestMonths: detail.bestMonths,
+    latitude: numberToText(detail.location?.latitude),
+    longitude: numberToText(detail.location?.longitude),
     costs: detail.costs.map((cost) => ({
       currency: cost.currency,
       period: cost.period,
@@ -142,6 +148,11 @@ function toPayload(draft: Draft) {
     status: draft.status,
     recommendedDays: { min: intOrNull(draft.daysMin), max: intOrNull(draft.daysMax) },
     bestMonths: [...draft.bestMonths].sort((a, b) => a - b),
+    // Both empty means no location; one empty is sent as null so the API reports it.
+    location:
+      draft.latitude.trim() === "" && draft.longitude.trim() === ""
+        ? null
+        : { latitude: numberOrNull(draft.latitude), longitude: numberOrNull(draft.longitude) },
     costs: draft.costs.map((cost) => ({
       currency: cost.currency,
       period: cost.period,
@@ -346,6 +357,32 @@ export function DestinationFormPage() {
             value={current.daysMax}
             onChange={(event) => {
               update({ daysMax: event.target.value });
+            }}
+          />
+        </Field>
+        <Field id={`${id}-latitude`} label={t("fields.latitude")}>
+          <input
+            id={`${id}-latitude`}
+            type="number"
+            min={-90}
+            max={90}
+            step="any"
+            value={current.latitude}
+            onChange={(event) => {
+              update({ latitude: event.target.value });
+            }}
+          />
+        </Field>
+        <Field id={`${id}-longitude`} label={t("fields.longitude")}>
+          <input
+            id={`${id}-longitude`}
+            type="number"
+            min={-180}
+            max={180}
+            step="any"
+            value={current.longitude}
+            onChange={(event) => {
+              update({ longitude: event.target.value });
             }}
           />
         </Field>

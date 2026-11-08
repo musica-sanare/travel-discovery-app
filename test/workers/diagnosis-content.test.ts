@@ -48,6 +48,16 @@ describe("GET /api/diagnosis-content", () => {
     expect(content.destinations.find((item) => item.slug === "lisbon")?.bestMonths).toEqual([3, 4, 5, 9, 10, 11]);
   });
 
+  it("includes each destination's location, or null when it has none", async () => {
+    const content = await load("?locale=en");
+    const locations = Object.fromEntries(content.destinations.map((item) => [item.slug, item.location]));
+    expect(locations).toEqual({
+      lisbon: { latitude: 38.71, longitude: -9.14 },
+      "south-iceland": null,
+      taipei: { latitude: 25.04, longitude: 121.56 },
+    });
+  });
+
   it("does not expose internal IDs, statuses, or timestamps", async () => {
     const body = JSON.stringify(await json(await publicRequest("/api/diagnosis-content?locale=en")));
     for (const key of ['"id"', '"status"', '"createdAt"', '"countryId"', '"attributeId"', '"optionId"', '"displayOrder"']) {

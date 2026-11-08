@@ -111,10 +111,20 @@ A destination is a city or region, linked to a country. Each destination should 
 - Cautions / limitations.
 - Indicative cost range with currency, scope, basis, source, and last-updated date.
 - Image URL, image attribution/source, and alt text.
+- Optional representative point (latitude and longitude) for the results map; see [DATA_MODEL.md](DATA_MODEL.md) "Phase 20 schema notes".
 - Search-link configuration or a safe link-generation strategy.
 - Publication status and timestamps.
 
 Do not invent current travel prices. Seed data may contain clearly labelled illustrative estimates only when the source/basis/date are recorded. Prefer manually maintained ranges at first.
+
+### Results map (Phase 20)
+
+The results page shows one world map of the shown results ([DECISIONS.md](../working/DECISIONS.md) ADR-036).
+
+- Numbered pins match the result ranks. Results without a location are left off the map and named under it.
+- The map supplements the result list. Its text alternative names each destination on it with its country, the pins are not interactive, and nothing depends on hover.
+- The land is a static SVG that the app serves itself, drawn from public-domain Natural Earth data. There is no tile server, map API, key, or external request, and the quiz pages do not load the map.
+- Each result with a location links to Google Maps in a new tab (Maps URLs: `https://www.google.com/maps/search/?api=1&query=<lat>,<lng>`). The link carries only the coordinates, never answers or constraints.
 
 ## 8. AI assistance
 

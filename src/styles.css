@@ -110,6 +110,13 @@
   .on-sky :focus-visible {
     outline-color: var(--color-sun);
   }
+
+  /* Results-page world map (ADR-036): the static land shape masks a background
+     in the page's colors, so it follows the color scheme. The browser fetches
+     the SVG only when an element with this class renders. */
+  .world-map-land {
+    mask: url("/world-map.svg") center / 100% 100% no-repeat;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

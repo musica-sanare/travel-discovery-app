@@ -110,6 +110,11 @@ function monthsOf(value: unknown): unknown[] {
   return [...list(value)].sort((a, b) => Number(a) - Number(b));
 }
 
+function locationOf(value: unknown): unknown {
+  if (!isObject(value)) return value ?? null;
+  return { latitude: value.latitude, longitude: value.longitude };
+}
+
 function imageOf(value: unknown): unknown {
   if (!isObject(value)) return value ?? null;
   return { url: value.url, attribution: requiredText(value.attribution) };
@@ -124,6 +129,7 @@ export function destinationFromBundle(data: Json): Json {
     status: data.status,
     recommendedDays: { min: days.min ?? null, max: days.max ?? null },
     bestMonths: monthsOf(data.bestMonths),
+    location: locationOf(data.location),
     costs: costsOf(data.costs),
     image: imageOf(data.image),
     translations: destinationTranslationsOf(data.translations),
@@ -143,6 +149,7 @@ export function destinationFromStored(item: DestinationDetail, slugs: SlugMaps):
     status: item.status,
     recommendedDays: { min: item.recommendedDays.min, max: item.recommendedDays.max },
     bestMonths: monthsOf(item.bestMonths),
+    location: locationOf(item.location),
     costs: costsOf(item.costs),
     image: imageOf(item.image),
     translations: destinationTranslationsOf(item.translations),

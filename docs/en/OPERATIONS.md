@@ -173,12 +173,13 @@ Each published item:
 - Translations: the admin console requires `ja` or `en` to publish. Publish with `ja`, `en`, `es`, and `fr` where possible, and at least `ja` and `en` ([DEPLOYMENT.md](DEPLOYMENT.md) section 10). Missing locales fall back as described in ADR-012.
 - Costs: indicative ranges only, with currency, period, basis in every translated locale, source, and the date checked. Never use wording that suggests live prices (ADR-008).
 - Images: `https` URL, attribution, and alt text in every translated locale. Check the provider's license ([PUBLIC_RELEASE.md](../working/PUBLIC_RELEASE.md) section 4).
+- Location: the representative point of [DATA_MODEL.md](DATA_MODEL.md) "Phase 20 schema notes", rounded to two decimals. Check that it lies in the right country, for example with `scripts/build-world-map.mjs --check` (ADR-036).
 - Best months, recommended days, and cautions where known. Leave unknown values empty rather than guessing.
 - A human-authored summary and highlights, which also serve as the explanation when AI is off.
 
 After:
 - Run the checks of section 3 for production.
-- Go through the public site in `ja`, `en`, `es`, and `fr` on a phone-sized and a desktop window: quiz to results, back/edit/restart, cost basis and date, the AI-unavailable notice, and the outbound search links.
+- Go through the public site in `ja`, `en`, `es`, and `fr` on a phone-sized and a desktop window: quiz to results, back/edit/restart, cost basis and date, the AI-unavailable notice, the outbound search links, and the results map with its map links.
 - Record the import and its date in the phase's verification log. If something is wrong, undo it as in section 4.3.
 
 ## 9. Open items

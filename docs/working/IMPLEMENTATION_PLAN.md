@@ -402,3 +402,23 @@ Status: **complete (2026-11-03)**; deployed with `dac3dba` and checked on produc
 - Each result carries up to two distinctive strengths (margin 0.75 score points, from a simulation on `content/initial-v8.json`); ranking and fit are unchanged.
 - The results page shows them and the external-search note once; `index.html` has the description, canonical URL, and Open Graph tags; the favicon, `robots.txt`, and the hub link are added.
 - `npm run check` (826 tests) and `npm run test:e2e` (77 passed, one skipped by design) passed; AI is disabled, and the account stays on Workers Free.
+
+## Phase 20 — Destination map
+Owner decision (2026-11-08): add a map only if it is guaranteed free, before adding destinations and cost estimates (Phase 21), so that new destinations get coordinates from the start. Prompt: `prompts/20-destination-map.md`.
+- Add optional `latitude` and `longitude` to destinations (migration, bundle, import, admin, content API), and coordinates for the 30 destinations in `content/initial-v9.json`, reviewed by the owner.
+- Draw a world map from public-domain Natural Earth data into one static SVG served by the app, and show the shown results as numbered pins on the results page, with a text alternative. No tile server, map API, or key.
+- Link each card with coordinates to an external map in a new tab.
+- Not in this phase: new destinations and cost estimates (Phase 21), zoomable maps, images, shareable result URLs, and production AI.
+
+Acceptance:
+- Destinations have optional, validated coordinates through every layer, and the migration is backward compatible.
+- `initial-v9.json` differs from `initial-v8.json` only by the reviewed coordinates.
+- The results page shows the map with numbered pins and a text alternative in all four locales, and the map links work.
+- No new external request, no CSP change, and the quiz pages do not load the map.
+- `npm run check` and `npm run test:e2e` pass, AI is disabled, and the account stays on Workers Free.
+- After the owner's migration, push, and import, production shows the map, checked without login.
+
+Status: **implemented locally (2026-11-08)**; the owner reviews the coordinates, applies migration `0003` to production, pushes, and imports `content/initial-v9.json` ("Phase 20 verification log" in DECISIONS.md).
+
+## Phase 21 — More destinations and cost estimates (planned)
+Owner decision (2026-11-08): after Phase 20, add destinations in the regions with none or few (for example the Middle East, South Asia, sub-Saharan Africa, the UK, Portugal, and the Nordic countries), with coordinates, and fill more cost estimates and best months under the Phase 8 and Phase 9 source rules. The candidate list, the total, and the prompt are prepared when Phase 20 is complete.

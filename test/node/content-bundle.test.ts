@@ -45,6 +45,39 @@ it("content/ contains at least one bundle", () => {
   expect(files.length).toBeGreaterThan(0);
 });
 
+/** Bundles from initial-v9.json on carry a location for every destination (ADR-036). */
+const withLocations = files.filter((file) => Number(/^initial-v(\d+)\.json$/.exec(file)?.[1]) >= 9);
+
+describe.each(withLocations)("%s locations", (file) => {
+  const bundle = JSON.parse(readFileSync(path.join(CONTENT_DIR, file), "utf8")) as {
+    destinations: { slug: string; location?: { latitude: number; longitude: number } | null }[];
+  };
+
+  it("gives every destination a representative point rounded to two decimals", () => {
+    const invalid = bundle.destinations
+      .filter(({ location }) => {
+        if (!location) return true;
+        return [location.latitude, location.longitude].some((value) => Math.round(value * 100) / 100 !== value);
+      })
+      .map((entry) => entry.slug);
+    expect(invalid).toEqual([]);
+  });
+});
+
+it("initial-v9.json differs from initial-v8.json only by destination locations", () => {
+  const read = (file: string) => JSON.parse(readFileSync(path.join(CONTENT_DIR, file), "utf8")) as Record<string, unknown>;
+  const v9 = read("initial-v9.json") as { destinations: Record<string, unknown>[] };
+  const withoutLocations = {
+    ...v9,
+    destinations: v9.destinations.map((destination) => {
+      const rest = { ...destination };
+      delete rest.location;
+      return rest;
+    }),
+  };
+  expect(withoutLocations).toEqual(read("initial-v8.json"));
+});
+
 describe.each(files)("%s", (file) => {
   const parsed = parseBundle(readFileSync(path.join(CONTENT_DIR, file), "utf8"));
 

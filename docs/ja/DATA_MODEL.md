@@ -1,11 +1,11 @@
-<!-- source: docs/en/DATA_MODEL.md blob 5f7acae7ee4b03e0c7ac389acf92ce28eeace580 -->
+<!-- source: docs/en/DATA_MODEL.md blob 567cedfe664b8a7ec831448f9acf3e4f813c3c22 -->
 [English](../en/DATA_MODEL.md) | 日本語 · [目次に戻る](README.md)
 
 > この文書は[英語版](../en/DATA_MODEL.md)の翻訳。内容が異なる場合は英語版が優先する。
 
 # データモデル — Travel Discovery
 
-D1 に保存するコンテンツデータを説明する。エンティティ、その関係、ローカライズ用のテーブル、設計ルールを扱う。スキーマ、管理 API、シードデータを変える人向けの文書だ。具体的なスキーマは `server/db/schema.ts` にあり、下の論理モデルとの違いは「Phase 1 のスキーマに関する注記」と「Phase 2 のスキーマに関する注記」にまとめてある。
+D1 に保存するコンテンツデータを説明する。エンティティ、その関係、ローカライズ用のテーブル、設計ルールを扱う。スキーマ、管理 API、シードデータを変える人向けの文書だ。具体的なスキーマは `server/db/schema.ts` にあり、下の論理モデルとの違いは「Phase 1 のスキーマに関する注記」、「Phase 2 のスキーマに関する注記」、「Phase 20 のスキーマに関する注記」にまとめてある。
 
 これは初期の論理モデルだ。Claude Code は、現在の D1／ORM の互換性を確かめたうえで、これを具体的なスキーマ、制約、インデックス、マイグレーションに落とし込む。
 
@@ -47,6 +47,7 @@ erDiagram
 - `destination_type`: city / region / island / その他の対応する列挙値
 - `recommended_days_min`, `recommended_days_max`
 - `best_months_mask`: 旅行に適した月を構造化したもの（Phase 2、ADR-021）
+- `latitude`、`longitude`: 結果の地図に使う代表地点（任意、Phase 20、ADR-036）
 - 目安の費用は `destination_cost_estimates` に置く（Phase 2、ADR-021）
 - `image_url`, `image_attribution`
 - `flight_search_config` / `hotel_search_config` は、安全で、文書化してあり、必要な場合だけ。それ以外はアプリのコードで既知の安全な URL を生成する
@@ -219,3 +220,13 @@ erDiagram
   - 概算は、旅行先の集約の `PUT` の一部として置き換える。
 - **旅行に適した月**: `destinations.best_months_mask` は `NULL`（不明）か 1〜4095。ビット `m − 1` が立っていれば、`m` 月は旅行に適した月だ。API ではソートした月のリストとしてやり取りする（`shared/months.ts`）。
 - **マイグレーションの安全性**: `destinations` の作り直しでは、ID、翻訳、属性スコアを保つ（ADR-021 参照）。以前の単一通貨の費用の値は捨てる。
+
+## Phase 20 のスキーマに関する注記
+
+マイグレーション `0003` で `destinations.latitude` と `destinations.longitude` を追加した（判断: [DECISIONS.md](../working/DECISIONS.md)（英語のみ） ADR-036）:
+
+- **値**: WGS 84 の度で、両方 `NULL` か両方あり。緯度は −90〜90、経度は −180〜180。管理 API で検証する。`destinations` を作り直さずに列を追加するため、データベースには CHECK を置いていない。
+- **API での形**: 管理 API、コンテンツバンドル、`/api/diagnosis-content` では `location: { latitude, longitude }` か `null` としてやり取りする。管理 API のペイロードやバンドルで `location` がなければ `null` として扱う。
+- **代表地点**: 都市なら中心部（市庁舎や旧市街など）。地域や島なら、その中にある旅行者に分かりやすい地点で、ふつうは中心となる町。どちらも小数点以下 2 桁（約 1 km）に丸める。
+- **影響**: 位置のない旅行先も有効だ。地図のピンと外部地図へのリンクが出ないだけで、ランキングは位置を使わない。
+- **マイグレーションの安全性**: null を許す列を足すだけなので、マイグレーション前にデプロイしたコードもそのまま動く。

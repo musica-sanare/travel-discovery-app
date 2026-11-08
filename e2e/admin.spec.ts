@@ -158,6 +158,7 @@ test.describe("admin content import on the dev server", () => {
     const bundle = ({
       destinationCountry = country,
       bestMonths = [] as number[],
+      location = null as { latitude: number; longitude: number } | null,
       withPortugal = true,
       countryName = "E2E国",
       yesLabel = "はい",
@@ -178,6 +179,7 @@ test.describe("admin content import on the dev server", () => {
             status: "draft",
             recommendedDays: { min: null, max: null },
             bestMonths,
+            location,
             image: null,
             attributeScores: [{ attribute: "food", score: 4 }],
             translations: { ja: { name: "E2E取り込み市", summary: "取り込みテスト用の架空の旅行先です。" } },
@@ -231,14 +233,16 @@ test.describe("admin content import on the dev server", () => {
     await expect(page.getByRole("status").filter({ hasText: "作成または更新する項目はありません。" })).toBeVisible();
 
     // Update mode: only the changed destination is replaced, after a field-level diff.
-    await input.fill(bundle({ bestMonths: [5, 4], withPortugal: false }));
+    const located = { latitude: 38.71, longitude: -9.14 };
+    await input.fill(bundle({ bestMonths: [5, 4], location: located, withPortugal: false }));
     await checkButton.click();
     await expect(page.getByRole("status").filter({ hasText: "作成または更新する項目はありません。" })).toBeVisible();
     await page.getByLabel(/既存の項目を更新する/).check();
     await checkButton.click();
     await expect(page.getByRole("row", { name: /^旅行先/ })).toContainText(destination);
-    await page.getByText(`旅行先: ${destination} の変更点（1 件）`).click();
+    await page.getByText(`旅行先: ${destination} の変更点（2 件）`).click();
     await expect(page.getByRole("row", { name: /bestMonths/ })).toContainText("[4,5]");
+    await expect(page.getByRole("row", { name: /^location/ })).toContainText("38.71");
     await waitForAnimations(page);
     expect(await axeViolations(page)).toEqual([]);
     await page.getByRole("button", { name: "取り込む" }).click();
@@ -248,9 +252,9 @@ test.describe("admin content import on the dev server", () => {
       (await (await request.get(`/api/admin/destinations?q=${destination}`)).json()) as { items: { id: number }[] }
     ).items;
     const detail = (await (await request.get(`/api/admin/destinations/${String(updated?.id)}`)).json()) as {
-      item: { bestMonths: number[]; status: string };
+      item: { bestMonths: number[]; location: unknown; status: string };
     };
-    expect(detail.item).toMatchObject({ bestMonths: [4, 5], status: "draft" });
+    expect(detail.item).toMatchObject({ bestMonths: [4, 5], location: located, status: "draft" });
 
     // The stored items now match the file, including the API defaults.
     await checkButton.click();
@@ -258,7 +262,7 @@ test.describe("admin content import on the dev server", () => {
     await expect(page.getByRole("status").filter({ hasText: "作成または更新する項目はありません。" })).toBeVisible();
 
     // Countries and questions are updated the same way.
-    await input.fill(bundle({ bestMonths: [5, 4], withPortugal: false, countryName: "E2E国（更新）", yesLabel: "はい（更新）" }));
+    await input.fill(bundle({ bestMonths: [5, 4], location: located, withPortugal: false, countryName: "E2E国（更新）", yesLabel: "はい（更新）" }));
     await checkButton.click();
     await expect(page.getByRole("row", { name: /^国/ })).toContainText(country);
     await expect(page.getByRole("row", { name: /^質問\s/ })).toContainText(question);
@@ -283,7 +287,7 @@ test.describe("admin content import on the dev server", () => {
     ]);
 
     // A question update that would archive an option is refused before anything is written.
-    await input.fill(bundle({ bestMonths: [5, 4], withPortugal: false, countryName: "E2E国（更新）", yesLabel: "はい（更新）", withNo: false }));
+    await input.fill(bundle({ bestMonths: [5, 4], location: located, withPortugal: false, countryName: "E2E国（更新）", yesLabel: "はい（更新）", withNo: false }));
     await checkButton.click();
     await expect(page.getByRole("alert")).toContainText("questions[0].options[value=no]");
     await expect(page.getByRole("button", { name: "取り込む" })).toHaveCount(0);

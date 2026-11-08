@@ -191,6 +191,8 @@ function destinationColumns(input: DestinationInput) {
     recommendedDaysMin: input.recommendedDays.min,
     recommendedDaysMax: input.recommendedDays.max,
     bestMonthsMask: monthsToMask(input.bestMonths),
+    latitude: input.location?.latitude ?? null,
+    longitude: input.location?.longitude ?? null,
     imageUrl: input.image?.url ?? null,
     imageAttribution: input.image?.attribution ?? null,
   };

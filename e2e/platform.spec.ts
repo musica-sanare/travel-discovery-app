@@ -19,6 +19,7 @@ test("serves the favicon and robots.txt as real files with the security headers"
   for (const [file, type] of [
     ["/favicon.svg", "image/svg+xml"],
     ["/robots.txt", "text/plain"],
+    ["/world-map.svg", "image/svg+xml"],
   ] as const) {
     const response = await request.get(file);
     expect(response.status()).toBe(200);

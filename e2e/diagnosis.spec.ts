@@ -35,6 +35,30 @@ test.describe("core journey without AI", () => {
     expect(errors).toEqual([]);
   });
 
+  test("results show the self-hosted map, which the quiz pages never load", async ({ page, baseURL }) => {
+    const { errors, requests } = watchPage(page);
+    const mapRequests = () => requests.filter((url) => new URL(url).pathname === "/world-map.svg");
+    await startQuiz(page);
+    await page.getByRole("button", { name: "質問に進む" }).click();
+    await expect(page.getByRole("heading", { level: 1, name: /^質問 1 \/ \d+$/ })).toBeVisible();
+    expect(mapRequests()).toEqual([]);
+    await answerAllQuestions(page);
+
+    const map = page.getByRole("figure", { name: "地図で見る" });
+    await expect(map).toBeVisible();
+    // The seed gives Lisbon and Taipei a location, but not South Iceland.
+    await expect(map.getByRole("img", { name: /^おすすめの行き先の世界地図。.*(リスボン|台北)/ })).toBeVisible();
+    await expect(map.getByText(/^地図に表示していない行き先: .*アイスランド南部/)).toBeVisible();
+    await expect.poll(mapRequests).toHaveLength(1);
+    const mapLink = page.getByRole("link", { name: /^Google マップで見る/ }).first();
+    await expect(mapLink).toHaveAttribute("href", /^https:\/\/www\.google\.com\/maps\/search\/\?api=1&query=-?\d+(\.\d+)?,-?\d+(\.\d+)?$/);
+    await expect(mapLink).toHaveAttribute("target", "_blank");
+
+    // Nothing leaves the origin: the map is a same-origin static asset.
+    expect(unexpectedRequests(requests, baseURL ?? "")).toEqual([]);
+    expect(errors).toEqual([]);
+  });
+
   test("back, edit, and restart", async ({ page }) => {
     await startQuiz(page);
     await page.getByRole("button", { name: "質問に進む" }).click();

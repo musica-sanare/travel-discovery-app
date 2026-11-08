@@ -22,6 +22,13 @@
       "when": 1793430435803,
       "tag": "0002_fr_locale",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1794100365396,
+      "tag": "0003_destination_location",
+      "breakpoints": true
     }
   ]
 }

@@ -52,6 +52,7 @@ export const en: Messages = {
     fit: "FIT",
     stay: "STAY",
     flightLog: "FLIGHT LOG",
+    routeMap: "ROUTE MAP",
     gateNotFound: "404 · GATE NOT FOUND",
     delayed: "DELAYED",
   },
@@ -127,6 +128,15 @@ export const en: Messages = {
     restart: "Start over",
     answers: "Your answers",
     skipped: "Skipped",
+    mapLink: "View on Google Maps",
+    map: {
+      heading: "On the map",
+      label: "World map of your recommendations: {{list}}",
+      item: "{{rank}} {{name}} ({{country}})",
+      itemNoCountry: "{{rank}} {{name}}",
+      caption: "Pin numbers match the result ranks. Each pin marks a representative point, not an exact place. “View on Google Maps” opens in a new tab and passes on only the destination’s location.",
+      missing: "Not on the map: {{list}}",
+    },
     ai: {
       heading: "AI-generated note",
       label: "Written by AI and may contain errors. Rely on the information above for rankings, costs, timing, and other details.",

@@ -113,6 +113,12 @@ const bestMonths = z
   .max(MONTHS.length)
   .refine((items) => uniqueBy(items, (item) => item), { message: "duplicate_month" });
 
+/** Representative point in WGS 84 degrees (DATA_MODEL.md "destinations"): both coordinates or none. */
+const location = z.object({
+  latitude: z.number().min(-90).max(90),
+  longitude: z.number().min(-180).max(180),
+});
+
 const destinationTranslation = z.object({
   name: requiredText(120),
   summary: requiredText(1000),
@@ -132,6 +138,7 @@ export const destinationInput = z
     status: z.enum(CONTENT_STATUSES),
     recommendedDays: z.object({ min: days, max: days }),
     bestMonths: bestMonths.default([]),
+    location: location.nullable().default(null),
     costs: z
       .array(costEstimateInput)
       .max(SUPPORTED_CURRENCIES.length)

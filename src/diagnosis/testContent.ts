@@ -11,7 +11,12 @@ const NAMES = {
 
 export function testContent(locale: Locale = "ja", overrides: Partial<DiagnosisContentResponse> = {}): DiagnosisContentResponse {
   const n = NAMES[locale];
-  const destination = (slug: string, name: string, scores: Record<string, number>) => ({
+  const destination = (
+    slug: string,
+    name: string,
+    scores: Record<string, number>,
+    location: { latitude: number; longitude: number } | null = null,
+  ) => ({
     slug,
     locale,
     type: "city" as const,
@@ -22,6 +27,7 @@ export function testContent(locale: Locale = "ja", overrides: Partial<DiagnosisC
     bestSeason: null,
     recommendedDays: { min: 3, max: 6 },
     bestMonths: [4, 5],
+    location,
     country: { slug: "country", name: "Country", locale },
     costs: [],
     image: null,
@@ -62,7 +68,7 @@ export function testContent(locale: Locale = "ja", overrides: Partial<DiagnosisC
         ],
       },
     ],
-    destinations: [destination("lisbon", n.lisbon, { food: 5, nature: 2 }), destination("south-iceland", n.iceland, { food: 1, nature: 5 })],
+    destinations: [destination("lisbon", n.lisbon, { food: 5, nature: 2 }, { latitude: 38.71, longitude: -9.14 }), destination("south-iceland", n.iceland, { food: 1, nature: 5 })],
     ...overrides,
   };
 }

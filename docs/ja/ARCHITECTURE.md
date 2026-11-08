@@ -1,4 +1,4 @@
-<!-- source: docs/en/ARCHITECTURE.md blob 3600a6af130b9ecacf5f983461d9760d504abea1 -->
+<!-- source: docs/en/ARCHITECTURE.md blob 4912d00933252eadf06d9d90f00fd34b26bf12e8 -->
 [English](../en/ARCHITECTURE.md) | 日本語 · [目次に戻る](README.md)
 
 > この文書は[英語版](../en/ARCHITECTURE.md)の翻訳。内容が異なる場合は英語版が優先する。
@@ -110,7 +110,7 @@ sequenceDiagram
 
 1. **コンテンツを読み込む。** ユーザーがクイズを始めると、クライアントは `GET /api/diagnosis-content?locale=` からコンテンツのスナップショットを 1 つ読み込む（公開済みのコンテンツ、スコアリング用のデータ、クイズの設定）。レスポンスは HTTP ではキャッシュしない。クライアントがメモリ上で最大 5 分間使い回す。
 2. **状態はメモリに置く。** クライアントは旅行の条件、回答、シードをメモリ上だけに持つ。サーバーには何も保存せず、再読み込みするとクイズは最初からになる。AI アシストが OFF ならサーバーにも何も送らない。ON の場合は手順 4。
-3. **ブラウザーで順位を決める。** クライアントは `domain/diagnosis/`（[DIAGNOSTIC_ALGORITHM.md](DIAGNOSTIC_ALGORITHM.md)）で質問の選択、スコアリング、順位付けをする。結果は決定的な説明とともに表示する。
+3. **ブラウザーで順位を決める。** クライアントは `domain/diagnosis/`（[DIAGNOSTIC_ALGORITHM.md](DIAGNOSTIC_ALGORITHM.md)）で質問の選択、スコアリング、順位付けをする。結果は決定的な説明とともに表示する。結果ページには世界地図も出す。陸地は静的アセットの `/world-map.svg` で、ブラウザーはこのときだけ取得する。ピンの位置は `shared/map-projection.ts` で決める（ADR-036）。地図は外部へのリクエストをしない。
 4. **任意の AI ノート**（Phase 4、ADR-026、提案）。AI アシストが有効なら、クライアントは回答、条件、ロケール、表示中のスラッグをつけて `POST /api/ai/explanations` を 1 回送る。
    - Worker はそれらを検証し、同じドメインモジュールで現在の公開コンテンツから順位を計算し直す。
    - スラッグが違えば、AI を呼ばずに `409` を返す。

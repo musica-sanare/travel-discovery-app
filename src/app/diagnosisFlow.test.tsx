@@ -137,6 +137,16 @@ describe("diagnosis flow", () => {
       expect(link.getAttribute("target")).toBe("_blank");
       expect(link.getAttribute("rel")).toBe("noopener noreferrer");
     }
+
+    // The map shows only Lisbon, the result with a location, and names South Iceland as not on it.
+    expect(screen.getByRole("img", { name: "おすすめの行き先の世界地図。1位 リスボン（Country）" })).toBeTruthy();
+    expect(screen.getByText("地図に表示していない行き先: 2位 アイスランド南部（Country）")).toBeTruthy();
+    // The map link carries only the coordinates, with the same new-tab hint as the search links.
+    const mapLink = within(lisbon as HTMLElement).getByRole("link", { name: /^Google マップで見る.*新しいタブで開きます/ });
+    expect(mapLink.getAttribute("href")).toBe("https://www.google.com/maps/search/?api=1&query=38.71,-9.14");
+    expect(mapLink.getAttribute("target")).toBe("_blank");
+    expect(mapLink.getAttribute("rel")).toBe("noopener noreferrer");
+    expect(within(iceland as HTMLElement).queryByRole("link", { name: /Google マップ/ })).toBeNull();
   });
 
   async function finishQuizWithAi(options: { days?: string } = {}) {

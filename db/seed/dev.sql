@@ -69,14 +69,15 @@ SELECT a.id, t.locale, t.name, NULL FROM t JOIN attributes a ON a.slug = t.slug;
 -- destination's authored best-season text; NULL where that text names no
 -- single period (South Iceland) or is missing (Da Nang).
 -- Lisbon: Mar-May, Sep-Nov = 1820. Taipei: Oct-Apr = 3599.
-WITH d(slug, country, type, days_min, days_max, best_months, status) AS (VALUES
-  ('lisbon', 'portugal', 'city', 3, 6, 1820, 'published'),
-  ('taipei', 'taiwan', 'city', 3, 5, 3599, 'published'),
-  ('south-iceland', 'iceland', 'region', 5, 10, NULL, 'published'),
-  ('da-nang', 'vietnam', 'city', 4, 7, NULL, 'draft'))
+-- South Iceland has no location, so a result without a map pin stays covered.
+WITH d(slug, country, type, days_min, days_max, best_months, latitude, longitude, status) AS (VALUES
+  ('lisbon', 'portugal', 'city', 3, 6, 1820, 38.71, -9.14, 'published'),
+  ('taipei', 'taiwan', 'city', 3, 5, 3599, 25.04, 121.56, 'published'),
+  ('south-iceland', 'iceland', 'region', 5, 10, NULL, NULL, NULL, 'published'),
+  ('da-nang', 'vietnam', 'city', 4, 7, NULL, 16.05, 108.22, 'draft'))
 INSERT INTO destinations
-  (slug, country_id, destination_type, recommended_days_min, recommended_days_max, best_months_mask, status, created_at, updated_at)
-SELECT d.slug, c.id, d.type, d.days_min, d.days_max, d.best_months, d.status,
+  (slug, country_id, destination_type, recommended_days_min, recommended_days_max, best_months_mask, latitude, longitude, status, created_at, updated_at)
+SELECT d.slug, c.id, d.type, d.days_min, d.days_max, d.best_months, d.latitude, d.longitude, d.status,
   '2026-10-17T00:00:00.000Z', '2026-10-17T00:00:00.000Z'
 FROM d JOIN countries c ON c.slug = d.country;
 

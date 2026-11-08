@@ -94,6 +94,8 @@ export const ja = {
     type: "種類",
     recommendedDaysMin: "推奨日数（最小）",
     recommendedDaysMax: "推奨日数（最大）",
+    latitude: "緯度（−90〜90。地図にピンを出さない場合は緯度・経度とも空欄）",
+    longitude: "経度（−180〜180）",
     summary: "概要",
     highlights: "見どころ（1行に1つ）",
     cautions: "注意点",

@@ -2,7 +2,7 @@ English | [日本語](../ja/DATA_MODEL.md) · [Docs index](README.md)
 
 # Data Model — Travel Discovery
 
-This page describes the content data stored in D1: the entities, how they relate, the localization tables, and the design rules. It is for anyone who changes the schema, the admin API, or the seed data. The concrete schema is `server/db/schema.ts`; how it differs from the logical model below is in "Phase 1 schema notes" and "Phase 2 schema notes".
+This page describes the content data stored in D1: the entities, how they relate, the localization tables, and the design rules. It is for anyone who changes the schema, the admin API, or the seed data. The concrete schema is `server/db/schema.ts`; how it differs from the logical model below is in "Phase 1 schema notes", "Phase 2 schema notes", and "Phase 20 schema notes".
 
 This is the initial logical model. Claude Code should convert it into a concrete schema, constraints, indexes, and migrations after checking current D1/ORM compatibility.
 
@@ -44,6 +44,7 @@ erDiagram
 - `destination_type`: city / region / island / other supported enum
 - `recommended_days_min`, `recommended_days_max`
 - `best_months_mask`: structured best travel months (Phase 2, ADR-021)
+- `latitude`, `longitude`: optional representative point for the results map (Phase 20, ADR-036)
 - indicative costs live in `destination_cost_estimates` (Phase 2, ADR-021)
 - `image_url`, `image_attribution`
 - `flight_search_config` / `hotel_search_config` only if safe, documented, and necessary; otherwise generate known safe URLs in application code
@@ -216,3 +217,13 @@ Migration `0001` (decision: [DECISIONS.md](../working/DECISIONS.md) ADR-021; alg
   - Estimates are replaced as part of the destination aggregate `PUT`.
 - **Best months**: `destinations.best_months_mask` is `NULL` (unknown) or 1–4095, where bit `m − 1` means month `m` is a recommended travel month. The API exchanges it as a sorted list of months (`shared/months.ts`).
 - **Migration safety**: the `destinations` rebuild preserves IDs, translations, and attribute scores (see ADR-021). Legacy single-currency cost values are discarded.
+
+## Phase 20 schema notes
+
+Migration `0003` adds `destinations.latitude` and `destinations.longitude` (decision: [DECISIONS.md](../working/DECISIONS.md) ADR-036):
+
+- **Values**: degrees in WGS 84, both `NULL` or both set, with latitude −90 to 90 and longitude −180 to 180. The admin API enforces this. The database has no CHECK, so that the columns could be added in place without rebuilding `destinations`.
+- **API shape**: the admin API, content bundles, and `/api/diagnosis-content` exchange the pair as `location: { latitude, longitude }` or `null`. A missing `location` in an admin payload or bundle means `null`.
+- **Representative point**: for a city, its centre (for example the city hall or the historic centre). For a region or island, a point inside it that a traveller would recognize, usually its main town. Round both values to two decimals (about 1 km).
+- **Effect**: a destination without a location is valid. It gets no map pin and no external map link; ranking ignores the location.
+- **Migration safety**: the migration only adds nullable columns, so code deployed before it keeps working.
