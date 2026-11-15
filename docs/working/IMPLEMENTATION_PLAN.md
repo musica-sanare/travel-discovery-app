@@ -488,3 +488,17 @@ Acceptance:
 - `npm run check` and `npm run test:e2e` pass; AI stays disabled, and the account stays on Workers Free.
 
 Status: **complete (2026-11-08)**, pushed with `9ea2c50` and `initial-v12.json` imported on production by the owner; production matches the bundle in four locales on the compared fields. The owner approved the attributes `ancient-sites` and `wildlife`, two questions, and Siem Reap and the Galápagos Islands; the local rehearsal matches the bundle in four locales ("Phase 25 verification log" in DECISIONS.md). Rome rises from 30% to 63% found and Maasai Mara from 73% to 81%; Lisbon, Edinburgh, and Copenhagen do not improve.
+
+## Phase 26 — Lisbon, Edinburgh, and Copenhagen
+Owner request (2026-11-14): make Lisbon, Edinburgh, and Copenhagen easier to find for travellers whose ideal they are. Prompt: `prompts/26-hard-to-find-cities.md` (approved 2026-11-14).
+- Diagnose why the three cities rank low: competitors that score the same or higher everywhere, and where their anchored respondents' answers lead.
+- Write rubrics for the attributes a proposal touches; prefer score corrections, then option changes, then at most one new attribute.
+- Simulate each proposal alone and together; the owner decides what to keep. Write `content/initial-v13.json` with only the approved changes and rehearse its import.
+- Not in this phase: engine changes, quiz settings, new destinations, a region field, enabling AI.
+
+Acceptance:
+- Every change has a reason under a written rubric or the authored text and the owner's approval; the three cities are found more often within approved quality bounds.
+- `content/initial-v13.json` differs from `initial-v12.json` only by the approved changes, and the local rehearsal matches it in four locales.
+- `npm run check` passes; AI stays disabled, and the account stays on Workers Free.
+
+Status: **complete (2026-11-15)**, not yet pushed or imported. The owner approved three score corrections and no new attribute: Lisbon `history-culture` 4 → 5, Edinburgh `easy-getting-around` 4 → 5, and Copenhagen `relaxation` 3 → 4. Found in the top 5 by anchored respondents: Lisbon 17% → 47%, Edinburgh 41% → 56%, Copenhagen 58% → 79% ("Phase 26 verification log" in DECISIONS.md).

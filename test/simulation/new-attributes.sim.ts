@@ -18,6 +18,7 @@ import { nextQuestion, rankDestinations, type Answer, type DiagnosisContent } fr
 import { DEFAULT_QUIZ_SETTINGS } from "../../shared/quiz-settings";
 import { DEFAULT_QUALITY, evaluateQuizQuality, idealRanking } from "./quiz-quality";
 import { DEFAULT_SIMULATION, randomStream, simulateQuizzes, toSimulationContent, type SimulationBundle } from "./quiz-variety";
+import { applyVariant } from "./phase26-variants";
 import { makeRespondent, optionUtility, respondentAnswer, type ProfileFamily, type Respondent } from "./respondents";
 
 const names = (process.env.QUIZ_SIMULATE_BUNDLES ?? "initial-v11.json").split(",").map((name) => name.trim()).filter(Boolean);
@@ -25,7 +26,7 @@ const RESPONDENT_SEED_SALT = 0x5bd1e995;
 const ANSWER_SEED_SALT = 0xa5a5a5a5;
 const limits = DEFAULT_QUIZ_SETTINGS;
 const behaviour = DEFAULT_QUALITY.behaviour;
-const WATCHED = ["rome", "maasai-mara", "edinburgh", "copenhagen", "lisbon"];
+const WATCHED = (process.env.QUIZ_SIMULATE_WATCHED ?? "rome,maasai-mara,edinburgh,copenhagen,lisbon").split(",").map((slug) => slug.trim());
 /** A destination counts as worse below these drops against the first bundle. */
 const WORSE_FOUND = 0.05;
 const WORSE_SHARE = 0.01;
@@ -34,10 +35,14 @@ const pct = (value: number) => `${(100 * value).toFixed(1)}%`;
 
 type Loaded = { name: string; content: DiagnosisContent; usable: UsableContent };
 
+/** A bundle file in content/ (or an absolute path), or `variant:<name>` for a Phase 26 candidate applied to initial-v12.json. */
 function load(name: string): Loaded {
-  const bundle = JSON.parse(readFileSync(path.resolve(import.meta.dirname, "../../content", name), "utf8")) as SimulationBundle;
+  const variant = name.startsWith("variant:") ? name.slice("variant:".length) : undefined;
+  const file = variant === undefined ? name : "initial-v12.json";
+  const read = JSON.parse(readFileSync(path.resolve(import.meta.dirname, "../../content", file), "utf8")) as SimulationBundle;
+  const bundle = variant === undefined ? read : applyVariant(read, variant);
   const content = toSimulationContent(bundle);
-  return { name: path.basename(name), content, usable: prepareContent(content) };
+  return { name: variant ?? path.basename(name), content, usable: prepareContent(content) };
 }
 
 /** Indifferent to every option of a single-choice question: the middle option, so a new question is not answered with its first option by default. */

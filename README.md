@@ -6,7 +6,7 @@ Travel Discovery is a responsive web app that recommends overseas city/region-le
 
 ## Status
 
-- Phases 0–25 are complete and deployed, and production has `content/initial-v12.json` imported.
+- Phases 0–26 are complete. Production has `content/initial-v12.json` imported; `content/initial-v13.json` from Phase 26 is not yet imported.
 - Production runs at https://travel-discovery.apps.musica-sanare.com (also on `workers.dev`) with AI disabled and deploys through Cloudflare Workers Builds on each push to `main`. It serves 44 destinations in 35 countries, scored on 13 attributes, and 31 quiz questions.
 - Phase 14 made the AI limits and status visible in the UI and deployed the strict per-client AI quota to production.
 - Phase 15 made the quiz prefer questions that separate the likely destinations.
@@ -19,6 +19,7 @@ Travel Discovery is a responsive web app that recommends overseas city/region-le
 - Phase 23 keeps the best match first and fills the other results from destinations that fit almost as well, so results can differ between quizzes; "Show other destinations" draws again.
 - Phase 24 corrected twelve attribute scores, so that broad destinations such as Cape Town appear less often and several hard-to-find destinations are found more often. Rome and Maasai Mara stay rare; they need a new attribute.
 - Phase 25 added two new attributes, ancient sites and wildlife, with questions that use them, and two new destinations, Siem Reap and the Galápagos Islands. Rome and Maasai Mara are found more often in simulation; Lisbon, Edinburgh, and Copenhagen do not improve.
+- Phase 26 corrected three attribute scores, so that Lisbon, Edinburgh, and Copenhagen are found more often in simulation by travellers whose ideal they are.
 - The steps for enabling AI on production are prepared. AI stays disabled until the owner approves them ([Implementation plan](docs/working/IMPLEMENTATION_PLAN.md)).
 - Phase 18 prepared the repository for publishing: a history and secret scan, the MIT license, and a security policy. The owner made it public on 2026-11-01. The GitHub settings to apply right after it are in the [public release checklist](docs/working/PUBLIC_RELEASE.md).
 
