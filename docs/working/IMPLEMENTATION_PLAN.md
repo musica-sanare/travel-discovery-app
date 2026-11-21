@@ -501,4 +501,4 @@ Acceptance:
 - `content/initial-v13.json` differs from `initial-v12.json` only by the approved changes, and the local rehearsal matches it in four locales.
 - `npm run check` passes; AI stays disabled, and the account stays on Workers Free.
 
-Status: **complete (2026-11-15)**, not yet pushed or imported. The owner approved three score corrections and no new attribute: Lisbon `history-culture` 4 → 5, Edinburgh `easy-getting-around` 4 → 5, and Copenhagen `relaxation` 3 → 4. Found in the top 5 by anchored respondents: Lisbon 17% → 47%, Edinburgh 41% → 56%, Copenhagen 58% → 79% ("Phase 26 verification log" in DECISIONS.md).
+Status: **complete (2026-11-15)**, pushed with `77ff6bc` and `initial-v13.json` imported on production by the owner; production scores match the bundle in four locales (2026-11-21). The owner approved three score corrections and no new attribute: Lisbon `history-culture` 4 → 5, Edinburgh `easy-getting-around` 4 → 5, and Copenhagen `relaxation` 3 → 4. Found in the top 5 by anchored respondents: Lisbon 17% → 47%, Edinburgh 41% → 56%, Copenhagen 58% → 79% ("Phase 26 verification log" in DECISIONS.md).
