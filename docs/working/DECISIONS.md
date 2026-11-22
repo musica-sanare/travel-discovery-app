@@ -625,6 +625,38 @@ Owner-approved rollout of the French locale (`prompts/17-french-locale.md` task 
   - A complete quiz in `fr` in the built-in browser at 375 px (5 days, July, EUR 1,500; one question skipped): results Singapour, Barcelone, Andalousie, Taipei, Sicile; Sicily "probablement dans votre budget" with "84 €–207 €" and the French basis, Taipei "pas de données de coût dans votre devise" with "23 300 JPY–36 400 JPY". No horizontal overflow at 375 px or 1,024 px; switching to `es`, `ja`, `en`, and back to `fr` updated the texts and `lang`.
 - *Status* (2026-10-31): Phase 17's acceptance is met. The owner approved the migration before it ran, and a local test shows it keeps every row; UI strings are complete in `fr` with the `fr → en → ja` fallback; `initial-v7.json` differs from `initial-v6.json` only by `fr` translations and the owner approved the review copy; preview and production match the bundle in all four locales, and complete quizzes in `fr` work on both. `npm run check` and `npm run test:e2e` passed after the last code change (commit `ef6d323`). AI is disabled in every environment, and the account stays on Workers Free. Deferred as planned: an `fr` review of AI output (AI_ENABLEMENT.md) and Phase 16.
 
+## Phase 27 verification log (from 2026-11-21)
+Taipei, Buenos Aires, Prague, and Sydney (`prompts/27-low-reach-cities.md`). Only attribute scores change; the engine, quiz settings, questions, and texts do not. No remote command; AI stays disabled. Simulations, run by Claude locally, as in the Phase 26 log: `test/simulation/hard-cities.sim.ts` (400 anchored respondents per city) and `test/simulation/new-attributes.sim.ts` (100 per destination, about ±5 points of noise), with candidates applied in memory to `initial-v13.json` by `test/simulation/phase27-variants.ts` (`p27:<name>` as a bundle name).
+- *Selection*: the four cities with the lowest found rate among 400 anchored respondents on `initial-v13.json`, apart from Lisbon and Edinburgh (Phase 26): Taipei 39%, Buenos Aires 42%, Prague 53%, Sydney 54%.
+- *Diagnosis* (`initial-v13.json`; found in the top 5 / first):
+  - Taipei 39% / 4%: ranked below Singapore 57%, New York 52%, Bangkok 47%, London 45%. Its 5s (food, nightlife, getting around) are shared by several large cities. Its summary names the National Palace Museum as one of its two draws, scored only `history-culture` 3.
+  - Buenos Aires 42% / 6%: ranked below London 73%, Paris 62%, Copenhagen 44%. Barcelona scores the same or higher everywhere except food. Its summary calls it "a large South American city", scored `city-life` 4.
+  - Prague 53% / 2%: ranked below London 88%, Paris 67%, Copenhagen 66%. Barcelona and Copenhagen beat it everywhere except `history-culture`, London everywhere except `relaxation`. Its summary and highlights name beer-hall meals, scored `food` 3.
+  - Sydney 54% / 4%: ranked below Dubai 80%, Rio de Janeiro 57%, Singapore 45%. Its first highlight is the Opera House, scored `art-architecture` 3.
+- *Rubrics* (0–5; 1, 2, and 4 lie between; `history-culture` as in the Phase 26 log):
+  - `food`: 5, eating is a main reason to go; 3, local food is part of the trip; 0, not a reason to go.
+  - `art-architecture`: 5, buildings or art are a main reason to go (Paris, Prague); 3, notable buildings or museums; 0, little.
+  - `city-life`: 5, a world city whose city life is itself a main reason to go; 3, a lively centre on a smaller scale; 1, little city life. Contradicted in part: Singapore 5 against Taipei 4 and Barcelona 4 is not clearly separated by this rubric (要確認).
+  - `nature`: 5, nature is a main reason to go; 3, nature within a day trip that is part of the trip (Sydney, Edinburgh); 0, little.
+- *Proposals simulated* (found in the top 5, 100 anchored respondents, `initial-v13.json` → candidate):
+  - t1 Taipei `history-culture` 3 → 4: Taipei 45% → 57%; no destination worse.
+  - t2 Taipei `nature` 2 → 3 (mountain-town day trips): 45% → 47%, but the fixed population 45% → 39%. Not proposed.
+  - t3 Taipei `city-life` 4 → 5 (as Singapore): 45% → 90%; Istanbul 92% → 78%, Bangkok 83% → 77%. Not proposed: the rubric does not clearly support it.
+  - b1 Buenos Aires `city-life` 4 → 5 (a large city, rubric 5): 34% → 79%; Taipei 45% → 33%, Istanbul 92% → 85%, Copenhagen 79% → 73%.
+  - p1 Prague `food` 3 → 4: 56% → 68%; no destination worse.
+  - y1 Sydney `art-architecture` 3 → 4: 52% → 57%; no destination worse beyond random-share noise.
+  - t1 + p1 + y1 + b1: Buenos Aires 34% → 76%, but Rome 63% → 52%, Istanbul 92% → 82%, and Taipei in the fixed population 45% → 37%.
+- *Owner decision* (2026-11-21): t1, p1, and y1; Buenos Aires unchanged, because b1 undoes part of Rome's Phase 25 gain. Buenos Aires would need something that expresses tango or performing arts, which no attribute does now.
+- *Effect* (`initial-v13.json` → `initial-v14.json`):
+  - Found / first, 400 anchored respondents: Taipei 39% / 4% → 53% / 8%; Prague 53% / 2% → 66% / 4%; Sydney 54% / 4% → 60% / 7%; Buenos Aires 42% / 6% → 38% / 4% (no change intended); Edinburgh 54% / 13% → 53% / 12%.
+  - With 100: Taipei 45% → 57%, Prague 56% → 68%, Sydney 52% → 57%.
+  - Random share SD 7.1% → 7.0%; sparse SD 8.2% → 8.0%; lowest Buenos Aires (random 2.3%, sparse 0.6%).
+  - Ideal first found (fixed population): sparse 51.2% → 50.8%, anchored 80.4% → 79.8%.
+- *Worse*: Edinburgh found 56% → 48% with 100 respondents, but 54% → 53% with 400, so mostly noise. Random share: Andalusia 11.2% → 10.2%, Riviera Maya 30.6% → 29.2%.
+- *Bundle* (2026-11-21): `content/initial-v14.json`, copied from `initial-v13.json` with the three scores changed (new test in `test/node/content-bundle.test.ts`). No text changed, so no review copy and no E2E run.
+- *Import rehearsal* (2026-11-21): a temporary Worker test, not committed, ran `planImport` and `runImport` against the real admin API on a seeded isolated database: `initial-v13.json`, then `initial-v14.json` with "Update existing items". Destinations: 3 updated, 41 unchanged; every other item unchanged. Field changes: 3, the three scores. `/api/diagnosis-content` in four locales against the bundle on every destination, attribute, and question field: 0 differences, apart from the dev seed's own destination.
+- *Verified locally* (2026-11-21): `npm run check` passed (lint, type-check, 957 tests, build, bundle verification).
+
 ## Phase 26 verification log (from 2026-11-14)
 Lisbon, Edinburgh, and Copenhagen (`prompts/26-hard-to-find-cities.md`). Only attribute scores change; the engine, quiz settings, questions, and texts do not. No remote command; AI stays disabled. Simulations, run by Claude locally: `QUIZ_SIMULATE_HARD_CITIES=1 npm run quiz:simulate -- test/simulation/hard-cities.sim.ts` (400 respondents anchored on each city) and `QUIZ_SIMULATE_ATTRIBUTES=1 QUIZ_SIMULATE_BUNDLES=initial-v12.json,initial-v13.json npm run quiz:simulate -- test/simulation/new-attributes.sim.ts` (measurement limits as in the Phase 25 log; 100 anchored respondents per destination, about ±5 points of noise). Candidates were applied in memory by `test/simulation/phase26-variants.ts` (`variant:<name>` as a bundle name), so no owner-run script was needed.
 - *Diagnosis* (`initial-v12.json`, 400 anchored respondents each; found in the top 5 / first):
@@ -1463,6 +1495,7 @@ Owner decisions of 2026-11-08 (`prompts/22-ai-readiness.md`, "Phase 22 verificat
 - `content/initial-v11.json` (2026-11-08, Phase 24): the same items as `initial-v10.json`, with twelve attribute scores changed on ten destinations ("Phase 24 verification log").
 - `content/initial-v12.json` (2026-11-08, Phase 25): the same items as `initial-v11.json`, plus the attributes `ancient-sites` and `wildlife` with scores for every destination, 2 countries and 2 destinations (Siem Reap, the Galápagos Islands), 2 questions, 1 option, and 1 option effect ("Phase 25 verification log").
 - `content/initial-v13.json` (2026-11-15, Phase 26): the same items as `initial-v12.json`, with three attribute scores changed on Lisbon, Edinburgh, and Copenhagen ("Phase 26 verification log").
+- `content/initial-v14.json` (2026-11-21, Phase 27): the same items as `initial-v13.json`, with three attribute scores changed on Taipei, Prague, and Sydney ("Phase 27 verification log").
 - Tests: `admin/src/import/*.test.ts` (parsing, references, planning, skipping, stopping at a failure) and `e2e/admin.spec.ts` (unknown reference blocked, import as drafts through the dev server, rerun creates nothing, axe on `/import`).
 - **Update mode** (owner decision 2026-10-24, Phase 8; "Phase 8 verification log"): an opt-in checkbox, off by default, lets the Import page update **existing destinations only**; countries, attributes, categories, and questions with existing slugs are still skipped (a question `PUT` would archive the options missing from the file). Still no new endpoint or server code.
   - Check: for each bundle destination whose slug exists, the page reads `GET /api/admin/destinations/:id`, brings both sides into one comparable shape with slug references and the defaults and trimming of the admin validation (`admin/src/import/diff.ts`), and plans `update` (with the changed fields and their current and new values) or `unchanged`. A change of `status` is highlighted. Destinations not in the file are never read or written.

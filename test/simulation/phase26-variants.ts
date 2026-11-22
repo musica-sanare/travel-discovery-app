@@ -8,7 +8,7 @@ import type { SimulationBundle } from "./quiz-variety";
 
 type Patch = (bundle: SimulationBundle) => void;
 
-function setScore(bundle: SimulationBundle, slug: string, attribute: string, score: number) {
+export function setScore(bundle: SimulationBundle, slug: string, attribute: string, score: number) {
   const destination = bundle.destinations.find((item) => item.slug === slug);
   const entry = destination?.attributeScores.find((item) => item.attribute === attribute);
   if (entry === undefined) throw new Error(`no ${attribute} score for ${slug}`);

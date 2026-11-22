@@ -1,4 +1,4 @@
-<!-- source: README.md blob 1dd90851dfa484b71915c3f9d6d7081ce46074d7 -->
+<!-- source: README.md blob 6653925c7b2adf8adf9437ba022e87a78314dce7 -->
 [English](README.md) | 日本語
 
 > この文書は[英語版](README.md)の翻訳。内容が異なる場合は英語版が優先する。
@@ -9,7 +9,7 @@ Travel Discovery は、都市・地域単位の海外の旅行先を推薦する
 
 ## 状態
 
-- Phase 0〜26 は完了してデプロイ済みで、本番には `content/initial-v13.json` をインポートしてある。
+- Phase 0〜27 は完了している。本番には `content/initial-v13.json` をインポートしてあり、Phase 27 の `content/initial-v14.json` はまだインポートしていない。
 - 本番は https://travel-discovery.apps.musica-sanare.com で、AI を無効にして動いている（`workers.dev` の URL でも開ける）。`main` に push するたびに Cloudflare Workers Builds がデプロイする。35 か国・44 件の旅行先（13 の属性で採点）と、31 問のクイズの質問を提供している。
 - Phase 14 で、AI の上限と提供状況を UI に表示し、利用者ごとの厳密な AI の回数制限を本番にデプロイした。
 - Phase 15 で、有力な旅行先を見分けやすい質問をクイズが優先して出すようにした。
@@ -23,6 +23,7 @@ Travel Discovery は、都市・地域単位の海外の旅行先を推薦する
 - Phase 24 で、属性スコアを 12 か所直した。ケープタウンのように幅広く合う旅行先が出すぎるのを抑え、見つけにくかった旅行先のいくつかを見つけやすくした。ローマとマサイマラは少ないままで、新しい属性が要る。
 - Phase 25 で、古代遺跡と野生動物という 2 つの属性とそれを使う質問、シェムリアップとガラパゴス諸島の 2 件の行き先を加えた。シミュレーションでは、ローマとマサイマラが見つかりやすくなった。リスボン、エディンバラ、コペンハーゲンは改善していない。
 - Phase 26 で、属性スコアを 3 か所直した。シミュレーションでは、リスボン、エディンバラ、コペンハーゲンを理想とする旅行者が、それぞれを見つけやすくなった。
+- Phase 27 で、台北、プラハ、シドニーの属性スコアをさらに 3 か所直した。ブエノスアイレスは見つけにくいままだ。
 - 本番で AI を有効にする手順は用意してある。オーナーが承認するまで AI は無効のまま（[Implementation plan](docs/working/IMPLEMENTATION_PLAN.md)、英語のみ）。
 - Phase 18 で、リポジトリを公開できる状態に整えた。履歴とシークレットのスキャン、MIT ライセンス、セキュリティポリシーを済ませた。オーナーが 2026-11-01 に公開した。公開した直後に入れる GitHub の設定は [Public release checklist](docs/working/PUBLIC_RELEASE.md)（英語のみ）にある。
 

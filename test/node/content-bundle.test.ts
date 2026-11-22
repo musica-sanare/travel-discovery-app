@@ -203,6 +203,29 @@ it("initial-v13.json differs from initial-v12.json only by the approved attribut
   expect(changes.sort()).toEqual(["copenhagen relaxation 3>4", "edinburgh easy-getting-around 4>5", "lisbon history-culture 4>5"]);
 });
 
+it("initial-v14.json differs from initial-v13.json only by the approved attribute scores", () => {
+  interface Destination {
+    slug: string;
+    attributeScores: { attribute: string; score: number }[];
+  }
+  type Bundle = Record<string, unknown> & { destinations: Destination[] };
+  const read = (file: string) => JSON.parse(readFileSync(path.join(CONTENT_DIR, file), "utf8")) as Bundle;
+  const [v13, v14] = [read("initial-v13.json"), read("initial-v14.json")];
+  const changes: string[] = [];
+  const withoutScores = (bundle: Bundle) => ({
+    ...bundle,
+    destinations: bundle.destinations.map((destination) => ({ ...destination, attributeScores: destination.attributeScores.map((item) => item.attribute) })),
+  });
+  expect(withoutScores(v14)).toEqual(withoutScores(v13));
+  for (const [index, destination] of v14.destinations.entries()) {
+    for (const [position, item] of destination.attributeScores.entries()) {
+      const before = v13.destinations[index]?.attributeScores[position]?.score;
+      if (before !== item.score) changes.push(`${destination.slug} ${item.attribute} ${String(before)}>${String(item.score)}`);
+    }
+  }
+  expect(changes.sort()).toEqual(["prague food 3>4", "sydney art-architecture 3>4", "taipei history-culture 3>4"]);
+});
+
 describe.each(files)("%s", (file) => {
   const parsed = parseBundle(readFileSync(path.join(CONTENT_DIR, file), "utf8"));
 

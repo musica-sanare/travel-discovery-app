@@ -19,6 +19,7 @@ import { DEFAULT_QUIZ_SETTINGS } from "../../shared/quiz-settings";
 import { DEFAULT_QUALITY, evaluateQuizQuality, idealRanking } from "./quiz-quality";
 import { DEFAULT_SIMULATION, randomStream, simulateQuizzes, toSimulationContent, type SimulationBundle } from "./quiz-variety";
 import { applyVariant } from "./phase26-variants";
+import { applyVariant27 } from "./phase27-variants";
 import { makeRespondent, optionUtility, respondentAnswer, type ProfileFamily, type Respondent } from "./respondents";
 
 const names = (process.env.QUIZ_SIMULATE_BUNDLES ?? "initial-v11.json").split(",").map((name) => name.trim()).filter(Boolean);
@@ -35,14 +36,19 @@ const pct = (value: number) => `${(100 * value).toFixed(1)}%`;
 
 type Loaded = { name: string; content: DiagnosisContent; usable: UsableContent };
 
-/** A bundle file in content/ (or an absolute path), or `variant:<name>` for a Phase 26 candidate applied to initial-v12.json. */
+/**
+ * A bundle file in content/ (or an absolute path), `variant:<name>` for a
+ * Phase 26 candidate applied to initial-v12.json, or `p27:<name>` for a
+ * Phase 27 candidate applied to initial-v13.json.
+ */
 function load(name: string): Loaded {
   const variant = name.startsWith("variant:") ? name.slice("variant:".length) : undefined;
-  const file = variant === undefined ? name : "initial-v12.json";
+  const variant27 = name.startsWith("p27:") ? name.slice("p27:".length) : undefined;
+  const file = variant !== undefined ? "initial-v12.json" : variant27 !== undefined ? "initial-v13.json" : name;
   const read = JSON.parse(readFileSync(path.resolve(import.meta.dirname, "../../content", file), "utf8")) as SimulationBundle;
-  const bundle = variant === undefined ? read : applyVariant(read, variant);
+  const bundle = variant !== undefined ? applyVariant(read, variant) : variant27 !== undefined ? applyVariant27(read, variant27) : read;
   const content = toSimulationContent(bundle);
-  return { name: variant ?? path.basename(name), content, usable: prepareContent(content) };
+  return { name: variant ?? variant27 ?? path.basename(name), content, usable: prepareContent(content) };
 }
 
 /** Indifferent to every option of a single-choice question: the middle option, so a new question is not answered with its first option by default. */

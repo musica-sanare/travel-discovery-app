@@ -502,3 +502,16 @@ Acceptance:
 - `npm run check` passes; AI stays disabled, and the account stays on Workers Free.
 
 Status: **complete (2026-11-15)**, pushed with `77ff6bc` and `initial-v13.json` imported on production by the owner; production scores match the bundle in four locales (2026-11-21). The owner approved three score corrections and no new attribute: Lisbon `history-culture` 4 → 5, Edinburgh `easy-getting-around` 4 → 5, and Copenhagen `relaxation` 3 → 4. Found in the top 5 by anchored respondents: Lisbon 17% → 47%, Edinburgh 41% → 56%, Copenhagen 58% → 79% ("Phase 26 verification log" in DECISIONS.md).
+
+## Phase 27 — Taipei, Buenos Aires, Prague, and Sydney
+Owner request (2026-11-21): continue with the destinations found least often after Phase 26. Prompt: `prompts/27-low-reach-cities.md` (approved 2026-11-21).
+- Diagnose the four cities as in Phase 26, write rubrics for the attributes touched, and prefer score corrections over option changes and a new attribute.
+- Simulate each proposal alone and together; the owner decides what to keep. Write `content/initial-v14.json` with only the approved changes and rehearse its import.
+- Not in this phase: engine changes, quiz settings, new destinations, a region field, enabling AI.
+
+Acceptance:
+- Every change has a reason under a written rubric or the authored text and the owner's approval; the cities are found more often within approved quality bounds, or the reason they cannot be is reported.
+- `content/initial-v14.json` differs from `initial-v13.json` only by the approved changes, and the local rehearsal matches it in four locales.
+- `npm run check` passes; AI stays disabled, and the account stays on Workers Free.
+
+Status: **complete (2026-11-21)**, not yet pushed or imported. The owner approved three score corrections: Taipei `history-culture` 3 → 4, Prague `food` 3 → 4, and Sydney `art-architecture` 3 → 4. Found in the top 5 by 400 anchored respondents: Taipei 39% → 53%, Prague 53% → 66%, Sydney 54% → 60%. Buenos Aires stays at about 40%: the one score that helps it (`city-life` 5) costs Rome and Istanbul ("Phase 27 verification log" in DECISIONS.md).
